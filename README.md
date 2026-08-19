@@ -63,7 +63,8 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | [docs/data-model.md](docs/data-model.md) | 表结构与检索约束 |
 | [docs/api.md](docs/api.md) | 接口说明（人类可读） |
 | [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI 3.1 |
-| [docs/evaluation.md](docs/evaluation.md) | 记忆 / RAG 评测 |
+| [docs/testing.md](docs/testing.md) | 单元 / 契约 / API / 架构测试与 CI |
+| [docs/evaluation.md](docs/evaluation.md) | 记忆 / RAG 评测（策略对比，不等于 CI 单测） |
 | [docs/adr](docs/adr) | 架构决策记录 |
 
 ## 目标目录（实现时）
@@ -75,6 +76,7 @@ src/arbor/domain             # 领域模型（零基础设施依赖）
 src/arbor/application        # 用例编排
 src/arbor/ports              # 入站 / 出站端口（接口）
 src/arbor/adapters           # FastAPI、Postgres、DeepSeek、bge、S3…
+tests/                       # 单测、契约测、API、架构边界
 eval/                        # 金标与评测脚本
 infra/compose                # Postgres + Redis
 docs/
