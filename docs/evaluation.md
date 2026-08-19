@@ -1,97 +1,174 @@
-# 评测设计
+# 评测怎么办
 
-评测属于支持子域，经 `EvaluationPort` 入站，只读人设记忆（或使用夹具世界）。禁止为刷分改生产记忆。
+评测没有取消，也不该等到「模型聊得像样了」再补。它是 Arbor 的一等能力：**记忆体检页 + 版本化金标套件 + 四套策略对比表**。
 
-与 pytest 分层测试的分工见 [testing.md](testing.md)：隔离与不变式走 CI 单测/契约测；本文只定义策略对比用的金标与指标。
+和 [testing.md](testing.md) 的分工：
 
-## 1. 测什么
+- **测试**：授权、过滤、不变式。假就阻断合并。
+- **评测**：在冻结的记忆世界上，比较检索策略好不好，并给演示页用。
 
-Arbor 的 RAG 不是通用文档问答。指标必须覆盖记忆产品属性，而不仅是 nDCG。
+跨租户命中在两边都是 P0。测试用最小例子钉死过滤；评测用「很像但仍是另一个租户」的文本钉死真实 ANN。
 
-| 类别 | 指标 | 目标 |
+## 1. 你要交付的三样东西
+
+| 交付物 | 给谁看 | 何时跑 |
 |---|---|---|
-| 检索 | Recall@5、MRR | 对比策略用，无绝对线 |
-| 生成 | 忠实度、该拒则拒 | 人工 + 可选自动 |
-| 身份 | 同一事实问 3 次的一致率 | 接近 1.0 |
-| 人设隔离 | persona_leak_rate | 越低越好，演示须为 0 |
-| 租户隔离 | tenant_leak_count | **必须为 0** |
-| 时间 / 因果 | 关键事件命中率 | 加树之后应高于纯向量 |
-| 工程 | 检索延迟、LLM 延迟、token | 拆开记录 |
+| **记忆体检页** | 用户 / 面试官 | 演示一键跑 suite-v1 |
+| **`eval/` 金标 + runner** | 你自己改检索时 | PR：检索层；夜间：生成层 |
+| **对比表（写入 `eval_runs`）** | 简历 / README | 每次改默认策略后更新基线 |
 
-`tenant_leak_count ≠ 0` 时该策略不得设为默认，视为 P0。
+没有对比表的 RAG，面试里只是「我接了向量库」。有表才能说：加上档案和事件树之后，泄漏下降、身份变稳。
 
-## 2. 金标世界（夹具）
-
-固定、版本化，放 `eval/fixtures/suite-v1/`（实现时）。
-
-规模建议：2 个租户、3 个人设、30～50 条记忆、一棵关键事件树。
-
-示例设定：
-
-- 租户 A / 林夏：杭州、讨厌香菜、去年 11 月争吵、约定周末打电话
-- 租户 A / 客服小周：只掌握退货政策
-- 租户 B / 林夏：故意不同的住址与禁忌
-
-题目按技能分类，每类 10～20 题即可：
-
-| 题型 | 例子 | 主要打在 |
-|---|---|---|
-| 档案事实 | 你住哪里 | 档案，不应依赖向量 |
-| 情景细节 | 在哪家店吵的 | RAG |
-| 时间 | 上次约定何时 | 树 + 时间 |
-| 因果 | 为什么一周没说话 | 事件边或主干节点 |
-| 人设隔离 | 对小周问林夏的秘密 | 拒答 / 无知 |
-| 跨租户 | 租户 B 问租户 A 细节 | 检索 0 命中 |
-| 冲突 | 先喜欢猫后过敏 | 新事实或暴露冲突 |
-| 无关 | 今天天气 | 不硬塞私密记忆 |
-| 多模态 | 海边照片在哪拍的 | caption/OCR 索引 |
-
-每题标注：
+## 2. 两条评测管道
 
 ```text
-expected_memory_ids[]
-expected_event_id?
-expected_behavior: answer | cite | refuse
-forbidden_memory_ids[]
+suite-v1 夹具世界
+        │
+        ├─ 模式 retrieval（默认，CI / 体检可关 LLM）
+        │    只跑检索与行为标签：命中 id、拒绝、泄漏
+        │    不调用 DeepSeek
+        │
+        └─ 模式 generation（夜间 / 手动）
+             同一批题再走 SendMessage
+             DeepSeek 出回答 → 忠实度 / 一致率 / 拒答是否得当
 ```
 
-绑定的是 ID，不是某次嵌入的相似度绝对值。换 bge 版本后仍可跑同一套题。
+实现约束：runner 是入站适配器，只调 `EvaluationPort` / `MemoryQueryPort` / `ChatPort`，禁止直连 SQL。
 
-## 3. 对比策略（必须出表）
+## 3. 金标世界（已经放进仓库）
 
-| strategy | 含义 |
+路径：[eval/fixtures/suite-v1/](../eval/fixtures/suite-v1/)。
+
+规模（v1 刻意小，先跑通再加题）：
+
+- 租户 A：林夏（陪伴）、客服小周（员工）
+- 租户 B：另一个「林夏」（住址和禁忌故意不同）
+- 约 20 条记忆 + 一棵关键事件树
+- 约 20 道分类题
+
+设定摘要：
+
+| 人设 | 必须能答 | 必须不能答 |
+|---|---|---|
+| A 林夏 | 住杭州、讨厌香菜、去年 11 月在面店吵架、周末打电话 | 小周的退货政策、B 林夏的上海 |
+| A 小周 | 7 天无理由退货 | 林夏讨厌香菜、吵架细节 |
+| B 林夏 | 住上海、讨厌榴莲 | 杭州、香菜、面店 |
+
+题目绑定 **稳定 ID**（见 `world.json` / `cases.json`），不绑定向量距离。换 bge 只重建嵌入，题不用改。
+
+扩题方式：只加 JSON，不加 Python。目标是每类 10～20 题，不是第一天就 200 题。
+
+## 4. 怎么打分
+
+每道题先评检索（必做），再可选评生成。
+
+**检索**
+
+- 命中：`expected_memory_ids` 是否出现在 top-k（k=5，与进 prompt 条数一致）
+- 泄漏：`forbidden_memory_ids` 出现即记一次 persona/tenant leak
+- 来源：档案题若只靠向量才命中，记 `profile_miss`（分层策略应能不靠向量答对）
+- 事件：`expected_event_id` 是否被路由到
+
+**生成（仅 generation 模式）**
+
+- `answer`：回答可追溯到 citations ⊆ 注入 id
+- `refuse`：隔离题不得泄露 forbidden 文本
+- `cite`：引用了 expected_event_id
+- 身份题 `repeat: 3`：三次答案关键槽位一致（城市、禁忌）才算一致
+
+**汇总指标（写入 EvalRun.metrics）**
+
+| 指标 | 默认策略 `layered_tree` 门槛 |
 |---|---|
-| `summary_only` | 仅档案 + 滚动摘要 |
-| `vector_only` | 仅向量 RAG（仍要租户过滤） |
-| `layered` | 档案 + 摘要 + RAG |
-| `layered_tree` | 再加事件树路由（默认候选） |
+| `tenant_leak_count` | **= 0**，否则不得当默认 |
+| `persona_leak_rate` | 隔离题上 = 0（演示） |
+| `recall_at_5` | v1 软门槛 ≥ 0.70，用来对比而非炫耀 |
+| `identity_consistency` | 身份题 = 1.0（retrieval 应对档案） |
+| `key_event_hit_rate` | 应高于 `vector_only` |
+| `latency_ms` | 拆 retrieval / llm，只记录 |
 
-简历与体检页展示同一张表：身份一致率、Recall@5、人设泄漏、跨租户泄漏、延迟。
+不要把 RAGAS 当唯一分数。自动忠实度只能当 generation 模式的辅表。
 
-要证明的是 **档案和树降低泄漏、稳住身份**，不是「使用了某种 GraphRAG」。
+## 5. 必须出的对比表
 
-## 4. 怎么跑
+每次发布默认策略前，四列都要跑：
 
-1. 领域/应用层单测：授权、supersede、跨人设边插入失败。
-2. 仓储契约测：两条相似文本分属不同 tenant，ANN 互不命中。
-3. `eval` 脚本：只通过入站端口或应用层查询端口，禁止脚本里手写 SQL 绕过过滤。
-4. 生成题可辅以 RAGAS/DeepEval 打忠实度，不得作为唯一分数。
+| strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件命中 | 检索延迟 |
+|---|---|---|---|---|---|---|
+| `summary_only` | | | | 0 | 低 | |
+| `vector_only` | 易漂 | | 易串 | **必须 0** | 较差 | |
+| `layered` | 应升高 | | 应下降 | 0 | 中 | |
+| `layered_tree` | 默认候选 | | | 0 | 应最高 | |
 
-## 5. 与分层的关系
+简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。
+
+基线文件：`eval/baselines/suite-v1.json`（有 runner 后填数，先占位）。
+
+## 6. 记忆体检页怎么接
+
+产品形态见 [product-design.md](product-design.md) §3.3。评测在 UI 上不是图表后台。
+
+**演示模式（面试）**
+
+1. 一键装载 suite-v1（只读夹具租户，不写用户自己的人设）
+2. 跑 `retrieval`（现场不要等 DeepSeek）
+3. 逐题展示：问句、期望行为、实际命中、来源层（档案/树/向量）、红绿
+4. 顶栏四格：身份一致、Recall@5、人设泄漏、跨租户泄漏
+5. 可选展开「四策略对比」用最近一次完整 EvalRun
+
+**用户自己的人设**
+
+- 不拿 suite-v1 的题去考用户隐私
+- 只提供轻量体检：从该人设档案和关键事件自动生成 5～8 题（实现后期再做）
+- v1 可以只做演示套件，仍够简历
+
+API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generation }`，见 [api.md](api.md)。
+
+## 7. 日常怎么用（你的工作流）
+
+改切块、k、是否加树、嵌入模型时：
+
+1. 不改题，只改策略或适配器。
+2. `retrieval` 跑 suite-v1，看泄漏是否仍为 0、Recall 和关键事件是否变差。
+3. 泄漏非 0 → 当 bug，先修过滤，不要调 prompt。
+4. Recall 下降而泄漏仍 0 → 再看切块/路由，允许改默认策略。
+5. 准备发版本 → 跑一趟 `generation`，抽查拒答和引用。
+6. 把表更新进 baseline 和 README。
+
+加题：在 `cases.json` 增加一条，必须带 `forbidden_memory_ids`（隔离类）或 `expected_memory_ids`（召回类）。没有期望 ID 的开放聊天题不进 v1 套件。
+
+## 8. 实现顺序（评测这条线）
+
+1. 冻结 suite-v1 JSON（本仓库已做）。
+2. 应用层能按策略检索（Fake 向量即可）→ 先产出 retrieval 报告。
+3. 体检页读报告 JSON（可先静态放一份 `eval/baselines` 样例）。
+4. Postgres 契约过后再用 pgvector 跑同一套题。
+5. 最后才接 DeepSeek 的 generation 模式。
+
+不要先调一周 prompt 再想评测。没有 ID 金标，你无法知道是变好还是变随机。
+
+## 9. 失败时怎么办
+
+| 现象 | 处理 |
+|---|---|
+| 跨租户命中 | P0，默认策略作废，查 `VectorIndex` 过滤 |
+| 小周答出香菜 | 人设泄漏，查检索是否漏 `persona_id` |
+| 档案题只能向量命中 | 分层没接上，`ContextPolicy` 未注入 Profile |
+| 时间/因果题纯向量更好 | 允许，但默认仍可 layered_tree；在表里如实写 |
+| generation 文风差、检索指标好 | 改提示词，不改金标世界 |
+| 想刷分改 world.json 让题变简单 | 禁止；要改则升 `suite-v2` 并保留 v1 |
+
+## 10. 文件一览
 
 ```text
-eval runner（入站适配器）
-  → EvaluationPort / MemoryQueryPort / ChatPort
-  → 不得 import adapters.outbound.postgres
+eval/
+  README.md
+  fixtures/suite-v1/
+    world.json       # 租户、人设、记忆、事件
+    cases.json       # 题目与期望 ID
+    thresholds.json  # 默认策略门槛
+  baselines/
+    suite-v1.placeholder.json
 ```
 
-评测换 Fake LLM 时仍应跑隔离与 Recall（用夹具向量）。生成质量才需要真实 DeepSeek。
-
-## 6. 失败定义
-
-- 跨租户命中
-- 无 `read_memory` 仍把禁忌写入 prompt（应用层断言）
-- 引用了未注入上下文的 MemoryId
-- 默认策略在身份题上前后矛盾
-
-这些失败优先于「开放聊天好不好听」。
+Runner 代码实现时再放 `eval/runner/`，仍只依赖端口。

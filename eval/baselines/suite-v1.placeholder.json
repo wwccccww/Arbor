@@ -1,0 +1,11 @@
+{
+  "suite_version": "v1",
+  "updated_at": null,
+  "note": "有 runner 之后填入四策略指标。在此之前体检页可以只展示套件说明与题目列表。",
+  "strategies": {
+    "summary_only": null,
+    "vector_only": null,
+    "layered": null,
+    "layered_tree": null
+  }
+}
