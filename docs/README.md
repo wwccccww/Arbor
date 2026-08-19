@@ -10,7 +10,7 @@
 4. [数据模型](data-model.md) — PostgreSQL / pgvector 表与过滤约束
 5. [HTTP 接口](api.md) 与 [OpenAPI](openapi.yaml)
 6. [测试与质量](testing.md) — 金字塔、P0 清单、Fake 端口、CI 门禁
-7. [评测](evaluation.md) — 召回、泄漏、身份一致率（策略对比）
+7. [评测](evaluation.md) — 怎么办：体检页、suite-v1 金标、门槛与工作流
 8. [ADR](adr) — 已冻结的技术决策
 
 ## 文档与代码的关系
