@@ -79,11 +79,13 @@ tests/
       test_tenant_commands.py
       test_export_thread.py
       test_get_event_tree.py
+      test_list_memories.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
   contract/
     postgres/
       test_memory_tenant_filter.py
+      test_memory_list_scope.py
       test_vector_search_isolation.py
       test_event_edge_check.py
       test_thread_messages.py
@@ -102,6 +104,7 @@ tests/
     test_audit.py
     test_tenants.py
     test_thread_export.py
+    test_memories.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -157,6 +160,8 @@ eval/
 | `ConfirmInboxItem` 后可检索 | 内存 VectorIndex 命中 |
 | 导入无 `write_memory` | 失败，对象存储不留文件（或事务回滚） |
 | 两个 Persona 的 Fake 向量互不命中 | 即使用相同向量 |
+| `ListMemories` 无 `read_memory` | 404，不泄露条目 |
+| `ListMemories` 按 type/event/status 过滤 | 默认不含 superseded |
 
 ### 5.3 适配器契约（真实 Postgres）
 
@@ -194,6 +199,7 @@ eval/
 | Owner 管成员 | 列出/邀请；Member 403；不能降级最后一名 owner |
 | Owner 删空空间 | 新建空租户可删；有人设的演示租户 400；Member 403/404 |
 | 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
+| 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404 |
 
 ### 5.5 架构
 

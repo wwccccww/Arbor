@@ -40,6 +40,7 @@ from arbor.application.identity.commands import (
     PatchTenantMember,
 )
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact, ProcessImportJob
+from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
@@ -260,6 +261,7 @@ def create_app(
     storage = InMemoryObjectStorage(object_stores)
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
     process_import = ProcessImportJob(personas=personas, inbox=inbox, ids=ids, auth=AuthorizationPolicy())
+    list_memories = ListMemories(personas=personas, memories=memories, auth=AuthorizationPolicy())
     list_audit_logs = ListAuditLogs(audit_logs)
     list_tenants = ListTenants(tenants)
     create_tenant = CreateTenant(tenants=tenants, ids=ids)
@@ -497,10 +499,15 @@ def create_app(
         return _persona_json(updated, caps)
 
     @app.get("/v1/personas/{persona_id}/memories")
-    def list_memories(
+    def get_memories(
         persona_id: str,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
+        type: str | None = Query(default=None),
+        event_id: str | None = Query(default=None),
+        status: str | None = Query(default="active"),
+        limit: int = Query(default=50),
+        offset: int = Query(default=0),
     ):
         user = current_user(authorization)
         if not x_tenant_id:
@@ -508,9 +515,29 @@ def create_app(
         persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        _require_read(persona, user)
-        items = memories.list_active(TenantId(x_tenant_id), PersonaId(persona_id))
-        return {"items": [{"id": m.id.value, "text": m.text} for m in items]}
+        items = list_memories(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            capabilities=_caps_for(persona, user),
+            memory_type=type,
+            event_id=event_id,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+        return {
+            "items": [
+                {
+                    "id": item.id.value,
+                    "text": item.text,
+                    "type": item.type.value,
+                    "status": item.status.value,
+                    "event_id": item.event_id.value if item.event_id else None,
+                }
+                for item in items
+            ]
+        }
 
     @app.post("/v1/personas/{persona_id}/imports", status_code=202)
     async def post_import(

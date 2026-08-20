@@ -6,7 +6,7 @@ from arbor.domain.audit.log import AuditLog
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.identity.tenant import Tenant
 from arbor.domain.identity.user import User
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
+from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.persona import Persona
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
@@ -21,6 +21,15 @@ class PersonaRepository(Protocol):
 class MemoryRepository(Protocol):
     def get(self, tenant_id: TenantId, memory_id: MemoryId) -> MemoryItem | None: ...
     def list_active(self, tenant_id: TenantId, persona_id: PersonaId) -> list[MemoryItem]: ...
+    def list(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+        *,
+        memory_type: MemoryType | None = None,
+        event_id: EventId | None = None,
+        status: MemoryStatus | None = None,
+    ) -> list[MemoryItem]: ...
     def save(self, item: MemoryItem) -> None: ...
     def delete(self, tenant_id: TenantId, memory_id: MemoryId) -> None: ...
 

@@ -8,7 +8,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.identity.tenant import Tenant
 from arbor.domain.identity.user import User
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
+from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.persona import Persona
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.domain.shared.textvec import cosine, fixture_embed
@@ -96,11 +96,29 @@ class InMemoryMemoryRepository:
         return item
 
     def list_active(self, tenant_id: TenantId, persona_id: PersonaId) -> list[MemoryItem]:
-        return [
-            m
-            for m in self.stores.memories.values()
-            if m.tenant_id == tenant_id and m.persona_id == persona_id and m.is_searchable()
+        return self.list(tenant_id, persona_id, status=MemoryStatus.ACTIVE)
+
+    def list(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+        *,
+        memory_type: MemoryType | None = None,
+        event_id: EventId | None = None,
+        status: MemoryStatus | None = None,
+    ) -> list[MemoryItem]:
+        items = [
+            item
+            for item in self.stores.memories.values()
+            if item.tenant_id == tenant_id and item.persona_id == persona_id
         ]
+        if memory_type is not None:
+            items = [item for item in items if item.type is memory_type]
+        if event_id is not None:
+            items = [item for item in items if item.event_id == event_id]
+        if status is not None:
+            items = [item for item in items if item.status is status]
+        return items
 
     def save(self, item: MemoryItem) -> None:
         self.stores.memories[item.id.value] = item
