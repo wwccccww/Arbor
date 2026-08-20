@@ -104,14 +104,14 @@ suite-v1 夹具世界
 
 | strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件命中 | 检索延迟 |
 |---|---|---|---|---|---|---|
-| `summary_only` | | | | 0 | 低 | |
-| `vector_only` | 易漂 | | 易串 | **必须 0** | 较差 | |
-| `layered` | 应升高 | | 应下降 | 0 | 中 | |
-| `layered_tree` | 默认候选 | | | 0 | 应最高 | |
+| `summary_only` | 0.0 | 0.0 | 0 | **0** | 0.0 | <1ms |
+| `vector_only` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
+| `layered` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
+| `layered_tree` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
 
-简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。
+简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。v1 太小，纯向量也能碰巧召回身份题，分层是否接上档案看 `profile_miss_count`（`vector_only`=3，`layered*`=0）。
 
-基线文件：`eval/baselines/suite-v1.json`（有 runner 后填数，先占位）。
+基线文件：`eval/baselines/suite-v1.json`（`arbor-eval --suite v1 --strategy all --write-baseline` 写入）。
 
 ## 6. 记忆体检页怎么接
 
@@ -174,12 +174,14 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 ```text
 eval/
   README.md
+  runner.py                     # 入站 CLI 入口，转发 arbor-eval
   fixtures/suite-v1/
-    world.json       # 租户、人设、记忆、事件
-    cases.json       # 题目与期望 ID
-    thresholds.json  # 默认策略门槛
+    world.json                  # 租户、人设、记忆、事件
+    cases.json                  # 题目与期望 ID
+    thresholds.json             # 默认策略门槛
   baselines/
-    suite-v1.placeholder.json
+    suite-v1.json               # 四策略检索对比表
+    suite-v1.placeholder.json   # 历史占位
 ```
 
-Runner 代码实现时再放 `eval/runner/`，仍只依赖端口。
+组合根在 `src/arbor/adapters/inbound/`（`eval_runner.py` + `cli/eval_cli.py`）。应用层 `evaluation/runner.py` 只打分、不 import 适配器。

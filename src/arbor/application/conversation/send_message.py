@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from arbor.application.retrieval import retrieve
+from arbor.domain.conversation.context_policy import ContextPolicy
+from arbor.domain.conversation.thread import Citation, Message, Thread
+from arbor.domain.errors import DomainError
+from arbor.domain.memory.memory import InboxItem, MemoryItem
+from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
+from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
+
+
+@dataclass
+class SendMessage:
+    personas: object
+    memories: object
+    threads: object
+    events: object
+    inbox: object
+    vectors: object
+    llm: object
+    reasoner: object
+    embed: object
+    ids: object
+    auth: AuthorizationPolicy
+    strategy: str = "layered_tree"
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        thread_id: ThreadId,
+        persona_id: PersonaId,
+        text: str,
+        capabilities: list[Capability] | None = None,
+    ) -> dict:
+        persona = self.personas.get(tenant_id, persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "persona not found")
+        caps = capabilities or self.auth.capabilities_for(persona, user_id)
+        thread = self.threads.get(tenant_id, thread_id)
+        if thread is None:
+            thread = Thread(id=thread_id, tenant_id=tenant_id, persona_id=persona_id)
+        if not self.auth.can_chat(persona, user_id) and Capability.CHAT not in caps:
+            raise DomainError("FORBIDDEN_CHAT", "chat grant required")
+
+        policy = ContextPolicy()
+        event_nodes = self.events.list_nodes(tenant_id, persona_id)
+        active = self.memories.list_active(tenant_id, persona_id)
+        retrieved = retrieve(
+            strategy=self.strategy if Capability.READ_MEMORY in caps else "summary_only",
+            query=text,
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            k=5,
+            memories=active,
+            events=event_nodes,
+            summary=thread.summary,
+            vector_search=self.vectors.search,
+            embed=self.embed.embed,
+        )
+        if Capability.READ_MEMORY not in caps:
+            slots = policy.build_without_memory(persona.profile, summary="")
+            event_payload = []
+            hits: list[MemoryItem] = []
+        else:
+            hits = retrieved["hits"]
+            event_payload = [
+                {"id": e.id.value, "title": e.title, "summary": e.summary} for e in retrieved["event_nodes"]
+            ]
+            slots = policy.assemble(
+                profile=persona.profile,
+                capabilities=caps,
+                summary=thread.summary,
+                event_hits=event_payload,
+                memory_hits=hits,
+            )
+            extra_ids = [m.id.value for m in hits]
+            for mid in extra_ids:
+                if mid not in slots.injected_memory_ids:
+                    slots.injected_memory_ids.append(mid)
+
+        prompt_slots = {
+            "profile": slots.profile,
+            "thread_summary": slots.thread_summary,
+            "event_hits": slots.event_hits,
+            "memory_hits": [m.text for m in slots.memory_hits],
+        }
+        llm_out = self.llm.complete(
+            prompt_slots=prompt_slots,
+            text=text,
+            injected_memory_ids=list(slots.injected_memory_ids),
+        )
+        allowed = set(slots.injected_memory_ids)
+        citations = []
+        for cid in llm_out.get("citations") or []:
+            if cid in allowed:
+                citations.append(cid)
+
+        extracted = self.reasoner.extract(text) if self.reasoner else None
+        inbox_added = 0
+        if extracted and extracted.get("text"):
+            item = InboxItem(
+                id=self.ids.new_id(),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                kind=extracted.get("kind", "fact"),
+                payload={"text": extracted["text"]},
+            )
+            self.inbox.add(item)
+            inbox_added = 1
+
+        thread.append_message(
+            Message(role="user", content=text),
+            can_chat=True,
+        )
+        thread.append_message(
+            Message(
+                role="assistant",
+                content=llm_out.get("text", ""),
+                citations=[Citation(memory_id=MemoryId(c)) for c in citations],
+            ),
+            can_chat=True,
+        )
+        self.threads.save(thread)
+        return {
+            "text": llm_out.get("text", ""),
+            "citations": citations,
+            "injected_memory_ids": list(slots.injected_memory_ids),
+            "slot_order": slots.slot_order(),
+            "prompt_slots": prompt_slots,
+            "inbox_added": inbox_added,
+        }

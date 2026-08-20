@@ -2,4 +2,4 @@
 
 机器可加载的 Given-When-Then 样例，说明见 [docs/testing-examples.md](../../docs/testing-examples.md)。
 
-当前 **不是** pytest，没有断言运行器。生成代码时用这些 YAML 驱动测试，不要另起一套故事。
+领域层由 `tests/unit/domain/test_domain_examples.py` 直接读取 `domain.yaml`。应用 / HTTP / 契约 P0 在对应 pytest 文件中一对一落地，不要另起一套故事。

@@ -79,7 +79,7 @@ src/arbor/application        # 用例编排
 src/arbor/ports              # 入站 / 出站端口（接口）
 src/arbor/adapters           # FastAPI、Postgres、DeepSeek、bge、S3…
 tests/                       # 单测、契约测、API、架构边界
-eval/                        # suite-v1 金标；runner 实现时再补
+eval/                        # suite-v1 金标、arbor-eval runner、四策略基线
 infra/compose                # Postgres + Redis
 docs/
 ```

@@ -11,12 +11,29 @@ baselines/                      对比表快照
 ```
 
 ```text
+# CI / 体检：无 LLM，四策略检索 + 跨租户泄漏必须为 0
+arbor-eval --suite v1 --strategy all
+python3 eval/runner.py --suite v1 --strategy all --write-baseline
+
 python3 eval/check_llm_env.py
 python3 eval/generate_testset.py
 # 官方 RAGAS：先写 compat 金标，再把对齐到 memory_id 的官方题合并进 suite-ragas-v1
 # 对不上 ID 的题丢弃；隔离负例始终保留
 python3 eval/generate_testset.py --backend ragas --size 100
 ```
+
+`generation` 模式尚未接 DeepSeek，CLI 以退出码 2 拒绝，避免在 PR 里误跑 RAGAS。
+
+suite-v1 检索基线（夹具嵌入，2026-08-20）：
+
+| strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件 | 档案层漏检 |
+|---|---|---|---|---|---|---|
+| `summary_only` | 0.0 | 0.0 | 0 | **0** | 0.0 | 3 |
+| `vector_only` | 1.0 | 1.0 | 0 | **0** | 1.0 | 3 |
+| `layered` | 1.0 | 1.0 | 0 | **0** | 1.0 | **0** |
+| `layered_tree` | 1.0 | 1.0 | 0 | **0** | 1.0 | **0** |
+
+v1 只有约 20 条记忆，`vector_only` 也能碰巧召回身份题；分层是否接上档案要看 `profile_miss_count`。过滤保证四列跨租户泄漏都是 0。完整 JSON：`baselines/suite-v1.json`。规模集 477 条仍用 `generate_testset.py` 维护，不进 PR 必跑。
 
 官方生成器要求文档超过 100 tokens；单条记忆会先扩写（不新增事实）再交给 `TestsetGenerator`。
 

@@ -12,7 +12,7 @@
 - 评测以 `eval/fixtures/suite-v1` 为唯一 v1 金标，题目绑定稳定 ID。
 - 分 `retrieval` / `generation` 两模式；CI 与面试默认 retrieval。
 - 默认策略 `layered_tree` 的跨租户泄漏必须为 0。
-- 先入库世界与题目，runner 实现后再填 `eval/baselines`。
+- 先入库世界与题目，runner 把对比表写入 `eval/baselines/suite-v1.json`。
 - 改简单题刷分必须升 suite 版本。
 
 ## 后果

@@ -89,7 +89,7 @@ tests/
 apps/web/src/**/*.test.ts(x)
 eval/
   fixtures/suite-v1/
-  runner/                        # 入站适配器，只调端口
+  runner.py                      # 入站 CLI，转发 arbor-eval；只跑检索，不调 DeepSeek
 ```
 
 生产代码 **不得** import `tests.*`。Fake 若被演示模式复用，再提升为 `src/arbor/adapters/outbound/inmemory/`。
