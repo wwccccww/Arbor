@@ -707,6 +707,9 @@ paths:
                     items:
                       type: object
                       properties:
+                        id:
+                          type: string
+                          format: uuid
                         role:
                           type: string
                         content:

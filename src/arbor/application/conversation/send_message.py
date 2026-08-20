@@ -114,12 +114,17 @@ class SendMessage:
             inbox_added = 1
 
         stored_attachments = _normalize_attachments(attachments)
+        user_message_id = self.ids.new_id()
+        assistant_message_id = self.ids.new_id()
+        by_id = {item.id.value: item for item in hits}
+        citation_items = [_citation_item(cid, by_id.get(cid)) for cid in citations]
         thread.append_message(
-            Message(role="user", content=text, attachments=stored_attachments),
+            Message(id=user_message_id, role="user", content=text, attachments=stored_attachments),
             can_chat=True,
         )
         thread.append_message(
             Message(
+                id=assistant_message_id,
                 role="assistant",
                 content=llm_out.get("text", ""),
                 citations=[Citation(memory_id=MemoryId(c)) for c in citations],
@@ -128,8 +133,10 @@ class SendMessage:
         )
         self.threads.save(thread)
         return {
+            "message_id": assistant_message_id,
             "text": llm_out.get("text", ""),
             "citations": citations,
+            "citation_items": citation_items,
             "injected_memory_ids": list(slots.injected_memory_ids),
             "injected_contexts": [
                 "档案: " + " ".join(f"{k}={v}" for k, v in (prompt_slots.get("profile") or {}).items() if v),
@@ -172,3 +179,12 @@ def _normalize_attachments(raw) -> list[dict]:
             entry["uri"] = uri
         items.append(entry)
     return items
+
+
+def _citation_item(memory_id: str, item: MemoryItem | None) -> dict:
+    preview = (item.text[:40] if item and item.text else "")
+    return {
+        "memory_id": memory_id,
+        "event_id": item.event_id.value if item and item.event_id else None,
+        "preview": preview,
+    }

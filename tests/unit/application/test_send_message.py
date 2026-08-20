@@ -137,6 +137,9 @@ def test_send_message_drop_hallucinated_citation():
         capabilities=[Capability.CHAT, Capability.READ_MEMORY],
     )
     assert "0a000000-0000-4000-a000-000000000401" not in out["citations"]
+    assert out["message_id"]
+    assert all(item["memory_id"] in out["injected_memory_ids"] for item in out["citation_items"])
+    assert all("preview" in item for item in out["citation_items"])
 
 
 def test_send_message_extract_goes_to_inbox():

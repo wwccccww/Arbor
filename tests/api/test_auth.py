@@ -3,6 +3,17 @@ from fastapi.testclient import TestClient
 from apps.api.main import create_app
 
 
+def _citation_ids(body: dict) -> set:
+    ids = set()
+    for item in body.get("citations") or []:
+        if isinstance(item, dict):
+            if item.get("memory_id"):
+                ids.add(item["memory_id"])
+        else:
+            ids.add(item)
+    return ids
+
+
 def test_auth_missing_bearer():
     client = TestClient(create_app(), raise_server_exceptions=False)
     r = client.get("/v1/me")
@@ -55,8 +66,12 @@ def test_chat_citations_subset_of_injected():
     assert r.status_code == 200
     body = r.json()
     injected = set(body["injected_memory_ids"])
-    assert set(body["citations"]) <= injected
-    assert "0dead000-0000-4000-a000-000000000001" not in body["citations"]
+    cited = _citation_ids(body)
+    assert cited <= injected
+    assert "0dead000-0000-4000-a000-000000000001" not in cited
+    assert body["role"] == "assistant"
+    assert body["message_id"]
+    assert all(isinstance(item, dict) and "preview" in item for item in body["citations"])
 
 
 def test_grants_revoke_chat():

@@ -158,7 +158,7 @@ eval/
 |---|---|
 | `SendMessage` 组装顺序 | prompt 槽位：档案 → 摘要 → 事件 → 向量命中 |
 | 无 `read_memory` 仍可 chat | LLM 入参无 MemoryItem 正文 |
-| 模型返回未注入的 memory_id | citations 丢弃 |
+| 模型返回未注入的 memory_id | citations 丢弃；citation_items 带 preview |
 | 抽取结果进 Inbox 不直写 Memory | 仓储无新 active item |
 | `ConfirmInboxItem` 后可检索 | 内存 VectorIndex 命中 |
 | 导入无 `write_memory` | 失败，对象存储不留文件（或事务回滚） |
@@ -185,7 +185,7 @@ eval/
 | 无 Bearer | 401 `UNAUTHENTICATED` |
 | Member 无人设 grant 访问记忆 | 404 或 403，不泄露存在性（与 api.md 一致） |
 | `PUT grants` 后原 chat 用户 403 | 收权生效 |
-| 对话响应 citations ⊆ 实际注入 id | |
+| 对话响应 citations ⊆ 实际注入 id | HTTP 引用为对象，含 preview；message_id / role=assistant |
 | `X-Tenant-Id` 与资源不符 | 404 |
 | OpenAPI 里的错误体含 `code` | |
 | 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
