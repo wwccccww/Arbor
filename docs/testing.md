@@ -112,6 +112,7 @@ tests/
     test_upload_size_limit.py
     test_message_pagination.py
     test_openapi_smoke.py
+    test_rate_limit.py
 apps/web/src/**/*.test.ts(x)
 eval/
   fixtures/suite-v1/
@@ -212,6 +213,7 @@ eval/
 | 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404；`total` 为过滤后分页前条数 |
 | 聊天附件 | multipart 文件进对象存储；GET 能看见 filename；下载返回原字节；不进 Inbox/Memory；无 `chat` 404 |
 | 上传大小 | 导入与聊天附件超过组合根上限（默认 32MB）返回 400，对象存储不留文件 |
+| 限流 | 同一令牌连续超限 429 `RATE_LIMITED`；另一令牌不受影响；无 Bearer 共用 `anon` 配额 |
 
 ### 5.5 架构
 
