@@ -79,3 +79,54 @@ class ListMessages:
         if Capability.CHAT not in caps:
             raise DomainError("NOT_FOUND", "not found")
         return thread
+
+
+class ExportThread:
+    """Return conversation JSON and record a sanitized audit row. Does not write memory."""
+
+    def __init__(self, *, personas, threads, auth: AuthorizationPolicy, audit=None) -> None:
+        self.personas = personas
+        self.threads = threads
+        self.auth = auth
+        self.audit = audit
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        thread_id: ThreadId,
+        capabilities: list[Capability] | None = None,
+    ) -> dict:
+        thread = self.threads.get(tenant_id, thread_id)
+        if thread is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = self.personas.get(tenant_id, thread.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = capabilities or self.auth.capabilities_for(persona, user_id)
+        if Capability.CHAT not in caps:
+            raise DomainError("NOT_FOUND", "not found")
+        body = {
+            "id": thread.id.value,
+            "persona_id": thread.persona_id.value,
+            "messages": [
+                {
+                    "role": message.role,
+                    "content": message.content,
+                    "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                }
+                for message in thread.messages
+            ],
+        }
+        if self.audit:
+            self.audit(
+                tenant_id=tenant_id,
+                actor_user_id=user_id,
+                action="thread.export",
+                resource_type="thread",
+                resource_id=thread.id.value,
+                persona_id=thread.persona_id,
+                payload={"message_count": len(thread.messages)},
+            )
+        return body

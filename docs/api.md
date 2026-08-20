@@ -140,6 +140,10 @@ Owner/Admin。
 
 ### `GET /v1/threads/{thread_id}/messages`
 
+### `POST /v1/threads/{thread_id}/export`
+
+需要 `chat`。返回会话 JSON（消息正文 + 引用 id），写一条脱敏审计 `thread.export`（只记 `message_count`，不写对话正文）。不改 Memory。无权限或跨租户 404。
+
 ### `POST /v1/threads/{thread_id}/messages`
 
 发送用户消息。`multipart/form-data` 可带文件；或 JSON：

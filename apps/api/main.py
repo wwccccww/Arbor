@@ -27,7 +27,7 @@ from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, 
 from arbor.application.audit.commands import RecordAudit
 from arbor.application.audit.queries import ListAuditLogs
 from arbor.application.conversation.send_message import SendMessage
-from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
+from arbor.application.conversation.threads import CreateThread, ExportThread, ListMessages, ListThreads
 from arbor.application.evaluation.commands import StartEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
@@ -254,6 +254,7 @@ def create_app(
     create_thread = CreateThread(personas=personas, threads=threads, ids=ids, auth=AuthorizationPolicy())
     list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
     list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
+    export_thread = ExportThread(personas=personas, threads=threads, auth=AuthorizationPolicy(), audit=record_audit)
     object_stores = stores or InMemoryStores()
     storage = InMemoryObjectStorage(object_stores)
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
@@ -782,6 +783,29 @@ def create_app(
             "injected_memory_ids": result["injected_memory_ids"],
             "inbox_created": result.get("inbox_added") or 0,
         }
+
+    @app.post("/v1/threads/{thread_id}/export")
+    def post_thread_export(
+        thread_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        tenant = TenantId(x_tenant_id)
+        thread = threads.get(tenant, ThreadId(thread_id))
+        if thread is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(tenant, thread.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        return export_thread(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            thread_id=ThreadId(thread_id),
+            capabilities=_caps_for(persona, user),
+        )
 
     def _require_read(persona, user):
         caps = _caps_for(persona, user)

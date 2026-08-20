@@ -710,6 +710,43 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
+  /threads/{thread_id}/export:
+    post:
+      tags: [Threads]
+      summary: 导出会话 JSON 并记审计
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/ThreadId"
+      responses:
+        "200":
+          description: 会话快照
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  persona_id:
+                    type: string
+                    format: uuid
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        content:
+                          type: string
+                        citations:
+                          type: array
+                          items:
+                            type: string
+        "404":
+          $ref: "#/components/responses/Error"
+
   /personas/{persona_id}/memories:
     get:
       tags: [Memory]

@@ -77,6 +77,7 @@ tests/
       test_eval_commands.py
       test_audit_commands.py
       test_tenant_commands.py
+      test_export_thread.py
       test_get_event_tree.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
@@ -100,6 +101,7 @@ tests/
     test_eval.py
     test_audit.py
     test_tenants.py
+    test_thread_export.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -190,6 +192,7 @@ eval/
 | Owner 跑 retrieval 评测 | suite-v1 `tenant_leak_count==0`；Member 403 |
 | Owner 看审计日志 | 改人设 / 导入 / 确认各一条；Member 403 |
 | Owner 管成员 | 列出/邀请；Member 403；不能降级最后一名 owner |
+| 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
 
 ### 5.5 架构
 
