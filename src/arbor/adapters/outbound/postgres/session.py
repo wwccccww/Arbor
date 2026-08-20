@@ -4,6 +4,7 @@ from pathlib import Path
 
 from arbor.adapters.outbound.inmemory import FixtureEmbeddingClient
 from arbor.adapters.outbound.postgres.alembic_runner import upgrade_head
+from arbor.adapters.outbound.postgres.audit import PgAuditLogRepository
 from arbor.adapters.outbound.postgres.connection import connect, wipe_public_schema
 from arbor.adapters.outbound.postgres.events import PgEventGraphRepository
 from arbor.adapters.outbound.postgres.inbox import PgInboxRepository
@@ -29,6 +30,7 @@ class PostgresSession:
         self.events = PgEventGraphRepository(self.conn)
         self.threads = PgThreadRepository(self.conn)
         self.vectors = PgVectorIndex(self.conn, self.memories)
+        self.audit_logs = PgAuditLogRepository(self.conn)
 
     @classmethod
     def connect(cls, url: str) -> PostgresSession:

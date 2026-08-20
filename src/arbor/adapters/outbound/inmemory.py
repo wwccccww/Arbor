@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from arbor.domain.audit.log import AuditLog
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
@@ -21,6 +22,7 @@ class InMemoryStores:
     threads: dict[str, Thread] = field(default_factory=dict)
     vectors: dict[str, tuple[str, str, list[float], MemoryStatus]] = field(default_factory=dict)
     objects: list[str] = field(default_factory=list)
+    audit_logs: list[AuditLog] = field(default_factory=list)
 
 
 class InMemoryPersonaRepository:
@@ -233,6 +235,34 @@ class InMemoryObjectStorage:
 
     def count(self) -> int:
         return len(self.stores.objects)
+
+
+class InMemoryAuditLogRepository:
+    def __init__(self, stores: InMemoryStores) -> None:
+        self.stores = stores
+
+    def append(self, entry: AuditLog) -> None:
+        self.stores.audit_logs.append(entry)
+
+    def list(
+        self,
+        tenant_id: TenantId,
+        *,
+        action: str | None = None,
+        persona_id: PersonaId | None = None,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> list[AuditLog]:
+        items = [entry for entry in self.stores.audit_logs if entry.tenant_id == tenant_id]
+        if action:
+            items = [entry for entry in items if entry.action == action]
+        if persona_id is not None:
+            items = [entry for entry in items if entry.persona_id == persona_id]
+        if since:
+            items = [entry for entry in items if (entry.created_at or "") >= since]
+        if until:
+            items = [entry for entry in items if (entry.created_at or "") <= until]
+        return sorted(items, key=lambda entry: (entry.created_at, entry.id), reverse=True)
 
 
 class FixedClock:

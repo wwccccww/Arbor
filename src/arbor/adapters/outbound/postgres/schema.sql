@@ -114,6 +114,18 @@ CREATE TABLE IF NOT EXISTS inbox_items (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id uuid PRIMARY KEY,
+    tenant_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    action text NOT NULL,
+    resource_type text NOT NULL DEFAULT '',
+    resource_id text,
+    persona_id uuid,
+    payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE INDEX IF NOT EXISTS memory_items_scope_status
     ON memory_items (tenant_id, persona_id, status);
 
@@ -125,6 +137,9 @@ CREATE INDEX IF NOT EXISTS event_nodes_scope
 
 CREATE INDEX IF NOT EXISTS event_edges_scope
     ON event_edges (tenant_id, persona_id);
+
+CREATE INDEX IF NOT EXISTS audit_logs_tenant_created
+    ON audit_logs (tenant_id, created_at DESC);
 
 CREATE OR REPLACE FUNCTION arbor_event_edge_same_persona() RETURNS trigger
 LANGUAGE plpgsql AS $$

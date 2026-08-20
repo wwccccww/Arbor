@@ -49,9 +49,10 @@ class CreatePersona:
 
 
 class PatchPersona:
-    def __init__(self, *, personas, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, auth: AuthorizationPolicy, audit=None) -> None:
         self.personas = personas
         self.auth = auth
+        self.audit = audit
 
     def __call__(
         self,
@@ -89,6 +90,28 @@ class PatchPersona:
         if skin is not None:
             persona.skin = skin
         self.personas.save(persona)
+        fields = [
+            name
+            for name, value in (
+                ("display_name", display_name),
+                ("one_liner", one_liner),
+                ("personality", personality),
+                ("taboos", taboos),
+                ("relationships", relationships),
+                ("skin", skin),
+            )
+            if value is not None
+        ]
+        if self.audit and fields:
+            self.audit(
+                tenant_id=tenant_id,
+                actor_user_id=user_id,
+                action="persona.update",
+                resource_type="persona",
+                resource_id=persona.id.value,
+                persona_id=persona.id,
+                payload={"fields": fields},
+            )
         return persona
 
 

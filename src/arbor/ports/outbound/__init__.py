@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
+from arbor.domain.audit.log import AuditLog
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
 from arbor.domain.persona.persona import Persona
@@ -76,6 +77,19 @@ class EmbeddingClient(Protocol):
 class ObjectStorage(Protocol):
     def put(self, name: str, data: bytes) -> str: ...
     def count(self) -> int: ...
+
+
+class AuditLogRepository(Protocol):
+    def append(self, entry: AuditLog) -> None: ...
+    def list(
+        self,
+        tenant_id: TenantId,
+        *,
+        action: str | None = None,
+        persona_id: PersonaId | None = None,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> list[AuditLog]: ...
 
 
 class Clock(Protocol):
