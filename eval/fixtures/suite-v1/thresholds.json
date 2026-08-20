@@ -1,0 +1,18 @@
+{
+  "suite_version": "v1",
+  "default_strategy": "layered_tree",
+  "k": 5,
+  "retrieval": {
+    "tenant_leak_count": { "max": 0, "severity": "p0" },
+    "persona_leak_rate": { "max": 0, "scope": "isolation_cases", "severity": "p0_demo" },
+    "recall_at_5": { "min": 0.7, "severity": "soft" },
+    "identity_consistency": { "min": 1.0, "scope": "profile_fact_repeat", "severity": "soft" },
+    "superseded_in_topk": { "max": 0, "severity": "p0" }
+  },
+  "generation": {
+    "citation_subset_rate": { "min": 1.0, "scope": "answer_or_cite", "severity": "p0" },
+    "ragas_faithfulness": { "min": 0.8, "scope": "answer_or_cite_nonempty", "severity": "soft_nightly" },
+    "judge_model": "not_same_as_generator"
+  },
+  "notes": "泄漏类门槛在 generation 下同样生效。RAGAS 不进 PR 门禁，见 docs/ragas.md。"
+}

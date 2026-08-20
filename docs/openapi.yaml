@@ -1,0 +1,1006 @@
+openapi: 3.1.0
+info:
+  title: Arbor API
+  summary: 多租户人设工作台 HTTP 契约
+  version: 0.1.0
+  description: |
+    入站适配器契约。实现必须把租户与人设边界留在应用层/仓储端口，
+    而不是仅在文档里声明。
+servers:
+  - url: /v1
+tags:
+  - name: Auth
+  - name: Tenants
+  - name: Personas
+  - name: Threads
+  - name: Memory
+  - name: Events
+  - name: Eval
+  - name: Audit
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    TenantHeader:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+    PersonaId:
+      name: persona_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ThreadId:
+      name: thread_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, member]
+    PersonaSkin:
+      type: string
+      enum: [companion, employee]
+    Persona:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+        skin:
+          $ref: "#/components/schemas/PersonaSkin"
+        display_name:
+          type: string
+        one_liner:
+          type: string
+        personality:
+          type: object
+          additionalProperties: true
+        taboos:
+          type: array
+          items:
+            type: string
+        relationships:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Grant:
+      type: object
+      required: [user_id, capabilities]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        capabilities:
+          type: array
+          items:
+            type: string
+            enum: [chat, read_memory, write_memory, admin]
+    Citation:
+      type: object
+      properties:
+        memory_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        preview:
+          type: string
+    AssistantMessage:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [assistant]
+        text:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        inbox_created:
+          type: integer
+    EventNode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        happened_at:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [milestone, promise, conflict, daily, work]
+        importance:
+          type: integer
+        summary:
+          type: string
+        memory_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    EventEdge:
+      type: object
+      properties:
+        from_id:
+          type: string
+          format: uuid
+        to_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [temporal, caused_by, involves_person]
+    EventTree:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventEdge"
+    EvalMetrics:
+      type: object
+      properties:
+        identity_consistency:
+          type: number
+        recall_at_5:
+          type: number
+        persona_leak_rate:
+          type: number
+        tenant_leak_count:
+          type: integer
+        citation_subset_rate:
+          type: number
+        ragas_faithfulness:
+          type: number
+          description: |
+            generation 辅指标。contexts 必须等于本轮注入文本。
+            检索 run 可省略。不作为隔离或召回的依据。
+    InboxItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [fact, event, conflict]
+        payload:
+          type: object
+          additionalProperties: true
+        conflict_with:
+          type: object
+          additionalProperties: true
+          nullable: true
+        status:
+          type: string
+          enum: [pending, confirmed, dismissed]
+    ImportJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+        error:
+          type: string
+          nullable: true
+    MemoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [fact, episode_summary, file_chunk, image_caption, transcript]
+        text:
+          type: string
+        event_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [active, superseded, deleted]
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    Error:
+      description: 错误
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: 登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: 令牌
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: 刷新令牌
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: 新令牌
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: 当前用户与空间
+      responses:
+        "200":
+          description: 用户
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+                  tenants:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Tenant"
+
+  /tenants:
+    get:
+      tags: [Tenants]
+      summary: 列出空间
+      responses:
+        "200":
+          description: 空间列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Tenant"
+    post:
+      tags: [Tenants]
+      summary: 创建空间
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: 已创建
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+
+  /tenants/{tenant_id}/members:
+    parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Tenants]
+      summary: 成员列表
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 成员
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        user:
+                          $ref: "#/components/schemas/User"
+                        role:
+                          type: string
+                          enum: [owner, admin, member]
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Tenants]
+      summary: 邀请成员
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email:
+                  type: string
+                role:
+                  type: string
+                  enum: [owner, admin, member]
+      responses:
+        "201":
+          description: 已加入
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /tenants/{tenant_id}/members/{user_id}:
+    patch:
+      tags: [Tenants]
+      summary: 改角色
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [owner, admin, member]
+      responses:
+        "200":
+          description: 已更新
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas:
+    get:
+      tags: [Personas]
+      summary: 列出人设
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 人设列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Persona"
+    post:
+      tags: [Personas]
+      summary: 创建人设
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [display_name, skin]
+              properties:
+                skin:
+                  $ref: "#/components/schemas/PersonaSkin"
+                display_name:
+                  type: string
+                one_liner:
+                  type: string
+                personality:
+                  type: object
+                  additionalProperties: true
+                taboos:
+                  type: array
+                  items:
+                    type: string
+                relationships:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+      responses:
+        "201":
+          description: 已创建
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}:
+    get:
+      tags: [Personas]
+      summary: 人设详情（无 read_memory 时为最小档案）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: 人设
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Persona"
+        "404":
+          $ref: "#/components/responses/Error"
+    patch:
+      tags: [Personas]
+      summary: 更新档案
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: 已更新
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/grants:
+    put:
+      tags: [Personas]
+      summary: 覆盖人设授权
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [grants]
+              properties:
+                grants:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Grant"
+      responses:
+        "200":
+          description: 已覆盖
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/threads:
+    get:
+      tags: [Threads]
+      summary: 列出会话
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: 会话列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        updated_at:
+                          type: string
+                          format: date-time
+    post:
+      tags: [Threads]
+      summary: 创建会话（一人设一会话绑定）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "201":
+          description: 已创建
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  persona_id:
+                    type: string
+                    format: uuid
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /threads/{thread_id}/messages:
+    get:
+      tags: [Threads]
+      summary: 消息分页
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/ThreadId"
+      responses:
+        "200":
+          description: 消息
+        "404":
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Threads]
+      summary: 发送消息并生成带引用的回复
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/ThreadId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                attachments:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 助手消息
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantMessage"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/memories:
+    get:
+      tags: [Memory]
+      summary: 列出记忆
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: event_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+            default: active
+      responses:
+        "200":
+          description: 记忆列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MemoryItem"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/imports:
+    post:
+      tags: [Memory]
+      summary: 导入多模态资料
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                hint:
+                  type: string
+      responses:
+        "202":
+          description: 已入队
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJob"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /imports/{job_id}:
+    get:
+      tags: [Memory]
+      summary: 导入任务状态
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 任务
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJob"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/inbox:
+    get:
+      tags: [Memory]
+      summary: 记忆确认收件箱
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: Inbox
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/InboxItem"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /inbox/{inbox_id}/confirm:
+    post:
+      tags: [Memory]
+      summary: 确认写入档案或事件树
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: inbox_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mark_key_event:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: 已确认
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /inbox/{inbox_id}/dismiss:
+    post:
+      tags: [Memory]
+      summary: 忽略候选记忆
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: inbox_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 已忽略
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/events/tree:
+    get:
+      tags: [Events]
+      summary: 事件树或时间轴投影
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: view
+          in: query
+          schema:
+            type: string
+            enum: [tree, timeline]
+            default: tree
+        - name: key_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        "200":
+          description: 树
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventTree"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /events/{event_id}:
+    get:
+      tags: [Events]
+      summary: 事件卡
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 事件
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventNode"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /eval/runs:
+    post:
+      tags: [Eval]
+      summary: 启动记忆评测
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [strategy, suite_version]
+              properties:
+                strategy:
+                  type: string
+                  enum: [summary_only, vector_only, layered, layered_tree]
+                suite_version:
+                  type: string
+                mode:
+                  type: string
+                  enum: [retrieval, generation]
+                  default: retrieval
+      responses:
+        "202":
+          description: 已开始
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /eval/runs/{run_id}:
+    get:
+      tags: [Eval]
+      summary: 评测结果
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 指标
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  strategy:
+                    type: string
+                  suite_version:
+                    type: string
+                  metrics:
+                    $ref: "#/components/schemas/EvalMetrics"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /audit-logs:
+    get:
+      tags: [Audit]
+      summary: 审计日志
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: persona_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 日志
+        "403":
+          $ref: "#/components/responses/Error"

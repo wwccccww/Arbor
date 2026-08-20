@@ -1,0 +1,78 @@
+# 出站契约样例。针对真实 Postgres + pgvector，加载 mini-world。
+- id: contract.vector.tenant_isolation
+  layer: contract
+  severity: p0
+  title: 租户 B 用相同向量搜不到租户 A 的记忆
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    shared_text: 林夏讨厌香菜，点餐不能放香菜。
+  when:
+    action: VectorIndex.search
+    tenant_id: 0b000000-0000-4000-a000-000000000001
+    persona_id: 0b000000-0000-4000-a000-000000000010
+    query_text: 林夏讨厌香菜，点餐不能放香菜。
+    k: 5
+  then:
+    hit_ids: []
+    must_not_contain:
+      - 0a000000-0000-4000-a000-000000000302
+
+- id: contract.vector.superseded_excluded
+  layer: contract
+  severity: p0
+  title: superseded 记忆不出现在 search
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+  when:
+    action: VectorIndex.search
+    tenant_id: 0a000000-0000-4000-a000-000000000001
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    query_text: 林夏喜欢猫想养宠物
+    k: 5
+  then:
+    must_not_contain:
+      - 0a000000-0000-4000-a000-000000000307
+
+- id: contract.vector.search_requires_tenant
+  layer: contract
+  severity: p0
+  title: 向量检索接口不能省略 tenant_id
+  given: {}
+  when:
+    action: VectorIndex.search
+    omit: [tenant_id]
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    query_vector: [0.0]
+    k: 5
+  then:
+    error: VALIDATION_ERROR
+
+- id: contract.event_edge.cross_persona_rejected
+  layer: contract
+  severity: p0
+  title: 数据库或仓储拒绝跨人设边
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+  when:
+    action: EventGraphRepository.add_edge
+    from_id: 0a000000-0000-4000-a000-000000000102
+    to_id: 0a000000-0000-4000-a000-000000000201
+    kind: temporal
+  then:
+    error: EVENT_EDGE_PERSONA_MISMATCH
+
+- id: contract.vector.deleted_not_searchable
+  layer: contract
+  severity: p0
+  title: 删除记忆后 ANN 不再命中
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    memory_id: 0a000000-0000-4000-a000-000000000305
+  when:
+    action: delete_memory
+    then_search:
+      query_text: 每周日晚上打电话
+      k: 5
+  then:
+    must_not_contain:
+      - 0a000000-0000-4000-a000-000000000305

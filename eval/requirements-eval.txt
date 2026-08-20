@@ -1,0 +1,8 @@
+# 官方 RAGAS TestsetGenerator（DeepSeek Chat）
+# 钉死可 import 的组合；ragas 0.3 + langchain 1.x 会因 VertexAI 路径崩溃。
+ragas==0.2.15
+langchain==0.2.17
+langchain-core==0.2.43
+langchain-community==0.2.19
+langchain-openai==0.1.25
+langchain-text-splitters==0.2.4

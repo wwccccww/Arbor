@@ -1,0 +1,42 @@
+{
+  "suite_version": "ragas-v1",
+  "n_cases": 377,
+  "n_unique_queries": 374,
+  "n_unique_references": 64,
+  "n_source_memories": 33,
+  "n_active_memories": 32,
+  "n_tenants": 2,
+  "n_personas": 3,
+  "evolution_distribution": {
+    "conditional": 30,
+    "arbor_irrelevant": 8,
+    "arbor_isolation": 30,
+    "multi_context": 36,
+    "reasoning": 42,
+    "simple": 231
+  },
+  "skill_distribution": {
+    "episode_detail": 159,
+    "irrelevant": 8,
+    "tenant_isolation": 12,
+    "persona_isolation": 18,
+    "causal": 42,
+    "profile_fact": 87,
+    "temporal": 12,
+    "multimodal": 30,
+    "conflict": 9
+  },
+  "persona_distribution": {
+    "0a000000-0000-4000-a000-000000000020": 108,
+    "0a000000-0000-4000-a000-000000000010": 209,
+    "0b000000-0000-4000-a000-000000000010": 60
+  },
+  "behavior_distribution": {
+    "answer": 276,
+    "refuse": 29,
+    "cite": 72
+  },
+  "id_bound_rate": 0.9761,
+  "generator_note": "Default backend ragas_compat implements RAGAS simple/reasoning/multi_context/conditional plus Arbor isolation slices. Official ragas TestsetGenerator is optional when keys exist.",
+  "resume_blurb": "377 条评测样本 / 2 租户 3 人设 / 33 条源记忆 / RAGAS 演化类型 + 隔离负例，全部绑定 memory_id 或 refuse。"
+}

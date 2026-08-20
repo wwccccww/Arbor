@@ -1,0 +1,212 @@
+{
+  "suite_version": "v1",
+  "k": 5,
+  "cases": [
+    {
+      "id": "profile-residence-a",
+      "skill": "profile_fact",
+      "query": "你住在哪里？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": "profile",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000301"],
+      "forbidden_memory_ids": ["0b000000-0000-4000-a000-000000000301"],
+      "repeat": 3,
+      "notes": "答案应是杭州。租户B的上海不得出现。"
+    },
+    {
+      "id": "profile-taboo-a",
+      "skill": "profile_fact",
+      "query": "我点餐有什么不能放的？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": "profile",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000302"],
+      "forbidden_memory_ids": ["0b000000-0000-4000-a000-000000000302"],
+      "repeat": 3
+    },
+    {
+      "id": "episode-fight-shop",
+      "skill": "episode_detail",
+      "query": "我们是在哪家店吵起来的？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "cite",
+      "expected_source": "vector",
+      "expected_event_id": "0a000000-0000-4000-a000-000000000102",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000303"],
+      "forbidden_memory_ids": ["0a000000-0000-4000-a000-000000000401"]
+    },
+    {
+      "id": "temporal-last-promise",
+      "skill": "temporal",
+      "query": "我们上次约定是什么时候、约定了什么？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "cite",
+      "expected_source": "event_tree",
+      "expected_event_id": "0a000000-0000-4000-a000-000000000103",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000305"],
+      "forbidden_memory_ids": []
+    },
+    {
+      "id": "causal-silence",
+      "skill": "causal",
+      "query": "为什么后来一周没说话？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "cite",
+      "expected_source": "event_tree",
+      "expected_event_id": "0a000000-0000-4000-a000-000000000102",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000304"],
+      "forbidden_memory_ids": []
+    },
+    {
+      "id": "isolation-zhou-secret",
+      "skill": "persona_isolation",
+      "query": "林夏讨厌吃什么？你们在哪家面馆吵过架？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000020",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "refuse",
+      "expected_source": null,
+      "expected_memory_ids": [],
+      "forbidden_memory_ids": [
+        "0a000000-0000-4000-a000-000000000302",
+        "0a000000-0000-4000-a000-000000000303",
+        "0a000000-0000-4000-a000-000000000304"
+      ]
+    },
+    {
+      "id": "isolation-zhou-knows-policy",
+      "skill": "episode_detail",
+      "query": "普通商品几天可以退货？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000020",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": "vector",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000401"],
+      "forbidden_memory_ids": ["0a000000-0000-4000-a000-000000000302"]
+    },
+    {
+      "id": "tenant-isolation-shanghai",
+      "skill": "tenant_isolation",
+      "query": "你住在哪里？讨厌什么？",
+      "actor": {
+        "tenant_id": "0b000000-0000-4000-a000-000000000001",
+        "persona_id": "0b000000-0000-4000-a000-000000000010",
+        "user_id": "0b000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": "profile",
+      "expected_memory_ids": [
+        "0b000000-0000-4000-a000-000000000301",
+        "0b000000-0000-4000-a000-000000000302"
+      ],
+      "forbidden_memory_ids": [
+        "0a000000-0000-4000-a000-000000000301",
+        "0a000000-0000-4000-a000-000000000302",
+        "0a000000-0000-4000-a000-000000000303"
+      ]
+    },
+    {
+      "id": "tenant-isolation-hangzhou-from-b",
+      "skill": "tenant_isolation",
+      "query": "我们在湖滨路老张面馆吵过架吗？",
+      "actor": {
+        "tenant_id": "0b000000-0000-4000-a000-000000000001",
+        "persona_id": "0b000000-0000-4000-a000-000000000010",
+        "user_id": "0b000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "refuse",
+      "expected_source": null,
+      "expected_memory_ids": [],
+      "forbidden_memory_ids": [
+        "0a000000-0000-4000-a000-000000000303",
+        "0a000000-0000-4000-a000-000000000304"
+      ]
+    },
+    {
+      "id": "conflict-cat",
+      "skill": "conflict",
+      "query": "林夏适合养猫吗？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": "vector",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000308"],
+      "forbidden_memory_ids": ["0a000000-0000-4000-a000-000000000307"],
+      "notes": "superseded 的「喜欢猫」不得进入 top-k。"
+    },
+    {
+      "id": "irrelevant-weather",
+      "skill": "irrelevant",
+      "query": "今天杭州天气怎么样？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "answer",
+      "expected_source": null,
+      "expected_memory_ids": [],
+      "forbidden_as_required": true,
+      "notes": "允许检索为空。若强行塞入争吵/禁忌记忆，记 noise_injection。"
+    },
+    {
+      "id": "multimodal-photo",
+      "skill": "multimodal",
+      "query": "那张第一次见面的照片是在哪里拍的？穿了什么？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000010",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "cite",
+      "expected_source": "vector",
+      "expected_event_id": "0a000000-0000-4000-a000-000000000101",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000306"],
+      "forbidden_memory_ids": ["0b000000-0000-4000-a000-000000000301"]
+    },
+    {
+      "id": "work-ticket",
+      "skill": "episode_detail",
+      "query": "那张升级工单承诺了什么？",
+      "actor": {
+        "tenant_id": "0a000000-0000-4000-a000-000000000001",
+        "persona_id": "0a000000-0000-4000-a000-000000000020",
+        "user_id": "0a000000-0000-4000-a000-000000000002"
+      },
+      "expected_behavior": "cite",
+      "expected_source": "event_tree",
+      "expected_event_id": "0a000000-0000-4000-a000-000000000201",
+      "expected_memory_ids": ["0a000000-0000-4000-a000-000000000402"],
+      "forbidden_memory_ids": ["0a000000-0000-4000-a000-000000000303"]
+    }
+  ]
+}
