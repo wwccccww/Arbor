@@ -280,3 +280,4 @@ Owner/Admin。过滤 action、persona_id、时间。
 - 破坏性变更走 `/v2`，不静默改 v1 语义。
 - OpenAPI 是契约；未写入的字段响应端不应依赖。
 - 文件上传大小限制由组合根配置，默认 32MB（导入与聊天附件）。超限 400 `VALIDATION_ERROR`，对象存储不留文件。
+- `/v1` 按 `Authorization` 头限流，组合根默认每个令牌在 60 秒窗口内最多 120 次；超限 429 `RATE_LIMITED`。无 Bearer 的请求共用 `anon` 配额。`/docs` 与 `/openapi.json` 不计。

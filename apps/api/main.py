@@ -58,6 +58,12 @@ from arbor.domain.identity.user import User
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
 
+from .rate_limit import (
+    DEFAULT_RATE_LIMIT_PER_WINDOW,
+    DEFAULT_RATE_WINDOW_SECONDS,
+    InMemoryRateLimiter,
+)
+
 TOKENS = {
     "token-a": {
         "user_id": "0a000000-0000-4000-a000-000000000002",
@@ -250,6 +256,8 @@ def create_app(
     llm=None,
     reasoner=None,
     max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
+    rate_limit_per_window: int = DEFAULT_RATE_LIMIT_PER_WINDOW,
+    rate_window_seconds: int = DEFAULT_RATE_WINDOW_SECONDS,
 ) -> FastAPI:
     session = None
     stores = None
@@ -357,6 +365,20 @@ def create_app(
 
     start_eval = StartEvalRun(run_retrieval=run_retrieval, ids=ids)
     app = FastAPI()
+    limiter = InMemoryRateLimiter(limit=rate_limit_per_window, window_seconds=rate_window_seconds)
+
+    @app.middleware("http")
+    async def enforce_rate_limit(request: Request, call_next):
+        if request.url.path.startswith("/v1"):
+            key = request.headers.get("authorization") or "anon"
+            try:
+                limiter.check(key)
+            except DomainError as exc:
+                if exc.code == "RATE_LIMITED":
+                    return _error(exc.code, str(exc), 429)
+                raise
+        return await call_next(request)
+
     app.state.stores = stores
     app.state.session = session
     app.state.send = send
@@ -378,6 +400,8 @@ def create_app(
             status = 403
         elif exc.code == "NOT_FOUND":
             status = 404
+        elif exc.code == "RATE_LIMITED":
+            status = 429
         elif exc.code == "UPSTREAM_UNAVAILABLE":
             status = 503
         return _error(exc.code, str(exc), status)
