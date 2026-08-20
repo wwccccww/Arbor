@@ -31,3 +31,17 @@ jobs:
       - run: pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm test
