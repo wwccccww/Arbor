@@ -14,7 +14,7 @@ TestsetGenerator。对齐到 ``memory_id`` 的官方题合并进默认 ``suite-r
 
 用法:
   python3 eval/generate_testset.py
-  python3 eval/generate_testset.py --backend ragas --size 30
+  python3 eval/generate_testset.py --backend ragas --size 100
 """
 
 from __future__ import annotations
