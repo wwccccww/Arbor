@@ -15,7 +15,7 @@ python3 eval/check_llm_env.py
 python3 eval/generate_testset.py
 # 官方 RAGAS：先写 compat 金标，再把对齐到 memory_id 的官方题合并进 suite-ragas-v1
 # 对不上 ID 的题丢弃；隔离负例始终保留
-python3 eval/generate_testset.py --backend ragas --size 30
+python3 eval/generate_testset.py --backend ragas --size 100
 ```
 
 官方生成器要求文档超过 100 tokens；单条记忆会先扩写（不新增事实）再交给 `TestsetGenerator`。
