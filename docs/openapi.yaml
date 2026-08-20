@@ -756,6 +756,7 @@ paths:
                 file:
                   type: string
                   format: binary
+                  description: 默认上限 32MB
       responses:
         "200":
           description: 助手消息
@@ -896,6 +897,7 @@ paths:
                 file:
                   type: string
                   format: binary
+                  description: 默认上限 32MB
                 hint:
                   type: string
       responses:

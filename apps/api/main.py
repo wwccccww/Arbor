@@ -73,6 +73,12 @@ TOKENS = {
 MEMBER_ID = UserId("0a000000-0000-4000-a000-000000000003")
 DEMO_TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
+DEFAULT_MAX_UPLOAD_BYTES = 32 * 1024 * 1024
+
+
+def _reject_oversize(data: bytes, limit: int) -> None:
+    if len(data) > limit:
+        raise DomainError("VALIDATION_ERROR", "file too large")
 
 
 class MessageIn(BaseModel):
@@ -167,7 +173,13 @@ def _public_attachments(items) -> list[dict]:
     ]
 
 
-async def _read_chat_payload(request: Request, storage, tenant: TenantId, thread_id: str) -> tuple[str, list]:
+async def _read_chat_payload(
+    request: Request,
+    storage,
+    tenant: TenantId,
+    thread_id: str,
+    max_upload_bytes: int,
+) -> tuple[str, list]:
     content_type = request.headers.get("content-type") or ""
     if content_type.startswith("multipart/form-data"):
         form = await request.form()
@@ -176,6 +188,7 @@ async def _read_chat_payload(request: Request, storage, tenant: TenantId, thread
         upload = form.get("file")
         if upload is not None and hasattr(upload, "read"):
             data = await upload.read()
+            _reject_oversize(data, max_upload_bytes)
             filename = str(getattr(upload, "filename", None) or "upload.bin")
             filename = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip() or "upload.bin"
             uri = storage.put(f"chat/{tenant.value}/{thread_id}/{filename}", data)
@@ -219,6 +232,7 @@ def create_app(
     database_url: str | None = None,
     llm=None,
     reasoner=None,
+    max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
 ) -> FastAPI:
     session = None
     stores = None
@@ -598,6 +612,7 @@ def create_app(
             raise DomainError("NOT_FOUND", "not found")
         caps = _require_write(persona, user)
         data = await file.read()
+        _reject_oversize(data, max_upload_bytes)
         filename = file.filename or "upload.bin"
         import_artifact(
             tenant_id=TenantId(x_tenant_id),
@@ -854,7 +869,9 @@ def create_app(
         caps = _caps_for(persona, user)
         if Capability.CHAT not in caps:
             raise DomainError("FORBIDDEN_CHAT", "no grant")
-        text, attachments = await _read_chat_payload(request, storage, tenant, thread_id)
+        text, attachments = await _read_chat_payload(
+            request, storage, tenant, thread_id, max_upload_bytes
+        )
         result = send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
