@@ -6,11 +6,13 @@
 演化类型，从知识图谱离线合成，并强制绑定 memory_id。
 
 若配置 DEEPSEEK_API_KEY（兼容 OpenAI 协议）且 ragas 0.2.15 可导入，可用
-``--backend ragas`` 调用官方 TestsetGenerator，再经 memory_id 对齐合并。
+``--backend ragas`` 调用官方 TestsetGenerator。产物写到
+``eval/fixtures/suite-ragas-official/``，**不会覆盖** 377 条 ``suite-ragas-v1``。
+无密钥、导入失败或生成失败时非 0 退出，避免看起来像成功。
 
 用法:
   python3 eval/generate_testset.py
-  python3 eval/generate_testset.py --backend ragas --size 50
+  python3 eval/generate_testset.py --backend ragas --size 10
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "eval" / "fixtures" / "suite-ragas-v1"
+OFFICIAL_OUT = ROOT / "eval" / "fixtures" / "suite-ragas-official"
 
 TENANT_A = "0a000000-0000-4000-a000-000000000001"
 TENANT_B = "0b000000-0000-4000-a000-000000000001"
@@ -537,14 +540,25 @@ def _chat_key() -> str:
     return os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
 
 
+class RagasBackendError(RuntimeError):
+    """官方 TestsetGenerator 不可用。code 供 CLI 退出码使用。"""
+
+    def __init__(self, code: int, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
 def try_ragas_backend(size: int) -> list[dict]:
     """调用官方 TestsetGenerator（DeepSeek Chat + 本地占位 embedding）。"""
     import os as _os
 
     key = _chat_key()
     if not key:
-        print("[ragas] DEEPSEEK_API_KEY 未注入本进程，跳过官方生成器", file=sys.stderr)
-        return []
+        raise RagasBackendError(
+            1,
+            "[ragas] DEEPSEEK_API_KEY 未注入本进程。对话弹窗不会写入已启动的 VM；"
+            "请在 Cursor Dashboard → Cloud Agents → My Secrets 保存同名 Runtime Secret 后新开一轮 Agent。",
+        )
 
     try:
         from langchain_community.embeddings import FakeEmbeddings
@@ -552,8 +566,7 @@ def try_ragas_backend(size: int) -> list[dict]:
         from langchain_openai import ChatOpenAI
         from ragas.testset import TestsetGenerator
     except Exception as exc:  # noqa: BLE001
-        print(f"[ragas] import failed: {exc}", file=sys.stderr)
-        return []
+        raise RagasBackendError(2, f"[ragas] import failed: {exc}") from exc
 
     # 部分 RAGAS/LangChain 只认 OPENAI_* ；DeepSeek 兼容该协议。
     _os.environ.setdefault("OPENAI_API_KEY", key)
@@ -588,8 +601,7 @@ def try_ragas_backend(size: int) -> list[dict]:
         testset = generator.generate_with_langchain_docs(docs, testset_size=size)
         rows = testset.to_pandas().to_dict(orient="records")
     except Exception as exc:  # noqa: BLE001
-        print(f"[ragas] generate failed: {exc}", file=sys.stderr)
-        return []
+        raise RagasBackendError(3, f"[ragas] generate failed: {exc}") from exc
 
     aligned = []
     skipped = 0
@@ -627,9 +639,10 @@ def try_ragas_backend(size: int) -> list[dict]:
     return aligned
 
 
-def manifest(cases: list[dict]) -> dict:
+def manifest(cases: list[dict], suite_version: str = "ragas-v1") -> dict:
+    n = len(cases) or 1
     return {
-        "suite_version": "ragas-v1",
+        "suite_version": suite_version,
         "n_cases": len(cases),
         "n_unique_queries": len({c["query"] for c in cases}),
         "n_unique_references": len({c["reference"] for c in cases}),
@@ -642,10 +655,14 @@ def manifest(cases: list[dict]) -> dict:
         "persona_distribution": dict(Counter(c["actor"]["persona_id"] for c in cases)),
         "behavior_distribution": dict(Counter(c["expected_behavior"] for c in cases)),
         "id_bound_rate": round(
-            sum(1 for c in cases if c["expected_memory_ids"] or c["expected_behavior"] == "refuse") / len(cases),
+            sum(1 for c in cases if c["expected_memory_ids"] or c["expected_behavior"] == "refuse") / n,
             4,
         ),
-        "generator_note": "Default backend ragas_compat implements RAGAS simple/reasoning/multi_context/conditional plus Arbor isolation slices. Official ragas TestsetGenerator is optional when keys exist.",
+        "generator_note": (
+            "Official ragas TestsetGenerator (DeepSeek Chat + FakeEmbeddings); rows aligned to memory_id."
+            if suite_version == "ragas-official"
+            else "Default backend ragas_compat implements RAGAS simple/reasoning/multi_context/conditional plus Arbor isolation slices. Official ragas TestsetGenerator writes suite-ragas-official/ and does not overwrite this suite."
+        ),
         "resume_blurb": f"{len(cases)} 条评测样本 / 2 租户 3 人设 / {len(MEMORIES)} 条源记忆 / RAGAS 演化类型 + 隔离负例，全部绑定 memory_id 或 refuse。",
     }
 
@@ -667,26 +684,48 @@ def export_ragas_jsonl(cases: list[dict], path: Path) -> None:
             )
 
 
+def write_suite(cases: list[dict], out: Path, suite_version: str) -> dict:
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "cases.json").write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (out / "knowledge_graph.json").write_text(
+        json.dumps({"personas": PERSONAS, "memories": MEMORIES, "events": EVENTS}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    meta = manifest(cases, suite_version=suite_version)
+    (out / "MANIFEST.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    export_ragas_jsonl(cases, out / "ragas_eval.jsonl")
+    return meta
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=["ragas_compat", "ragas"], default="ragas_compat")
     parser.add_argument("--size", type=int, default=50, help="official ragas size")
+    parser.add_argument(
+        "--out",
+        default="",
+        help="output directory; default suite-ragas-v1 (compat) or suite-ragas-official (ragas)",
+    )
     args = parser.parse_args()
 
-    cases = synthesize_all()
     if args.backend == "ragas":
-        extra = try_ragas_backend(args.size)
-        cases.extend(extra)
+        try:
+            cases = try_ragas_backend(args.size)
+        except RagasBackendError as exc:
+            print(exc, file=sys.stderr)
+            return exc.code
+        if not cases:
+            print("[ragas] aligned=0，未写入可用金标", file=sys.stderr)
+            return 4
+        out = Path(args.out) if args.out else OFFICIAL_OUT
+        meta = write_suite(cases, out, suite_version="ragas-official")
+        print(json.dumps(meta, ensure_ascii=False, indent=2))
+        print(f"[ragas] wrote {len(cases)} cases -> {out}", file=sys.stderr)
+        return 0
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "cases.json").write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    (OUT / "knowledge_graph.json").write_text(
-        json.dumps({"personas": PERSONAS, "memories": MEMORIES, "events": EVENTS}, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    meta = manifest(cases)
-    (OUT / "MANIFEST.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    export_ragas_jsonl(cases, OUT / "ragas_eval.jsonl")
+    cases = synthesize_all()
+    out = Path(args.out) if args.out else OUT
+    meta = write_suite(cases, out, suite_version="ragas-v1")
     print(json.dumps(meta, ensure_ascii=False, indent=2))
     return 0
 
