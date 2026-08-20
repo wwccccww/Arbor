@@ -56,3 +56,21 @@ export type InboxList = {
   items: InboxItem[]
   forbidden?: boolean
 }
+
+export type EvalMetrics = {
+  identity_consistency?: number
+  recall_at_5?: number
+  persona_leak_rate?: number
+  tenant_leak_count?: number
+  key_event_hit_rate?: number
+}
+
+export type EvalRun = {
+  id: string
+  status?: string
+  strategy: string
+  suite_version?: string
+  mode?: string
+  metrics: EvalMetrics
+  p0_tenant_leak_zero?: boolean
+}
