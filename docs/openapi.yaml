@@ -1013,11 +1013,42 @@ paths:
             format: uuid
       responses:
         "200":
-          description: 事件
+          description: 事件卡
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EventNode"
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  persona_id:
+                    type: string
+                    format: uuid
+                  title:
+                    type: string
+                  attachments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        type:
+                          type: string
+                        text:
+                          type: string
+                  memories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        text:
+                          type: string
         "404":
           $ref: "#/components/responses/Error"
 

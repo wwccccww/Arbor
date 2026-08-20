@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from arbor.domain.errors import DomainError
+from arbor.domain.memory.memory import MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, TenantId, UserId
+
+ATTACHMENT_TYPES = frozenset(
+    {MemoryType.FILE_CHUNK, MemoryType.IMAGE_CAPTION, MemoryType.TRANSCRIPT}
+)
 
 
 class GetEventCard:
@@ -29,9 +34,12 @@ class GetEventCard:
         caps = capabilities or self.auth.capabilities_for(persona, user_id)
         if Capability.READ_MEMORY not in caps:
             raise DomainError("NOT_FOUND", "not found")
-        related = [
-            item
-            for item in self.memories.list_active(tenant_id, node.persona_id)
-            if item.event_id == node.id
-        ]
-        return {"node": node, "memories": related}
+        related = self.memories.list(
+            tenant_id,
+            node.persona_id,
+            event_id=node.id,
+            status=MemoryStatus.ACTIVE,
+        )
+        attachments = [item for item in related if item.type in ATTACHMENT_TYPES]
+        memories = [item for item in related if item.type not in ATTACHMENT_TYPES]
+        return {"node": node, "memories": memories, "attachments": attachments}
