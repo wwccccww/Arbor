@@ -64,6 +64,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | [docs/api.md](docs/api.md) | 接口说明（人类可读） |
 | [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI 3.1 |
 | [docs/testing.md](docs/testing.md) | 单元 / 契约 / API / 架构测试与 CI |
+| [docs/testing-examples.md](docs/testing-examples.md) | 如何先写测试样例（YAML） |
 | [docs/evaluation.md](docs/evaluation.md) | 评测怎么办：体检页、金标、门槛、工作流 |
 | [docs/adr](docs/adr) | 架构决策记录 |
 

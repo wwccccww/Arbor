@@ -1,0 +1,92 @@
+# HTTP 入站样例。对照 docs/api.md 与 openapi.yaml。
+- id: api.auth.missing_bearer
+  layer: api
+  severity: p0
+  title: 无 Bearer 返回 401
+  given:
+    headers: {}
+  when:
+    method: GET
+    path: /v1/me
+  then:
+    status: 401
+    error_code: UNAUTHENTICATED
+
+- id: api.memory.hidden_without_grant
+  layer: api
+  severity: p0
+  title: Member 无人设授权访问记忆不暴露存在性
+  given:
+    user_role: member
+    persona_grants: []
+    persona_id: 0a000000-0000-4000-a000-000000000010
+  when:
+    method: GET
+    path: /v1/personas/0a000000-0000-4000-a000-000000000010/memories
+    header:
+      X-Tenant-Id: 0a000000-0000-4000-a000-000000000001
+  then:
+    status: [403, 404]
+
+- id: api.grants.revoke_chat
+  layer: api
+  severity: p0
+  title: 收权后原用户不能再发消息
+  given:
+    user_id: 0a000000-0000-4000-a000-000000000003
+    thread_id: 0a000000-0000-4000-a000-000000000030
+  when:
+    steps:
+      - method: PUT
+        path: /v1/personas/0a000000-0000-4000-a000-000000000010/grants
+        body:
+          grants: []
+      - method: POST
+        path: /v1/threads/0a000000-0000-4000-a000-000000000030/messages
+        body:
+          text: 还在吗
+  then:
+    last_status: [403, 404]
+
+- id: api.chat.citations_subset_of_injected
+  layer: api
+  severity: p0
+  title: 响应 citations 必须是本次注入集合的子集
+  given:
+    capabilities: [chat, read_memory]
+    fake_llm:
+      extra_citation_memory_id: 0dead000-0000-4000-a000-000000000001
+  when:
+    method: POST
+    path: /v1/threads/0a000000-0000-4000-a000-000000000030/messages
+    body:
+      text: 我们在哪家店吵的？
+  then:
+    citations_subset_of_injected: true
+
+- id: api.tenant.mismatch_not_found
+  layer: api
+  severity: p0
+  title: 租户头与资源不符返回 404
+  given:
+    persona_id: 0a000000-0000-4000-a000-000000000010
+  when:
+    method: GET
+    path: /v1/personas/0a000000-0000-4000-a000-000000000010
+    header:
+      X-Tenant-Id: 0b000000-0000-4000-a000-000000000001
+  then:
+    status: 404
+    error_code: NOT_FOUND
+
+- id: api.error.shape
+  layer: api
+  severity: p0
+  title: 错误体包含 code
+  given:
+    headers: {}
+  when:
+    method: GET
+    path: /v1/me
+  then:
+    body_has_fields: [error.code, error.message, error.request_id]

@@ -1,0 +1,118 @@
+# 应用层样例。使用 Fake 仓储 / Fake LLM / 内存向量，不断言文风。
+- id: application.send_message.context_order
+  layer: application
+  severity: p0
+  title: 拼进模型的槽位顺序为档案、摘要、事件、向量
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    capabilities: [chat, read_memory]
+  when:
+    action: SendMessage
+    text: 我们上次为什么吵架？
+  then:
+    llm_context_slot_order:
+      - profile
+      - thread_summary
+      - event_hits
+      - memory_hits
+
+- id: application.send_message.no_memory_without_grant
+  layer: application
+  severity: p0
+  title: 仅有 chat 时禁忌不得进入模型上下文
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    capabilities: [chat]
+  when:
+    action: SendMessage
+    text: 随便聊聊
+  then:
+    llm_prompt_must_not_contain:
+      - 香菜
+      - 老张面馆
+    llm_injected_memory_ids: []
+
+- id: application.send_message.drop_hallucinated_citation
+  layer: application
+  severity: p0
+  title: 模型引用未注入的 memory_id 时丢弃
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    capabilities: [chat, read_memory]
+    fake_llm:
+      extra_citation_memory_id: 0a000000-0000-4000-a000-000000000401
+  when:
+    action: SendMessage
+    text: 我们在哪吵的？
+  then:
+    response_citations_must_not_contain:
+      - 0a000000-0000-4000-a000-000000000401
+
+- id: application.send_message.extract_goes_to_inbox
+  layer: application
+  severity: p0
+  title: 抽取结果进 Inbox，不直接写入 active 记忆
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    capabilities: [chat, read_memory]
+    fake_reasoner:
+      proposed_fact: 林夏最近开始喝美式
+  when:
+    action: SendMessage
+    text: 我最近喜欢喝美式
+  then:
+    inbox_pending: 1
+    active_memory_added: 0
+
+- id: application.confirm_inbox.makes_searchable
+  layer: application
+  severity: p0
+  title: 确认 Inbox 后内存向量可检索到
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    pending_inbox:
+      text: 林夏最近开始喝美式
+  when:
+    action: ConfirmInboxItem
+  then:
+    memory_status: active
+    vector_search_hits: 1
+
+- id: application.import.requires_write_memory
+  layer: application
+  severity: p0
+  title: 无 write_memory 不得导入
+  given:
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    capabilities: [chat, read_memory]
+  when:
+    action: ImportArtifact
+    filename: notes.pdf
+  then:
+    error: FORBIDDEN_MEMORY_WRITE
+    object_storage_objects: 0
+
+- id: application.vector.fake_index_isolates_persona
+  layer: application
+  severity: p0
+  title: Fake 向量即使用相同向量也必须按人设过滤
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    identical_embedding: [0.1, 0.2, 0.3]
+    memory_a:
+      persona_id: 0a000000-0000-4000-a000-000000000010
+      text: 同一句秘密
+    memory_b:
+      persona_id: 0a000000-0000-4000-a000-000000000020
+      text: 同一句秘密
+  when:
+    action: VectorIndex.search
+    persona_id: 0a000000-0000-4000-a000-000000000020
+    query_vector: [0.1, 0.2, 0.3]
+  then:
+    hit_persona_ids: [0a000000-0000-4000-a000-000000000020]
+    hit_count: 1

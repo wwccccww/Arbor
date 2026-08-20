@@ -51,6 +51,8 @@
 
 ```text
 tests/
+  examples/                      # Given-When-Then 样例（先于 pytest）
+  fixtures/mini-world.yaml       # 契约/应用最小世界
   conftest.py
   fakes/                         # 出站端口的内存实现，供应用层单测
     repositories.py
@@ -109,7 +111,8 @@ eval/
 
 ## 5. 必须存在的用例（P0 清单）
 
-实现对应代码时，下列名字应能在 pytest 里找到。缺一项视为文档未落地。
+实现对应代码时，下列名字应能在 pytest 里找到。缺一项视为文档未落地。  
+可加载样例见 [testing-examples.md](testing-examples.md) 与 `tests/examples/*.yaml`。
 
 ### 5.1 领域
 

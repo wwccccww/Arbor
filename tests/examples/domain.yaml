@@ -1,0 +1,147 @@
+# 领域层样例。不启动数据库、不调用模型。
+- id: domain.persona.tenant_immutable
+  layer: domain
+  severity: p0
+  title: 人设创建后不能更换租户
+  given:
+    tenant_a: 0a000000-0000-4000-a000-000000000001
+    tenant_b: 0b000000-0000-4000-a000-000000000001
+    persona:
+      id: 0a000000-0000-4000-a000-000000000010
+      tenant_id: 0a000000-0000-4000-a000-000000000001
+      display_name: 林夏
+  when:
+    action: change_tenant
+    to: 0b000000-0000-4000-a000-000000000001
+  then:
+    error: PERSONA_TENANT_IMMUTABLE
+
+- id: domain.thread.chat_required
+  layer: domain
+  severity: p0
+  title: 无 chat 授权不能追加消息
+  given:
+    persona_id: 0a000000-0000-4000-a000-000000000010
+    user_id: 0a000000-0000-4000-a000-000000000003
+    grant_capabilities: []
+    thread_id: 0a000000-0000-4000-a000-000000000030
+  when:
+    action: append_message
+    text: 你好
+  then:
+    error: FORBIDDEN_CHAT
+
+- id: domain.context.no_read_memory_min_profile
+  layer: domain
+  severity: p0
+  title: 无 read_memory 时上下文只有最小档案
+  given:
+    capabilities: [chat]
+    profile:
+      display_name: 林夏
+      one_liner: 住在杭州的陪伴助手
+      taboos: [香菜]
+      relationships: [{ name: 用户, kind: partner }]
+    memories:
+      - text: 林夏讨厌香菜
+  when:
+    action: build_context
+  then:
+    slots_allowed: [display_name, one_liner]
+    slots_forbidden: [taboos, relationships, memory_items]
+
+- id: domain.thread.persona_bound
+  layer: domain
+  severity: p0
+  title: 会话不能换绑人设
+  given:
+    thread:
+      id: 0a000000-0000-4000-a000-000000000030
+      persona_id: 0a000000-0000-4000-a000-000000000010
+  when:
+    action: rebind_persona
+    to: 0a000000-0000-4000-a000-000000000020
+  then:
+    error: THREAD_PERSONA_IMMUTABLE
+
+- id: domain.citation.cross_persona_forbidden
+  layer: domain
+  severity: p0
+  title: 不能引用其他人设的记忆
+  given:
+    thread_persona: 0a000000-0000-4000-a000-000000000010
+    citation_memory:
+      id: 0a000000-0000-4000-a000-000000000401
+      persona_id: 0a000000-0000-4000-a000-000000000020
+  when:
+    action: attach_citation
+  then:
+    error: CITATION_PERSONA_MISMATCH
+
+- id: domain.memory.confirm_supersedes
+  layer: domain
+  severity: p0
+  title: 确认冲突事实后旧记忆为 superseded
+  given:
+    active_fact:
+      id: 0a000000-0000-4000-a000-000000000307
+      text: 林夏很喜欢猫
+      status: active
+    inbox_item:
+      kind: conflict
+      payload:
+        text: 林夏对猫毛过敏
+  when:
+    action: confirm_inbox_item
+  then:
+    old_status: superseded
+    new_status: active
+    new_supersedes: 0a000000-0000-4000-a000-000000000307
+
+- id: domain.profile.no_silent_update
+  layer: domain
+  severity: p0
+  title: 未确认的抽取不得改档案
+  given:
+    profile:
+      taboos: [香菜]
+    inbox_item:
+      kind: fact
+      status: pending
+      payload:
+        taboos: [香菜, 洋葱]
+  when:
+    action: nothing_confirmed
+  then:
+    profile.taboos: [香菜]
+    memory_writes: 0
+
+- id: domain.event_edge.same_persona
+  layer: domain
+  severity: p0
+  title: 事件边不能跨人设
+  given:
+    from_event:
+      id: 0a000000-0000-4000-a000-000000000102
+      persona_id: 0a000000-0000-4000-a000-000000000010
+    to_event:
+      id: 0a000000-0000-4000-a000-000000000201
+      persona_id: 0a000000-0000-4000-a000-000000000020
+  when:
+    action: add_edge
+    kind: temporal
+  then:
+    error: EVENT_EDGE_PERSONA_MISMATCH
+
+- id: domain.tenant.owner_required
+  layer: domain
+  severity: p0
+  title: 不能删光工作空间 owner
+  given:
+    tenant_id: 0a000000-0000-4000-a000-000000000001
+    owners: [0a000000-0000-4000-a000-000000000002]
+  when:
+    action: demote_or_remove
+    user_id: 0a000000-0000-4000-a000-000000000002
+  then:
+    error: TENANT_OWNER_REQUIRED
