@@ -80,6 +80,7 @@ tests/
       test_export_thread.py
       test_get_event_tree.py
       test_list_memories.py
+      test_list_messages.py
       test_send_message_attachments.py
       test_get_chat_attachment.py
   architecture/
@@ -109,6 +110,7 @@ tests/
     test_memories.py
     test_chat_attachments.py
     test_upload_size_limit.py
+    test_message_pagination.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -168,6 +170,7 @@ eval/
 | `ListMemories` 按 type/event/status 过滤 | 默认不含 superseded；分页返回 `total` |
 | 聊天附件不进 Memory / Inbox | 用户消息带 filename；仓储无新 active |
 | `GetChatAttachment` 无 `chat` 或无 uri | 404；有存储则返回原字节 |
+| `ListMessages` 无 `chat` | 404；分页返回 `total` |
 
 ### 5.3 适配器契约（真实 Postgres）
 
@@ -198,7 +201,7 @@ eval/
 | 事件卡附件 | 相关 image_caption/file_chunk/transcript 进 attachments，不与 memories 重复 |
 | Owner 列出人设、Member 仅已授权 | 列表不串无权的人设 |
 | 无 `read_memory` 看人设 | 最小档案，无禁忌 |
-| 创建会话后能拉历史 | POST thread → POST message → GET messages |
+| 创建会话后能拉历史 | POST thread → POST message → GET messages；`total` 为分页前条数 |
 | 导入需要 `write_memory` | 无权限 404/403；成功后能查 job |
 | 导入文本进 Inbox | 待确认出现正文；active 记忆不增加，确认后才有 |
 | Owner 跑 retrieval 评测 | suite-v1 `tenant_leak_count==0`；Member 403 |

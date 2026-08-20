@@ -144,6 +144,8 @@ Owner/Admin。
 
 ### `GET /v1/threads/{thread_id}/messages`
 
+需要 `chat`。Query：`limit`（1–100，默认 50）、`offset`。响应含 `items` 与分页前的 `total`。无权限或跨租户 404。
+
 ### `GET /v1/threads/{thread_id}/attachments/{filename}`
 
 需要 `chat`。返回本会话里已存储的文件字节。只认消息上带 `uri` 的 multipart 附件；JSON 只带 filename、未存文件的 404。无权限或跨租户 404。不写 Memory。

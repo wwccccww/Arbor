@@ -823,6 +823,8 @@ def create_app(
         thread_id: str,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
+        limit: int = Query(default=50),
+        offset: int = Query(default=0),
     ):
         user = current_user(authorization)
         tenant = TenantId(x_tenant_id or user["tenant_id"])
@@ -832,11 +834,13 @@ def create_app(
         persona = personas.get(tenant, thread.persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        loaded = list_messages(
+        page = list_messages(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
             thread_id=ThreadId(thread_id),
             capabilities=_caps_for(persona, user),
+            limit=limit,
+            offset=offset,
         )
         return {
             "items": [
@@ -847,8 +851,9 @@ def create_app(
                     "citations": [c.memory_id.value for c in message.citations if c.memory_id],
                     "attachments": _public_attachments(message.attachments),
                 }
-                for message in loaded.messages
-            ]
+                for message in page.items
+            ],
+            "total": page.total,
         }
 
     @app.post("/v1/threads/{thread_id}/messages")

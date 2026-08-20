@@ -694,6 +694,19 @@ paths:
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
         - $ref: "#/components/parameters/ThreadId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         "200":
           description: 消息
@@ -725,6 +738,9 @@ paths:
                             properties:
                               filename:
                                 type: string
+                  total:
+                    type: integer
+                    description: 分页前的条数
         "404":
           $ref: "#/components/responses/Error"
     post:
