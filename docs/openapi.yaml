@@ -846,6 +846,9 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/MemoryItem"
+                  total:
+                    type: integer
+                    description: 过滤后、分页前的条数
         "403":
           $ref: "#/components/responses/Error"
 

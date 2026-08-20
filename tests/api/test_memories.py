@@ -44,6 +44,15 @@ def test_list_memories_filters_type_event_and_status():
     default_ids = {item["id"] for item in defaulted.json()["items"]}
     assert OLD_CAT not in default_ids
     assert CAPTION in default_ids
+    assert defaulted.json()["total"] == len(defaulted.json()["items"])
+    paged = client.get(
+        f"/v1/personas/{LINXIA}/memories",
+        headers=_headers(),
+        params={"limit": 1, "offset": 0},
+    )
+    assert paged.status_code == 200
+    assert len(paged.json()["items"]) == 1
+    assert paged.json()["total"] > 1
     zhou = client.get(f"/v1/personas/{ZHOU}/memories", headers=_headers())
     assert all(item["id"].startswith("0a000000-0000-4000-a000-0000000004") for item in zhou.json()["items"])
     assert CAPTION not in {item["id"] for item in zhou.json()["items"]}

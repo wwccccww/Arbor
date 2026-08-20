@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId, UserId
+
+
+@dataclass(frozen=True)
+class MemoryPage:
+    items: list
+    total: int
 
 
 class ListMemories:
@@ -24,7 +32,7 @@ class ListMemories:
         status: str | None = "active",
         limit: int = 50,
         offset: int = 0,
-    ) -> list:
+    ) -> MemoryPage:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
@@ -45,7 +53,7 @@ class ListMemories:
             event_id=parsed_event,
             status=parsed_status,
         )
-        return items[offset : offset + limit]
+        return MemoryPage(items=items[offset : offset + limit], total=len(items))
 
 
 def _parse_type(raw: str | None) -> MemoryType | None:

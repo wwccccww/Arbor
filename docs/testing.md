@@ -202,7 +202,7 @@ eval/
 | Owner 管成员 | 列出/邀请；Member 403；不能降级最后一名 owner |
 | Owner 删空空间 | 新建空租户可删；有人设的演示租户 400；Member 403/404 |
 | 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
-| 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404 |
+| 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404；`total` 为过滤后分页前条数 |
 | 聊天附件 | multipart 文件进对象存储；GET 能看见 filename；不进 Inbox/Memory；无 `chat` 404 |
 
 ### 5.5 架构
