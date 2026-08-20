@@ -163,7 +163,7 @@ eval/
 | 导入无 `write_memory` | 失败，对象存储不留文件（或事务回滚） |
 | 两个 Persona 的 Fake 向量互不命中 | 即使用相同向量 |
 | `ListMemories` 无 `read_memory` | 404，不泄露条目 |
-| `ListMemories` 按 type/event/status 过滤 | 默认不含 superseded |
+| `ListMemories` 按 type/event/status 过滤 | 默认不含 superseded；分页返回 `total` |
 | 聊天附件不进 Memory / Inbox | 用户消息带 filename；仓储无新 active |
 
 ### 5.3 适配器契约（真实 Postgres）
