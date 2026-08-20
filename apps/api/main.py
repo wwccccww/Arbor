@@ -18,6 +18,7 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
+from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
@@ -66,7 +67,12 @@ def _caps_for(persona, user: dict) -> list[Capability]:
     return []
 
 
-def create_app(*, extra_citation: str | None = None, database_url: str | None = None) -> FastAPI:
+def create_app(
+    *,
+    extra_citation: str | None = None,
+    database_url: str | None = None,
+    llm=None,
+) -> FastAPI:
     session = None
     stores = None
     if database_url:
@@ -106,7 +112,7 @@ def create_app(*, extra_citation: str | None = None, database_url: str | None = 
         events=events,
         inbox=inbox,
         vectors=vectors,
-        llm=ScriptedLLM(extra_citation_memory_id=extra_citation),
+        llm=llm or ScriptedLLM(extra_citation_memory_id=extra_citation),
         reasoner=ScriptedReasoner(),
         embed=embed,
         ids=SeqIdGenerator(),
@@ -127,7 +133,13 @@ def create_app(*, extra_citation: str | None = None, database_url: str | None = 
             status = 403
         elif exc.code == "NOT_FOUND":
             status = 404
+        elif exc.code == "UPSTREAM_UNAVAILABLE":
+            status = 503
         return _error(exc.code, str(exc), status)
+
+    @app.exception_handler(DeepSeekUnavailable)
+    async def deepseek_error(_, exc: DeepSeekUnavailable):
+        return _error("UPSTREAM_UNAVAILABLE", "chat model unavailable", 503)
 
     def current_user(authorization: str | None):
         if not authorization or not authorization.lower().startswith("bearer "):
@@ -229,6 +241,7 @@ def create_app(*, extra_citation: str | None = None, database_url: str | None = 
 
 
 def create_app_from_env() -> FastAPI:
-    from arbor.env import database_url as env_database_url
+    from arbor.env import chat_api_key, database_url as env_database_url
 
-    return create_app(database_url=env_database_url() or None)
+    llm = DeepSeekChatLLM() if chat_api_key() else None
+    return create_app(database_url=env_database_url() or None, llm=llm)
