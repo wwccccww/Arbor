@@ -41,7 +41,7 @@ suite-v1 夹具世界
 
 路径：[eval/fixtures/suite-v1/](../eval/fixtures/suite-v1/)（P0 烟雾，13 题）。
 
-规模集：[eval/fixtures/suite-ragas-v1/](../eval/fixtures/suite-ragas-v1/)（离线 RAGAS 分布 377 + 官方对齐 100，含隔离负例，合计 **477** 条）。改检索后应全量跑规模集；面试体检默认仍用 v1。生成命令：`python3 eval/generate_testset.py`。详见 [ragas.md §9](ragas.md)。
+规模集：[eval/fixtures/suite-ragas-v1/](../eval/fixtures/suite-ragas-v1/)（离线 RAGAS 分布 377 + 官方对齐 100，含隔离负例，合计 **477** 条）。改检索后应全量跑规模集（`arbor-eval --suite ragas-v1`）；面试体检默认仍用 v1。生成命令：`python3 eval/generate_testset.py`。基线：[eval/baselines/suite-ragas-v1.json](../eval/baselines/suite-ragas-v1.json)。详见 [ragas.md §9](ragas.md)。
 
 规模（v1 刻意小，先跑通再加题）：
 
@@ -100,18 +100,20 @@ suite-v1 夹具世界
 
 ## 5. 必须出的对比表
 
-每次发布默认策略前，四列都要跑：
+每次发布默认策略前，四列都要跑。**简历用规模集 477**，不要用 suite-v1 的满分表。
+
+suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模集（夹具嵌入，2026-08-20）：
 
 | strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件命中 | 检索延迟 |
 |---|---|---|---|---|---|---|
 | `summary_only` | 0.0 | 0.0 | 0 | **0** | 0.0 | <1ms |
-| `vector_only` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
-| `layered` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
-| `layered_tree` | 1.0 | 1.0 | 0 | **0** | 1.0 | <1ms |
+| `vector_only` | 0.68 | 0.77 | 0 | **0** | 0.94 | <1ms |
+| `layered` | **1.0** | 0.89 | 0 | **0** | 0.94 | <1ms |
+| `layered_tree` | **1.0** | **0.90** | 0 | **0** | **0.99** | <1ms |
 
-简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。v1 太小，纯向量也能碰巧召回身份题，分层是否接上档案看 `profile_miss_count`（`vector_only`=3，`layered*`=0）。
+简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation / RAGAS 未跑。源记忆只有 33 条，477 是问法扩张。
 
-基线文件：`eval/baselines/suite-v1.json`（`arbor-eval --suite v1 --strategy all --write-baseline` 写入）。
+基线文件：`eval/baselines/suite-ragas-v1.json`（`arbor-eval --suite ragas-v1 --strategy all --write-baseline`）。
 
 ## 6. 记忆体检页怎么接
 
@@ -180,7 +182,8 @@ eval/
     cases.json                  # 题目与期望 ID
     thresholds.json             # 默认策略门槛
   baselines/
-    suite-v1.json               # 四策略检索对比表
+    suite-v1.json               # 13 题烟雾对比表
+    suite-ragas-v1.json         # 477 问规模对比表
     suite-v1.placeholder.json   # 历史占位
 ```
 

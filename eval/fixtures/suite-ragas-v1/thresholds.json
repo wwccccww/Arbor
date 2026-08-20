@@ -1,0 +1,13 @@
+{
+  "suite_version": "ragas-v1",
+  "default_strategy": "layered_tree",
+  "k": 5,
+  "retrieval": {
+    "tenant_leak_count": { "max": 0, "severity": "p0" },
+    "persona_leak_rate": { "max": 0, "scope": "isolation_cases", "severity": "p0_demo" },
+    "recall_at_5": { "min": 0.5, "severity": "soft" },
+    "identity_consistency": { "min": 0.7, "scope": "profile_fact", "severity": "soft" },
+    "superseded_in_topk": { "max": 0, "severity": "p0" }
+  },
+  "notes": "泄漏仍是 P0。Recall 软门槛低于 suite-v1：问法更散，且评测用夹具哈希嵌入而不是 bge。"
+}

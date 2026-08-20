@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import defaultdict
+
 
 def score_case(case: dict, retrieved: dict) -> dict:
     hit_ids = list(retrieved["hit_ids"])
@@ -63,6 +65,23 @@ def aggregate(rows: list[dict], world: dict) -> dict:
             key_event.append(1.0 if row["event_hit"] else 0.0)
 
     latencies = [r["latency_ms"] for r in rows if r.get("latency_ms") is not None]
+    by_skill: dict[str, dict] = {}
+    buckets: dict[str, dict] = defaultdict(lambda: {"n": 0, "recall_sum": 0.0, "with_expected": 0, "leaks": 0})
+    for row in rows:
+        skill = row.get("skill") or "unknown"
+        bucket = buckets[skill]
+        bucket["n"] += 1
+        if row["expected_memory_ids"]:
+            bucket["with_expected"] += 1
+            bucket["recall_sum"] += row["recall"]
+        if row["leaked"]:
+            bucket["leaks"] += 1
+    for skill, bucket in sorted(buckets.items()):
+        by_skill[skill] = {
+            "n": bucket["n"],
+            "recall_at_5": round(bucket["recall_sum"] / bucket["with_expected"], 4) if bucket["with_expected"] else None,
+            "leak_cases": bucket["leaks"],
+        }
     return {
         "tenant_leak_count": tenant_leaks,
         "persona_leak_rate": round(persona_leaks / len(isolation), 4) if isolation else 0.0,
@@ -74,6 +93,7 @@ def aggregate(rows: list[dict], world: dict) -> dict:
         "n_leaking_cases": sum(1 for r in rows if r["leaked"]),
         "profile_miss_count": sum(1 for r in rows if r["profile_miss"]),
         "latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else 0.0,
+        "by_skill": by_skill,
     }
 
 

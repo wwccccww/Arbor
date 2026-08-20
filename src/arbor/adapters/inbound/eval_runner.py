@@ -52,7 +52,12 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
                 Grant(user_id=UserId(user["id"]), capabilities=list(Capability))
                 for user in world.get("users", [])
                 if user.get("tenant_id") == persona["tenant_id"]
-            ],
+            ]
+            or (
+                [Grant(user_id=UserId(persona["user_id"]), capabilities=list(Capability))]
+                if persona.get("user_id")
+                else []
+            ),
         )
     for thread in world.get("threads", []):
         stores.threads[thread["id"]] = Thread(
@@ -61,7 +66,7 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
             persona_id=PersonaId(thread["persona_id"]),
             summary=thread.get("summary", ""),
         )
-    for event in world.get("event_nodes", []):
+    for event in world.get("event_nodes") or world.get("events") or []:
         stores.events[event["id"]] = EventNode(
             id=EventId(event["id"]),
             tenant_id=TenantId(event["tenant_id"]),
@@ -82,6 +87,24 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
                 persona_id=PersonaId(edge["persona_id"]),
             )
         )
+    if not stores.edges:
+        v1_edges = ROOT / "eval" / "fixtures" / "suite-v1" / "world.json"
+        if v1_edges.exists():
+            import json
+
+            v1 = json.loads(v1_edges.read_text(encoding="utf-8"))
+            known = set(stores.events)
+            for edge in v1.get("event_edges") or []:
+                if edge["from_id"] in known and edge["to_id"] in known:
+                    stores.edges.append(
+                        EventEdge(
+                            from_id=EventId(edge["from_id"]),
+                            to_id=EventId(edge["to_id"]),
+                            kind=edge["kind"],
+                            tenant_id=TenantId(edge["tenant_id"]),
+                            persona_id=PersonaId(edge["persona_id"]),
+                        )
+                    )
     mem_repo = InMemoryMemoryRepository(stores)
     index = InMemoryVectorIndex(stores, mem_repo)
     for raw in world["memories"]:
@@ -117,9 +140,9 @@ def _ports(stores: InMemoryStores):
 
 
 def run_suite(*, suite_dir: Path, strategy: str, k: int | None = None) -> dict:
-    world, cases_doc, _thresholds, default_k = load_suite_files(suite_dir)
+    world, cases_doc, _thresholds, default_k, world_path = load_suite_files(suite_dir)
     stores = InMemoryStores()
-    load_world(suite_dir / "world.json", stores)
+    load_world(world_path, stores)
     memories, events, _threads, index, embed, summary_for = _ports(stores)
     return evaluate_retrieval(
         strategy=strategy,

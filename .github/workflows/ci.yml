@@ -14,3 +14,4 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all

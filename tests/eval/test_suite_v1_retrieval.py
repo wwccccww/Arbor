@@ -22,6 +22,18 @@ def test_suite_v1_all_strategies_no_cross_tenant_hit():
         assert row["tenant_leak_count"] == 0, name
 
 
+def test_suite_ragas_v1_all_strategies_no_cross_tenant_hit():
+    payload = run_all_strategies(ROOT / "eval/fixtures/suite-ragas-v1")
+    assert next(iter(payload["strategies"].values()))["n_cases"] == 477
+    for name, row in payload["strategies"].items():
+        assert row["tenant_leak_count"] == 0, name
+        assert row["persona_leak_rate"] == 0, name
+        assert row["superseded_in_topk"] == 0, name
+    layered = payload["strategies"]["layered_tree"]
+    assert layered["identity_consistency"] >= 0.7
+    assert layered["recall_at_5"] >= 0.5
+
+
 def test_openapi_parses():
     import yaml
 

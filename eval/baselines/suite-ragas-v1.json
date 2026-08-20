@@ -1,0 +1,102 @@
+{
+  "suite_version": "ragas-v1",
+  "updated_at": "2026-08-20",
+  "mode": "retrieval",
+  "k": 5,
+  "n_cases": 477,
+  "embeddings": "fixture_embed (deterministic hash, not bge-m3)",
+  "note": "夹具嵌入 + 内存向量。跨租户泄漏必须为 0。RAGAS faithfulness 不进本表。generation 未跑。规模集是 33 条源记忆上的问法扩张，不是大规模语料。",
+  "strategies": {
+    "summary_only": {
+      "identity_consistency": 0.0,
+      "recall_at_5": 0.0,
+      "persona_leak_rate": 0.0,
+      "tenant_leak_count": 0,
+      "key_event_hit_rate": 0.0,
+      "latency_ms": 0.01,
+      "profile_miss_count": 36,
+      "superseded_in_topk": 0,
+      "n_cases": 477
+    },
+    "vector_only": {
+      "identity_consistency": 0.6782,
+      "recall_at_5": 0.7684,
+      "persona_leak_rate": 0.0,
+      "tenant_leak_count": 0,
+      "key_event_hit_rate": 0.9444,
+      "latency_ms": 0.08,
+      "profile_miss_count": 36,
+      "superseded_in_topk": 0,
+      "n_cases": 477
+    },
+    "layered": {
+      "identity_consistency": 1.0,
+      "recall_at_5": 0.888,
+      "persona_leak_rate": 0.0,
+      "tenant_leak_count": 0,
+      "key_event_hit_rate": 0.9444,
+      "latency_ms": 0.08,
+      "profile_miss_count": 0,
+      "superseded_in_topk": 0,
+      "n_cases": 477
+    },
+    "layered_tree": {
+      "identity_consistency": 1.0,
+      "recall_at_5": 0.9021,
+      "persona_leak_rate": 0.0,
+      "tenant_leak_count": 0,
+      "key_event_hit_rate": 0.9861,
+      "latency_ms": 0.29,
+      "profile_miss_count": 0,
+      "superseded_in_topk": 0,
+      "n_cases": 477
+    }
+  },
+  "layered_tree_by_skill": {
+    "causal": {
+      "n": 42,
+      "recall_at_5": 0.869,
+      "leak_cases": 0
+    },
+    "conflict": {
+      "n": 9,
+      "recall_at_5": 1.0,
+      "leak_cases": 0
+    },
+    "episode_detail": {
+      "n": 259,
+      "recall_at_5": 0.8745,
+      "leak_cases": 0
+    },
+    "irrelevant": {
+      "n": 8,
+      "recall_at_5": null,
+      "leak_cases": 0
+    },
+    "multimodal": {
+      "n": 30,
+      "recall_at_5": 0.8333,
+      "leak_cases": 0
+    },
+    "persona_isolation": {
+      "n": 18,
+      "recall_at_5": null,
+      "leak_cases": 0
+    },
+    "profile_fact": {
+      "n": 87,
+      "recall_at_5": 1.0,
+      "leak_cases": 0
+    },
+    "temporal": {
+      "n": 12,
+      "recall_at_5": 1.0,
+      "leak_cases": 0
+    },
+    "tenant_isolation": {
+      "n": 12,
+      "recall_at_5": null,
+      "leak_cases": 0
+    }
+  }
+}
