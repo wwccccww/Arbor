@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from arbor.adapters.outbound.postgres.mapping import memory_from_row
-from arbor.domain.memory.memory import MemoryItem
-from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId
+from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId
 
 
 class PgMemoryRepository:
@@ -29,6 +29,36 @@ class PgMemoryRepository:
             """,
             (tenant_id.value, persona_id.value),
         ).fetchall()
+        return [memory_from_row(row) for row in rows]
+
+    def list(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+        *,
+        memory_type: MemoryType | None = None,
+        event_id: EventId | None = None,
+        status: MemoryStatus | None = None,
+    ) -> list[MemoryItem]:
+        sql = [
+            """
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes
+            FROM memory_items
+            WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
+            """
+        ]
+        params: list = [tenant_id.value, persona_id.value]
+        if memory_type is not None:
+            sql.append("AND type = %s")
+            params.append(memory_type.value)
+        if event_id is not None:
+            sql.append("AND event_id = %s::uuid")
+            params.append(event_id.value)
+        if status is not None:
+            sql.append("AND status = %s")
+            params.append(status.value)
+        sql.append("ORDER BY id")
+        rows = self.conn.execute("\n".join(sql), params).fetchall()
         return [memory_from_row(row) for row in rows]
 
     def save(self, item: MemoryItem) -> None:

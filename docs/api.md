@@ -179,7 +179,7 @@ Owner/Admin。
 
 ### `GET /v1/personas/{persona_id}/memories`
 
-Query：`type`、`event_id`、`status=active`、分页。需要 `read_memory`。
+Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100，默认 50）、`offset`。需要 `read_memory`。无权限 404。响应每条含 `id`、`text`、`type`、`status`、`event_id`。
 
 ### `POST /v1/personas/{persona_id}/imports`
 
