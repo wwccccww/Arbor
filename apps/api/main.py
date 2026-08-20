@@ -300,7 +300,7 @@ def create_app(
         persona = personas.get(tenant, item.persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
+        caps = _require_write(persona, user)
         memory = confirm(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
@@ -324,7 +324,7 @@ def create_app(
         persona = personas.get(tenant, item.persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
+        caps = _require_write(persona, user)
         dismiss(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),

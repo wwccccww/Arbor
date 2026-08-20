@@ -32,7 +32,12 @@ class ConfirmInboxItem:
         pending = self.inbox.list_pending(tenant_id, persona_id)
         if not pending:
             raise DomainError("NOT_FOUND", "no pending inbox")
-        item = next((p for p in pending if inbox_id is None or p.id == inbox_id), pending[0])
+        if inbox_id is None:
+            item = pending[0]
+        else:
+            item = next((p for p in pending if p.id == inbox_id), None)
+            if item is None:
+                raise DomainError("NOT_FOUND", "no pending inbox")
         old = None
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)

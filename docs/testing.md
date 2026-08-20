@@ -71,6 +71,7 @@ tests/
     application/
       test_send_message.py
       test_confirm_inbox.py
+      test_reasoner_parse.py
       test_import_artifact.py
       test_get_event_tree.py
   architecture/
@@ -85,6 +86,7 @@ tests/
     test_persona_grants.py
     test_chat_citations.py
     test_forbidden_codes.py
+    test_inbox.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -161,6 +163,8 @@ eval/
 | 对话响应 citations ⊆ 实际注入 id | |
 | `X-Tenant-Id` 与资源不符 | 404 |
 | OpenAPI 里的错误体含 `code` | |
+| 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
+| 无 `write_memory` 看 Inbox | 404 或 403，不泄露存在性 |
 
 ### 5.5 架构
 
