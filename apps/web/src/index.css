@@ -1,0 +1,166 @@
+:root {
+  font-family: "Source Han Sans SC", "Noto Sans SC", sans-serif;
+  color: #1b1b18;
+  background: #f4efe6;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 0.5rem;
+}
+
+.home,
+.workbench-bar {
+  padding: 1.25rem;
+}
+
+.eyebrow {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b6258;
+}
+
+.persona-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.persona-grid button {
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid #d8d0c4;
+  border-radius: 12px;
+  background: #fffaf2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.workbench-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid #d8d0c4;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(12rem, 18rem) minmax(0, 1fr) minmax(12rem, 18rem);
+  min-height: calc(100vh - 4rem);
+}
+
+.pane-left,
+.pane-right,
+.pane-center {
+  padding: 1rem;
+}
+
+.pane-left,
+.pane-right {
+  background: #fffaf2;
+}
+
+.pane-center {
+  border-left: 1px solid #d8d0c4;
+  border-right: 1px solid #d8d0c4;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.transcript {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.transcript li[data-role='user'] {
+  align-self: flex-end;
+  background: #e7efe4;
+  padding: 0.75rem;
+  border-radius: 12px;
+  max-width: 36rem;
+}
+
+.transcript li[data-role='assistant'] {
+  background: #fff;
+  padding: 0.75rem;
+  border-radius: 12px;
+  max-width: 36rem;
+  border: 1px solid #d8d0c4;
+}
+
+.transcript [aria-label='依据'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  list-style: none;
+}
+
+.transcript [aria-label='依据'] button {
+  border: 1px solid #b9a48a;
+  background: #f7f0e4;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+
+.event-tree {
+  padding-left: 1.2rem;
+}
+
+.event-tree [data-highlighted='true'] button {
+  font-weight: 700;
+}
+
+.tree-toggle {
+  margin-bottom: 0.75rem;
+}
+
+form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+textarea {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .workbench:not(.workbench-narrow) {
+    grid-template-columns: 1fr;
+  }
+}

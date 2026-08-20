@@ -263,7 +263,7 @@ contract      Postgres service + DATABASE_URL → tests/contract/postgres
 api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库。有 DEEPSEEK_API_KEY 时走 DeepSeek Chat/Reasoner，单测 create_app() 仍用 ScriptedLLM / ScriptedReasoner。
 eval-fixture  suite-v1 / ragas-v1 检索（CI 在 pgvector 上跑，泄漏必须为 0）
 eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
-web           vitest（有前端时）
+web           apps/web：vitest（适配器行为；不测检索）
 ```
 
 合并条件：上述全绿。  
