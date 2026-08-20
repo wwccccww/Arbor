@@ -14,7 +14,9 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryPersonaRepository,
     InMemoryObjectStorage,
     InMemoryStores,
+    InMemoryTenantRepository,
     InMemoryThreadRepository,
+    InMemoryUserRepository,
     InMemoryVectorIndex,
     ScriptedLLM,
     ScriptedReasoner,
@@ -29,10 +31,19 @@ from arbor.application.conversation.threads import CreateThread, ListMessages, L
 from arbor.application.evaluation.commands import StartEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
+from arbor.application.identity.commands import (
+    AddTenantMember,
+    CreateTenant,
+    ListMembers,
+    ListTenants,
+    PatchTenantMember,
+)
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact, ProcessImportJob
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
+from arbor.domain.identity.tenant import Membership, Role
+from arbor.domain.identity.user import User
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
 
@@ -52,6 +63,7 @@ TOKENS = {
 }
 
 MEMBER_ID = UserId("0a000000-0000-4000-a000-000000000003")
+DEMO_TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
 
 
@@ -83,6 +95,19 @@ class PersonaPatchIn(BaseModel):
     personality: dict | None = None
     taboos: list[str] | None = None
     relationships: list[dict] | None = None
+
+
+class MemberPatchIn(BaseModel):
+    role: str
+
+
+class TenantIn(BaseModel):
+    name: str = ""
+
+
+class MemberIn(BaseModel):
+    email: str
+    role: str = "member"
 
 
 class EvalRunIn(BaseModel):
@@ -125,6 +150,28 @@ def _persona_json(persona, caps: list[Capability]) -> dict:
     return body
 
 
+def _ensure_demo_member(tenants, users) -> None:
+    tenant = tenants.get(DEMO_TENANT)
+    if tenant is None:
+        return
+    if users.get(MEMBER_ID) is None:
+        users.save(User(id=MEMBER_ID, email="member-a@arbor.eval"))
+    if tenant.member(MEMBER_ID) is None:
+        tenant.memberships.append(
+            Membership(tenant_id=DEMO_TENANT, user_id=MEMBER_ID, role=Role.MEMBER)
+        )
+        tenants.save(tenant)
+
+
+def _tenant_json(tenant, user_id: UserId) -> dict:
+    membership = tenant.member(user_id)
+    return {
+        "id": tenant.id.value,
+        "name": tenant.name,
+        "role": membership.role.value if membership else None,
+    }
+
+
 def create_app(
     *,
     extra_citation: str | None = None,
@@ -148,6 +195,8 @@ def create_app(
         vectors = session.vectors
         embed = session.embed
         audit_logs = session.audit_logs
+        tenants = session.tenants
+        users = session.users
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
         if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
             linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
@@ -166,6 +215,9 @@ def create_app(
         vectors = InMemoryVectorIndex(stores, memories)
         embed = FixtureEmbeddingClient()
         audit_logs = InMemoryAuditLogRepository(stores)
+        tenants = InMemoryTenantRepository(stores)
+        users = InMemoryUserRepository(stores)
+    _ensure_demo_member(tenants, users)
     ids = SeqIdGenerator()
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     send = SendMessage(
@@ -207,6 +259,11 @@ def create_app(
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
     process_import = ProcessImportJob(personas=personas, inbox=inbox, ids=ids, auth=AuthorizationPolicy())
     list_audit_logs = ListAuditLogs(audit_logs)
+    list_tenants = ListTenants(tenants)
+    create_tenant = CreateTenant(tenants=tenants, ids=ids)
+    list_members = ListMembers(tenants, users)
+    add_member = AddTenantMember(tenants=tenants, users=users, ids=ids)
+    patch_member = PatchTenantMember(tenants)
     import_jobs: dict[str, dict] = {}
     eval_runs: dict[str, dict] = {}
 
@@ -263,10 +320,81 @@ def create_app(
     @app.get("/v1/me")
     def me(authorization: str | None = Header(default=None)):
         user = current_user(authorization)
+        actor = UserId(user["user_id"])
         return {
             "user": {"id": user["user_id"], "email": user["email"]},
-            "tenants": [{"id": user["tenant_id"]}],
+            "tenants": [_tenant_json(item, actor) for item in list_tenants(user_id=actor)],
         }
+
+    @app.get("/v1/tenants")
+    def get_tenants(authorization: str | None = Header(default=None)):
+        user = current_user(authorization)
+        actor = UserId(user["user_id"])
+        return {"items": [_tenant_json(item, actor) for item in list_tenants(user_id=actor)]}
+
+    @app.post("/v1/tenants", status_code=201)
+    def post_tenant(
+        payload: TenantIn,
+        authorization: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        actor = UserId(user["user_id"])
+        tenant = create_tenant(user_id=actor, name=payload.name)
+        return _tenant_json(tenant, actor)
+
+    @app.get("/v1/tenants/{tenant_id}/members")
+    def get_members(
+        tenant_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        if x_tenant_id != tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        return {
+            "items": list_members(tenant_id=TenantId(tenant_id), actor_id=UserId(user["user_id"]))
+        }
+
+    @app.post("/v1/tenants/{tenant_id}/members", status_code=201)
+    def post_member(
+        tenant_id: str,
+        payload: MemberIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        if x_tenant_id != tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        return add_member(
+            tenant_id=TenantId(tenant_id),
+            actor_id=UserId(user["user_id"]),
+            email=payload.email,
+            role=payload.role,
+        )
+
+    @app.patch("/v1/tenants/{tenant_id}/members/{user_id}")
+    def patch_member_route(
+        tenant_id: str,
+        user_id: str,
+        payload: MemberPatchIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        if x_tenant_id != tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        return patch_member(
+            tenant_id=TenantId(tenant_id),
+            actor_id=UserId(user["user_id"]),
+            user_id=UserId(user_id),
+            role=payload.role,
+        )
 
     @app.get("/v1/personas")
     def get_personas(
