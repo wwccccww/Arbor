@@ -10,12 +10,12 @@ baselines/                 对比表快照
 ```
 
 ```text
+python3 eval/check_llm_env.py
 python3 eval/generate_testset.py
-# 有 Key 且 ragas 可导入时
-DEEPSEEK_API_KEY=... python3 eval/generate_testset.py --backend ragas --size 50
-
-# 实现 runner 之后
-arbor-eval --suite v1 --mode retrieval --strategy layered_tree
-arbor-eval --suite ragas-v1 --mode retrieval --strategy all
-arbor-eval --suite ragas-v1 --mode generation --strategy layered_tree
+# 官方 RAGAS（进程里要有 DEEPSEEK_API_KEY，并已 pip install -r eval/requirements-eval.txt）
+python3 eval/generate_testset.py --backend ragas --size 10
 ```
+
+Cloud Agent：在环境 Secrets 填写 `DEEPSEEK_API_KEY` 后必须 **新开一轮 Agent**，Key 才会进入进程。不要写入 git。
+本机可复制 `.env.example` 为 `.env`。
+

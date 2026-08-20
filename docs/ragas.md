@@ -111,7 +111,8 @@ RAGAS 的 `contexts` 不得同时包含互斥的旧句和新句。若注入集�
 - 另合成 `arbor_isolation` / `arbor_irrelevant`（官方生成器不会从单库文档长出跨租户泄漏题）
 - 每条尽量带 `expected_memory_ids` 或 `refuse`
 - 默认 `python3 eval/generate_testset.py`（`--backend ragas_compat`）
-- 有 `DEEPSEEK_API_KEY` 且 ragas 可导入时：`--backend ragas`，产出必须经 memory_id 对齐才能并入默认套件
+- 有 `DEEPSEEK_API_KEY` 且 `python3 eval/check_llm_env.py` 显示 `ragas_import ok` 时：`--backend ragas`
+- Cloud Agent 在 Secrets 里填 Key 后需新开一轮，当前已启动的进程读不到新 Secret
 
 规模集用于回归和简历数字（当前 377 条）；P0 体检仍用 13 题 `suite-v1`。
 

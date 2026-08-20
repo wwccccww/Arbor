@@ -5,8 +5,8 @@
 默认 ``--backend ragas_compat``：按 RAGAS 的 simple / reasoning / multi_context
 演化类型，从知识图谱离线合成，并强制绑定 memory_id。
 
-若配置 DEEPSEEK_API_KEY 且 ragas 可导入，可用 ``--backend ragas`` 尝试官方
-TestsetGenerator，再经 ID 对齐合并（失败则回退 compat）。
+若配置 DEEPSEEK_API_KEY（兼容 OpenAI 协议）且 ragas 0.2.15 可导入，可用
+``--backend ragas`` 调用官方 TestsetGenerator，再经 memory_id 对齐合并。
 
 用法:
   python3 eval/generate_testset.py
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -517,20 +518,58 @@ def synthesize_all() -> list[dict]:
     return cases
 
 
+def _load_dotenv() -> None:
+    env_path = ROOT / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k and k not in os.environ:
+            os.environ[k] = v
+
+
+def _chat_key() -> str:
+    _load_dotenv()
+    return os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY") or ""
+
+
 def try_ragas_backend(size: int) -> list[dict]:
-    """可选：调用官方 TestsetGenerator。失败返回空列表。"""
+    """调用官方 TestsetGenerator（DeepSeek Chat + 本地占位 embedding）。"""
+    import os as _os
+
+    key = _chat_key()
+    if not key:
+        print("[ragas] DEEPSEEK_API_KEY 未注入本进程，跳过官方生成器", file=sys.stderr)
+        return []
+
     try:
+        from langchain_community.embeddings import FakeEmbeddings
         from langchain_core.documents import Document
+        from langchain_openai import ChatOpenAI
         from ragas.testset import TestsetGenerator
     except Exception as exc:  # noqa: BLE001
         print(f"[ragas] import failed: {exc}", file=sys.stderr)
         return []
 
-    import os
+    # 部分 RAGAS/LangChain 只认 OPENAI_* ；DeepSeek 兼容该协议。
+    _os.environ.setdefault("OPENAI_API_KEY", key)
+    base = _os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    _os.environ.setdefault("OPENAI_BASE_URL", base)
 
-    if not os.environ.get("DEEPSEEK_API_KEY") and not os.environ.get("OPENAI_API_KEY"):
-        print("[ragas] no LLM API key; skip official generator", file=sys.stderr)
-        return []
+    llm = ChatOpenAI(
+        model=_os.environ.get("DEEPSEEK_CHAT_MODEL", "deepseek-chat"),
+        api_key=key,
+        base_url=base,
+        temperature=0.3,
+        timeout=120,
+        max_retries=2,
+    )
+    # DeepSeek 无官方 embedding；出题阶段用占位向量，题目仍由 Chat 从文档生成。
+    embeddings = FakeEmbeddings(size=384)
 
     docs = [
         Document(
@@ -545,7 +584,7 @@ def try_ragas_backend(size: int) -> list[dict]:
         if m["status"] == "active"
     ]
     try:
-        generator = TestsetGenerator.from_langchain()
+        generator = TestsetGenerator.from_langchain(llm, embeddings)
         testset = generator.generate_with_langchain_docs(docs, testset_size=size)
         rows = testset.to_pandas().to_dict(orient="records")
     except Exception as exc:  # noqa: BLE001
@@ -553,10 +592,22 @@ def try_ragas_backend(size: int) -> list[dict]:
         return []
 
     aligned = []
+    skipped = 0
     for i, row in enumerate(rows, 1):
-        text = " ".join(str(row.get(k, "")) for k in row)
-        hit = [m["id"] for m in MEMORIES if m["text"] and m["text"][:12] in text]
-        persona = _mem(hit[0])["persona_id"] if hit else LINXIA_A
+        contexts = list(row.get("reference_contexts") or row.get("contexts") or [])
+        blob = "\n".join(str(x) for x in contexts) + "\n" + str(row.get("reference") or row.get("ground_truth") or "")
+        hit = []
+        for m in MEMORIES:
+            if m["status"] != "active":
+                continue
+            stem = m["text"][:16]
+            if stem and stem in blob:
+                hit.append(m["id"])
+        hit = list(dict.fromkeys(hit))
+        if not hit:
+            skipped += 1
+            continue
+        persona = _mem(hit[0])["persona_id"]
         aligned.append(
             _case(
                 id=f"ragas-llm-{i:03d}",
@@ -565,13 +616,14 @@ def try_ragas_backend(size: int) -> list[dict]:
                 skill="episode_detail",
                 query=str(row.get("user_input") or row.get("question") or ""),
                 reference=str(row.get("reference") or row.get("ground_truth") or ""),
-                reference_contexts=list(row.get("reference_contexts") or row.get("contexts") or []),
+                reference_contexts=contexts,
                 actor=_actor(persona),
                 expected_behavior="answer",
                 expected_source="vector",
                 expected_memory_ids=hit,
             )
         )
+    print(f"[ragas] aligned={len(aligned)} skipped_unaligned={skipped}", file=sys.stderr)
     return aligned
 
 
