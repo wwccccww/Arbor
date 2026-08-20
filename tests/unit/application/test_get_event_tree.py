@@ -1,8 +1,16 @@
-from arbor.adapters.outbound.inmemory import InMemoryEventGraphRepository, InMemoryMemoryRepository, InMemoryStores
+from arbor.adapters.outbound.inmemory import (
+    InMemoryEventGraphRepository,
+    InMemoryMemoryRepository,
+    InMemoryPersonaRepository,
+    InMemoryStores,
+)
+from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
+from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventNode
+from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId
-from tests.unit.application.test_send_message import load_mini
+from tests.unit.application.test_send_message import USER, load_mini
 
 
 def test_get_event_tree():
@@ -49,3 +57,32 @@ def test_get_event_tree_key_only_hides_daily():
     )
     assert "0a000000-0000-4000-a000-000000000199" in {node.id.value for node in all_nodes["nodes"]}
     assert "0a000000-0000-4000-a000-000000000199" not in {node.id.value for node in key_nodes["nodes"]}
+
+
+def test_get_event_card_tenant_and_read_memory():
+    stores = InMemoryStores()
+    load_mini(stores)
+    card = GetEventCard(
+        events=InMemoryEventGraphRepository(stores),
+        memories=InMemoryMemoryRepository(stores),
+        personas=InMemoryPersonaRepository(stores),
+        auth=AuthorizationPolicy(),
+    )
+    found = card(
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        user_id=USER,
+        event_id=EventId("0a000000-0000-4000-a000-000000000102"),
+        capabilities=list(Capability),
+    )
+    assert found["node"].title == "面店争吵"
+    assert any(item.id.value == "0a000000-0000-4000-a000-000000000303" for item in found["memories"])
+    try:
+        card(
+            tenant_id=TenantId("0b000000-0000-4000-a000-000000000001"),
+            user_id=USER,
+            event_id=EventId("0a000000-0000-4000-a000-000000000102"),
+            capabilities=list(Capability),
+        )
+        raise AssertionError("expected NOT_FOUND")
+    except DomainError as exc:
+        assert exc.code == "NOT_FOUND"

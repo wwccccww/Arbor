@@ -49,6 +49,17 @@ class PgEventGraphRepository:
         ).fetchone()
         return event_from_row(row) if row else None
 
+    def get(self, tenant_id: TenantId, event_id: EventId) -> EventNode | None:
+        row = self.conn.execute(
+            """
+            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary
+            FROM event_nodes
+            WHERE id = %s::uuid AND tenant_id = %s::uuid
+            """,
+            (event_id.value, tenant_id.value),
+        ).fetchone()
+        return event_from_row(row) if row else None
+
     def list_nodes(self, tenant_id: TenantId, persona_id: PersonaId) -> list[EventNode]:
         rows = self.conn.execute(
             """

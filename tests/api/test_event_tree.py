@@ -69,3 +69,26 @@ def test_event_tree_rejects_unknown_view():
     )
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_event_card_includes_related_memories():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    r = client.get(f"/v1/events/{LINXIA_FIGHT}", headers=_headers())
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == LINXIA_FIGHT
+    assert body["title"] == "面店争吵"
+    assert any(item["id"] == "0a000000-0000-4000-a000-000000000303" for item in body["memories"])
+
+
+def test_event_card_hidden_without_read_memory_and_wrong_tenant():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    assert client.get(f"/v1/events/{LINXIA_FIGHT}", headers=_headers("token-member")).status_code in {403, 404}
+    wrong = client.get(
+        f"/v1/events/{LINXIA_FIGHT}",
+        headers={
+            "Authorization": "Bearer token-a",
+            "X-Tenant-Id": "0b000000-0000-4000-a000-000000000001",
+        },
+    )
+    assert wrong.status_code == 404

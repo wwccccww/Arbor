@@ -21,13 +21,14 @@ from arbor.adapters.outbound.inmemory import (
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
 from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
+from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
+from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
 
 TOKENS = {
     "token-a": {
@@ -177,6 +178,7 @@ def create_app(
     )
     dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
     get_tree = GetEventTree(events, memories=memories)
+    get_card = GetEventCard(events=events, memories=memories, personas=personas, auth=AuthorizationPolicy())
     list_personas = ListPersonas(personas)
     create_persona = CreatePersona(personas=personas, ids=ids, auth=AuthorizationPolicy())
     patch_persona = PatchPersona(personas=personas, auth=AuthorizationPolicy())
@@ -600,6 +602,40 @@ def create_app(
                 }
                 for edge in tree["edges"]
             ],
+        }
+
+    @app.get("/v1/events/{event_id}")
+    def get_event_card(
+        event_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        preview = events.get(TenantId(x_tenant_id), EventId(event_id))
+        if preview is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(TenantId(x_tenant_id), preview.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        card = get_card(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            event_id=EventId(event_id),
+            capabilities=_caps_for(persona, user),
+        )
+        node = card["node"]
+        return {
+            "id": node.id.value,
+            "persona_id": node.persona_id.value,
+            "title": node.title,
+            "happened_at": node.happened_at,
+            "type": node.type,
+            "importance": node.importance,
+            "summary": node.summary,
+            "attachments": [],
+            "memories": [{"id": item.id.value, "text": item.text} for item in card["memories"]],
         }
 
     return app
