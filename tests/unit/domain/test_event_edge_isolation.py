@@ -21,3 +21,31 @@ def test_event_edge_isolation():
     with pytest.raises(DomainError) as exc:
         EventEdge.between(a, b, "temporal")
     assert exc.value.code == "EVENT_EDGE_PERSONA_MISMATCH"
+
+
+def test_key_event_uses_importance_and_type():
+    daily = EventNode(
+        id=EventId("0a000000-0000-4000-a000-000000000199"),
+        tenant_id=TenantId("t"),
+        persona_id=PersonaId("p"),
+        title="随口一提",
+    )
+    milestone = EventNode(
+        id=EventId("0a000000-0000-4000-a000-000000000101"),
+        tenant_id=TenantId("t"),
+        persona_id=PersonaId("p"),
+        title="第一次见面",
+        type="milestone",
+        importance=3,
+    )
+    work = EventNode(
+        id=EventId("0a000000-0000-4000-a000-000000000201"),
+        tenant_id=TenantId("t"),
+        persona_id=PersonaId("p"),
+        title="工单升级",
+        type="work",
+        importance=4,
+    )
+    assert daily.is_key() is False
+    assert milestone.is_key() is True
+    assert work.is_key() is True

@@ -90,3 +90,35 @@
     path: /v1/me
   then:
     body_has_fields: [error.code, error.message, error.request_id]
+
+- id: api.events.tree_persona_isolation
+  layer: api
+  severity: p0
+  title: 事件树不串人设
+  given:
+    capabilities: [chat, read_memory]
+    persona_id: 0a000000-0000-4000-a000-000000000010
+  when:
+    method: GET
+    path: /v1/personas/0a000000-0000-4000-a000-000000000010/events/tree
+    header:
+      X-Tenant-Id: 0a000000-0000-4000-a000-000000000001
+  then:
+    status: 200
+    node_ids_must_not_contain:
+      - 0a000000-0000-4000-a000-000000000201
+
+- id: api.events.hidden_without_read_memory
+  layer: api
+  severity: p0
+  title: 无 read_memory 不得看见事件树
+  given:
+    user_role: member
+    persona_id: 0a000000-0000-4000-a000-000000000010
+  when:
+    method: GET
+    path: /v1/personas/0a000000-0000-4000-a000-000000000010/events/tree
+    header:
+      X-Tenant-Id: 0a000000-0000-4000-a000-000000000001
+  then:
+    status: [403, 404]

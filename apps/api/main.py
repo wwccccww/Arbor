@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, Header
+from fastapi import FastAPI, Header, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -20,6 +20,7 @@ from arbor.adapters.outbound.inmemory import (
 )
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
+from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
@@ -50,6 +51,10 @@ class MessageIn(BaseModel):
 
 class GrantsIn(BaseModel):
     grants: list = Field(default_factory=list)
+
+
+class ConfirmIn(BaseModel):
+    mark_key_event: bool = False
 
 
 def _error(code: str, message: str, status: int, request_id: str = "test-request") -> JSONResponse:
@@ -129,8 +134,10 @@ def create_app(
         embed=embed,
         ids=ids,
         auth=AuthorizationPolicy(),
+        events=events,
     )
     dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
+    get_tree = GetEventTree(events, memories=memories)
     app = FastAPI()
     app.state.stores = stores
     app.state.session = session
@@ -139,6 +146,7 @@ def create_app(
     app.state.inbox = inbox
     app.state.confirm = confirm
     app.state.dismiss = dismiss
+    app.state.get_tree = get_tree
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -200,9 +208,7 @@ def create_app(
         persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
-        if Capability.READ_MEMORY not in caps:
-            raise DomainError("NOT_FOUND", "not found")
+        _require_read(persona, user)
         items = memories.list_active(TenantId(x_tenant_id), PersonaId(persona_id))
         return {"items": [{"id": m.id.value, "text": m.text} for m in items]}
 
@@ -254,6 +260,12 @@ def create_app(
             "inbox_created": result.get("inbox_added") or 0,
         }
 
+    def _require_read(persona, user):
+        caps = _caps_for(persona, user)
+        if Capability.READ_MEMORY not in caps:
+            raise DomainError("NOT_FOUND", "not found")
+        return caps
+
     def _require_write(persona, user):
         caps = _caps_for(persona, user)
         if Capability.WRITE_MEMORY not in caps and Capability.ADMIN not in caps:
@@ -289,6 +301,7 @@ def create_app(
     @app.post("/v1/inbox/{inbox_id}/confirm")
     def confirm_inbox(
         inbox_id: str,
+        payload: ConfirmIn | None = None,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
     ):
@@ -307,8 +320,12 @@ def create_app(
             persona_id=item.persona_id,
             inbox_id=inbox_id,
             capabilities=caps,
+            mark_key_event=bool(payload.mark_key_event) if payload else False,
         )
-        return {"id": memory.id.value, "text": memory.text}
+        body = {"id": memory.id.value, "text": memory.text}
+        if memory.event_id:
+            body["event_id"] = memory.event_id.value
+        return body
 
     @app.post("/v1/inbox/{inbox_id}/dismiss")
     def dismiss_inbox(
@@ -333,6 +350,51 @@ def create_app(
             capabilities=caps,
         )
         return {"ok": True}
+
+    @app.get("/v1/personas/{persona_id}/events/tree")
+    def list_event_tree(
+        persona_id: str,
+        view: str = Query(default="tree"),
+        key_only: bool = Query(default=True),
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        _require_read(persona, user)
+        tree = get_tree(
+            tenant_id=TenantId(x_tenant_id),
+            persona_id=PersonaId(persona_id),
+            view=view,
+            key_only=key_only,
+        )
+        memory_ids = tree.get("memory_ids") or {}
+        return {
+            "nodes": [
+                {
+                    "id": node.id.value,
+                    "title": node.title,
+                    "happened_at": node.happened_at,
+                    "type": node.type,
+                    "importance": node.importance,
+                    "summary": node.summary,
+                    "memory_ids": memory_ids.get(node.id.value, []),
+                }
+                for node in tree["nodes"]
+            ],
+            "edges": [
+                {
+                    "from_id": edge.from_id.value,
+                    "to_id": edge.to_id.value,
+                    "kind": edge.kind,
+                }
+                for edge in tree["edges"]
+            ],
+        }
 
     return app
 

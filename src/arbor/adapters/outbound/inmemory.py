@@ -93,6 +93,9 @@ class InMemoryEventGraphRepository:
     def __init__(self, stores: InMemoryStores) -> None:
         self.stores = stores
 
+    def save_node(self, node: EventNode) -> None:
+        self.stores.events[node.id.value] = node
+
     def list_nodes(self, tenant_id: TenantId, persona_id: PersonaId) -> list[EventNode]:
         return [
             e

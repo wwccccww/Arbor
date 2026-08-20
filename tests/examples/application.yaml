@@ -82,6 +82,21 @@
     memory_status: active
     vector_search_hits: 1
 
+- id: application.confirm_inbox.mark_key_event
+  layer: application
+  severity: p0
+  title: 确认并标关键事件后树上多一个节点
+  given:
+    fixture: tests/fixtures/mini-world.yaml
+    pending_inbox:
+      text: 和好后去了西湖
+  when:
+    action: ConfirmInboxItem
+    mark_key_event: true
+  then:
+    memory_status: active
+    event_node_added: 1
+
 - id: application.import.requires_write_memory
   layer: application
   severity: p0

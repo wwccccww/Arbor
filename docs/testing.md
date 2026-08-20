@@ -87,6 +87,7 @@ tests/
     test_chat_citations.py
     test_forbidden_codes.py
     test_inbox.py
+    test_event_tree.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -165,6 +166,9 @@ eval/
 | OpenAPI 里的错误体含 `code` | |
 | 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
 | 无 `write_memory` 看 Inbox | 404 或 403，不泄露存在性 |
+| 事件树不串人设 | 林夏树不含小周节点 |
+| 无 `read_memory` 看事件树 | 404 或 403，不泄露存在性 |
+| 确认并 `mark_key_event` | 树上多一个关键节点 |
 
 ### 5.5 架构
 
