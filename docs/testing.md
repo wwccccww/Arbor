@@ -108,6 +108,7 @@ tests/
     test_thread_export.py
     test_memories.py
     test_chat_attachments.py
+    test_upload_size_limit.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -207,6 +208,7 @@ eval/
 | 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
 | 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404；`total` 为过滤后分页前条数 |
 | 聊天附件 | multipart 文件进对象存储；GET 能看见 filename；下载返回原字节；不进 Inbox/Memory；无 `chat` 404 |
+| 上传大小 | 导入与聊天附件超过组合根上限（默认 32MB）返回 400，对象存储不留文件 |
 
 ### 5.5 架构
 
