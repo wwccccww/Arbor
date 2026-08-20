@@ -114,5 +114,5 @@ RAGAS 的 `contexts` 不得同时包含互斥的旧句和新句。若注入集�
 - 有 `DEEPSEEK_API_KEY` 且 `python3 eval/check_llm_env.py` 显示 `ragas_import ok` 时：`--backend ragas`
 - Cloud Agent 在 Secrets 里填 Key 后需新开一轮，当前已启动的进程读不到新 Secret
 
-规模集用于回归和简历数字（当前 377 条）；P0 体检仍用 13 题 `suite-v1`。
+规模集用于回归和简历数字（当前 477 条 = 离线 377 + 官方对齐 100）；P0 体检仍用 13 题 `suite-v1`。不要把 477 全部写成官方出题。
 

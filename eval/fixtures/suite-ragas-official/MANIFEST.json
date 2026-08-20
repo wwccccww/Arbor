@@ -1,0 +1,44 @@
+{
+  "suite_version": "ragas-official",
+  "n_cases": 100,
+  "n_unique_queries": 98,
+  "n_unique_references": 90,
+  "n_source_memories": 33,
+  "n_active_memories": 32,
+  "n_tenants": 2,
+  "n_personas": 3,
+  "n_compat_cases": 0,
+  "n_official_aligned_merged": 100,
+  "official_ragas_raw": 100,
+  "official_ragas_aligned": 100,
+  "official_ragas_discarded_unaligned": 0,
+  "isolation_negatives_kept": false,
+  "n_isolation_cases": 0,
+  "evolution_distribution": {
+    "single_hop_specifc_query_synthesizer": 50,
+    "multi_hop_specific_query_synthesizer": 50
+  },
+  "skill_distribution": {
+    "episode_detail": 100
+  },
+  "persona_distribution": {
+    "0a000000-0000-4000-a000-000000000010": 54,
+    "0a000000-0000-4000-a000-000000000020": 34,
+    "0b000000-0000-4000-a000-000000000010": 12
+  },
+  "behavior_distribution": {
+    "answer": 100
+  },
+  "id_bound_rate": 1.0,
+  "generator_note": "Official ragas TestsetGenerator (DeepSeek Chat + FakeEmbeddings); rows aligned to memory_id.",
+  "resume_blurb": "100 条官方 TestsetGenerator 样本 / DeepSeek Chat + FakeEmbeddings / id 绑定率 1.0。",
+  "official_ragas": {
+    "requested_size": 100,
+    "raw_rows": 100,
+    "aligned": 100,
+    "discarded_unaligned": 0,
+    "llm": "deepseek-chat",
+    "embeddings": "FakeEmbeddings(size=384)",
+    "unaligned_not_merged": true
+  }
+}
