@@ -24,6 +24,7 @@ export type ChatMessage = {
   role: string
   text: string
   citations: Citation[]
+  inbox_created?: number
 }
 
 export type EventNode = {
@@ -43,3 +44,15 @@ export type EventTree = {
 }
 
 export type ApiError = Error & { status: number; code?: string }
+
+export type InboxItem = {
+  id: string
+  kind?: string
+  status?: string
+  payload?: { text?: string }
+}
+
+export type InboxList = {
+  items: InboxItem[]
+  forbidden?: boolean
+}

@@ -1,5 +1,5 @@
 import type { Session } from '../session'
-import type { ApiError, ChatMessage, Citation, EventTree, Persona, Thread } from './types'
+import type { ApiError, ChatMessage, Citation, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
 
 function asCitations(raw: unknown): Citation[] {
   if (!Array.isArray(raw)) return []
@@ -75,13 +75,38 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       const body = (await request(`/threads/${threadId}/messages`, {
         method: 'POST',
         body: JSON.stringify({ text, attachments: [] }),
-      })) as { message_id: string; role: string; text: string; citations?: unknown }
+      })) as { message_id: string; role: string; text: string; citations?: unknown; inbox_created?: number }
       return {
         id: body.message_id,
         role: body.role,
         text: body.text,
         citations: asCitations(body.citations),
+        inbox_created: body.inbox_created ?? 0,
       }
+    },
+
+    async listInbox(personaId: string): Promise<InboxList> {
+      try {
+        const body = (await request(`/personas/${personaId}/inbox`)) as { items: InboxItem[] }
+        return { items: body.items ?? [] }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { items: [], forbidden: true }
+        }
+        throw err
+      }
+    },
+
+    async confirmInbox(inboxId: string, opts: { markKeyEvent?: boolean } = {}): Promise<{ id: string; event_id?: string }> {
+      return (await request(`/inbox/${inboxId}/confirm`, {
+        method: 'POST',
+        body: JSON.stringify({ mark_key_event: Boolean(opts.markKeyEvent) }),
+      })) as { id: string; event_id?: string }
+    },
+
+    async dismissInbox(inboxId: string): Promise<void> {
+      await request(`/inbox/${inboxId}/dismiss`, { method: 'POST' })
     },
 
     async getEventTree(personaId: string): Promise<EventTree> {

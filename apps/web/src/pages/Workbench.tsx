@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventNode, Persona } from '../api/types'
+import type { ChatMessage, EventNode, InboxItem, Persona } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventTreePane } from '../components/EventTreePane'
+import { InboxPane } from '../components/InboxPane'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 
@@ -33,6 +34,9 @@ export function Workbench({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [nodes, setNodes] = useState<EventNode[]>([])
   const [treeForbidden, setTreeForbidden] = useState(false)
+  const [inbox, setInbox] = useState<InboxItem[]>([])
+  const [inboxForbidden, setInboxForbidden] = useState(false)
+  const [inboxBusy, setInboxBusy] = useState<string | undefined>()
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,15 +45,18 @@ export function Workbench({
     let cancelled = false
     async function load() {
       try {
-        const [loadedPersona, threads, tree] = await Promise.all([
+        const [loadedPersona, threads, tree, pending] = await Promise.all([
           client.getPersona(personaId),
           client.listThreads(personaId),
           client.getEventTree(personaId),
+          client.listInbox(personaId),
         ])
         if (cancelled) return
         setPersona(loadedPersona)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
+        setInboxForbidden(Boolean(pending.forbidden))
+        setInbox(pending.items)
         const thread = threads[0] ?? (await client.createThread(personaId))
         if (cancelled) return
         setThreadId(thread.id)
@@ -85,10 +92,46 @@ export function Workbench({
     try {
       const reply = await client.sendMessage(threadId, text)
       setMessages((current) => [...current, reply])
+      if (reply.inbox_created) {
+        const pending = await client.listInbox(personaId)
+        setInboxForbidden(Boolean(pending.forbidden))
+        setInbox(pending.items)
+      }
     } catch (err) {
       setError((err as Error).message)
     } finally {
       setSending(false)
+    }
+  }
+
+  async function confirmItem(inboxId: string, opts: { markKeyEvent: boolean }) {
+    setInboxBusy(inboxId)
+    setError(null)
+    try {
+      await client.confirmInbox(inboxId, opts)
+      setInbox((current) => current.filter((item) => item.id !== inboxId))
+      if (opts.markKeyEvent) {
+        const tree = await client.getEventTree(personaId)
+        setTreeForbidden(Boolean(tree.forbidden))
+        setNodes(tree.nodes)
+      }
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setInboxBusy(undefined)
+    }
+  }
+
+  async function dismissItem(inboxId: string) {
+    setInboxBusy(inboxId)
+    setError(null)
+    try {
+      await client.dismissInbox(inboxId)
+      setInbox((current) => current.filter((item) => item.id !== inboxId))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setInboxBusy(undefined)
     }
   }
 
@@ -105,7 +148,22 @@ export function Workbench({
         narrow={narrow}
         treeOpen={treeOpen}
         onToggleTree={() => setTreeOpen((open) => !open)}
-        left={persona ? <ProfilePane persona={persona} /> : <p>加载档案…</p>}
+        left={
+          persona ? (
+            <>
+              <ProfilePane persona={persona} />
+              <InboxPane
+                items={inbox}
+                forbidden={inboxForbidden}
+                busyId={inboxBusy}
+                onConfirm={(id, opts) => void confirmItem(id, opts)}
+                onDismiss={(id) => void dismissItem(id)}
+              />
+            </>
+          ) : (
+            <p>加载档案…</p>
+          )
+        }
         center={
           <ChatPane messages={messages} sending={sending} onSend={(text) => void send(text)} onJump={jump} />
         }
