@@ -227,6 +227,9 @@ POLICY: tenant_id = current_setting('app.tenant_id')::uuid
 
 ## 5. 迁移原则
 
-- 用 Alembic，迁移文件不放领域逻辑。
+- 用 Alembic，迁移文件只放在 `src/arbor/adapters/outbound/postgres/migrations/`，不放领域逻辑。
+- API 启动调用 `PostgresSession.migrate()`（`alembic upgrade head`），**不要 DROP**。空库才 seed suite-v1 演示世界。
+- `reset()`（删 public schema 再升级）只给契约测和 `arbor-eval` 用。
+- 本机：`DATABASE_URL=... alembic upgrade head`
 - `embedding` 维度变更视为新列或重建索引，需同步评测基线。
 - 禁止在迁移里调用 LLM。

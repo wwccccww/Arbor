@@ -41,6 +41,8 @@ def test_application_does_not_import_adapters():
     for path in _iter_py("application"):
         for name in _imports(path):
             assert not name.startswith("arbor.adapters"), (path, name)
+            assert not name.startswith("alembic"), (path, name)
+            assert name != "sqlalchemy" and not name.startswith("sqlalchemy."), (path, name)
 
 
 def test_deepseek_adapter_does_not_import_postgres():
