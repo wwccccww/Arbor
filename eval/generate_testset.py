@@ -6,13 +6,15 @@
 演化类型，从知识图谱离线合成，并强制绑定 memory_id。
 
 若配置 DEEPSEEK_API_KEY（兼容 OpenAI 协议）且 ragas 0.2.15 可导入，可用
-``--backend ragas`` 调用官方 TestsetGenerator。产物写到
-``eval/fixtures/suite-ragas-official/``，**不会覆盖** 377 条 ``suite-ragas-v1``。
+``--backend ragas``：先合成离线 ``ragas_compat`` 金标（含隔离负例），再调用官方
+TestsetGenerator。对齐到 ``memory_id`` 的官方题合并进默认 ``suite-ragas-v1``；
+对不上 ID 的题丢弃，不得进入默认套件。隔离 / 跨租户负例始终保留。
+官方对齐成功的子集另存 ``suite-ragas-official/`` 便于对照。
 无密钥、导入失败或生成失败时非 0 退出，避免看起来像成功。
 
 用法:
   python3 eval/generate_testset.py
-  python3 eval/generate_testset.py --backend ragas --size 10
+  python3 eval/generate_testset.py --backend ragas --size 30
 """
 
 from __future__ import annotations
@@ -597,7 +599,7 @@ def _align_memory_ids(blob: str) -> list[str]:
     return list(dict.fromkeys(hit))
 
 
-def try_ragas_backend(size: int) -> list[dict]:
+def try_ragas_backend(size: int) -> tuple[list[dict], dict]:
     """调用官方 TestsetGenerator（DeepSeek Chat + 本地占位 embedding）。"""
     import os as _os
 
@@ -691,13 +693,53 @@ def try_ragas_backend(size: int) -> list[dict]:
                 expected_memory_ids=hit,
             )
         )
-    print(f"[ragas] aligned={len(aligned)} skipped_unaligned={skipped} raw_rows={len(rows)}", file=sys.stderr)
-    return aligned
+    stats = {
+        "requested_size": size,
+        "raw_rows": len(rows),
+        "aligned": len(aligned),
+        "discarded_unaligned": skipped,
+        "llm": "deepseek-chat",
+        "embeddings": "FakeEmbeddings(size=384)",
+        "unaligned_not_merged": True,
+    }
+    print(
+        f"[ragas] aligned={stats['aligned']} skipped_unaligned={stats['discarded_unaligned']} "
+        f"raw_rows={stats['raw_rows']}",
+        file=sys.stderr,
+    )
+    return aligned, stats
 
 
-def manifest(cases: list[dict], suite_version: str = "ragas-v1") -> dict:
+def manifest(cases: list[dict], suite_version: str = "ragas-v1", official_stats: dict | None = None) -> dict:
     n = len(cases) or 1
-    return {
+    n_iso = sum(1 for c in cases if c.get("evolution_type") == "arbor_isolation")
+    n_official = sum(1 for c in cases if c.get("generator") == "ragas")
+    n_compat = sum(1 for c in cases if c.get("generator") != "ragas")
+    id_bound = round(
+        sum(1 for c in cases if c["expected_memory_ids"] or c["expected_behavior"] == "refuse") / n,
+        4,
+    )
+    extra = official_stats or {}
+    aligned = extra.get("aligned", n_official)
+    discarded = extra.get("discarded_unaligned", 0)
+    raw_rows = extra.get("raw_rows", aligned + discarded)
+    note = (
+        "Default suite = ragas_compat (simple/reasoning/multi_context/conditional + Arbor isolation) "
+        "merged with official TestsetGenerator rows that aligned to memory_id. "
+        "Unaligned official rows are discarded and never enter this suite."
+        if suite_version == "ragas-v1"
+        else "Official ragas TestsetGenerator (DeepSeek Chat + FakeEmbeddings); rows aligned to memory_id."
+    )
+    blurb = (
+        f"{len(cases)} 条评测样本（离线 compat {n_compat} + 官方对齐 {n_official}，丢弃未对齐 {discarded}）"
+        f" / 2 租户 3 人设 / {len(MEMORIES)} 条源记忆 / 含隔离负例 {n_iso} 条 / id 绑定率 {id_bound}。"
+        if suite_version == "ragas-v1"
+        else (
+            f"{len(cases)} 条官方 TestsetGenerator 样本 / DeepSeek Chat + FakeEmbeddings / id 绑定率 "
+            f"{round(sum(1 for c in cases if c['expected_memory_ids']) / n, 4)}。"
+        )
+    )
+    meta = {
         "suite_version": suite_version,
         "n_cases": len(cases),
         "n_unique_queries": len({c["query"] for c in cases}),
@@ -706,26 +748,24 @@ def manifest(cases: list[dict], suite_version: str = "ragas-v1") -> dict:
         "n_active_memories": sum(1 for m in MEMORIES if m["status"] == "active"),
         "n_tenants": 2,
         "n_personas": 3,
+        "n_compat_cases": n_compat,
+        "n_official_aligned_merged": n_official,
+        "official_ragas_raw": raw_rows,
+        "official_ragas_aligned": aligned,
+        "official_ragas_discarded_unaligned": discarded,
+        "isolation_negatives_kept": n_iso > 0,
+        "n_isolation_cases": n_iso,
         "evolution_distribution": dict(Counter(c["evolution_type"] for c in cases)),
         "skill_distribution": dict(Counter(c["skill"] for c in cases)),
         "persona_distribution": dict(Counter(c["actor"]["persona_id"] for c in cases)),
         "behavior_distribution": dict(Counter(c["expected_behavior"] for c in cases)),
-        "id_bound_rate": round(
-            sum(1 for c in cases if c["expected_memory_ids"] or c["expected_behavior"] == "refuse") / n,
-            4,
-        ),
-        "generator_note": (
-            "Official ragas TestsetGenerator (DeepSeek Chat + FakeEmbeddings); rows aligned to memory_id."
-            if suite_version == "ragas-official"
-            else "Default backend ragas_compat implements RAGAS simple/reasoning/multi_context/conditional plus Arbor isolation slices. Official ragas TestsetGenerator writes suite-ragas-official/ and does not overwrite this suite."
-        ),
-        "resume_blurb": (
-            f"{len(cases)} 条官方 TestsetGenerator 样本 / DeepSeek Chat + FakeEmbeddings / id 绑定率 "
-            f"{round(sum(1 for c in cases if c['expected_memory_ids']) / n, 4)}。"
-            if suite_version == "ragas-official"
-            else f"{len(cases)} 条评测样本 / 2 租户 3 人设 / {len(MEMORIES)} 条源记忆 / RAGAS 演化类型 + 隔离负例，全部绑定 memory_id 或 refuse。"
-        ),
+        "id_bound_rate": id_bound,
+        "generator_note": note,
+        "resume_blurb": blurb,
     }
+    if extra:
+        meta["official_ragas"] = extra
+    return meta
 
 
 def export_ragas_jsonl(cases: list[dict], path: Path) -> None:
@@ -745,14 +785,14 @@ def export_ragas_jsonl(cases: list[dict], path: Path) -> None:
             )
 
 
-def write_suite(cases: list[dict], out: Path, suite_version: str) -> dict:
+def write_suite(cases: list[dict], out: Path, suite_version: str, official_stats: dict | None = None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     (out / "cases.json").write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out / "knowledge_graph.json").write_text(
         json.dumps({"personas": PERSONAS, "memories": MEMORIES, "events": EVENTS}, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    meta = manifest(cases, suite_version=suite_version)
+    meta = manifest(cases, suite_version=suite_version, official_stats=official_stats)
     (out / "MANIFEST.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     export_ragas_jsonl(cases, out / "ragas_eval.jsonl")
     return meta
@@ -765,23 +805,35 @@ def main() -> int:
     parser.add_argument(
         "--out",
         default="",
-        help="output directory; default suite-ragas-v1 (compat) or suite-ragas-official (ragas)",
+        help="output directory for the default suite; always suite-ragas-v1 unless set",
     )
     args = parser.parse_args()
 
     if args.backend == "ragas":
+        compat = synthesize_all()
+        n_iso = sum(1 for c in compat if c.get("evolution_type") == "arbor_isolation")
         try:
-            cases = try_ragas_backend(args.size)
+            official, stats = try_ragas_backend(args.size)
         except RagasBackendError as exc:
             print(exc, file=sys.stderr)
             return exc.code
-        if not cases:
-            print("[ragas] aligned=0，未写入可用金标", file=sys.stderr)
-            return 4
-        out = Path(args.out) if args.out else OFFICIAL_OUT
-        meta = write_suite(cases, out, suite_version="ragas-official")
+        # 对不上 memory_id 的官方题不得进默认套件；隔离负例来自 compat，不可被覆盖。
+        merged = list(compat)
+        for row in official:
+            merged.append({**row, "suite": "ragas-v1"})
+        merged.sort(key=lambda c: c["id"])
+        out = Path(args.out) if args.out else OUT
+        meta = write_suite(merged, out, suite_version="ragas-v1", official_stats=stats)
+        write_suite(official, OFFICIAL_OUT, suite_version="ragas-official", official_stats=stats)
         print(json.dumps(meta, ensure_ascii=False, indent=2))
-        print(f"[ragas] wrote {len(cases)} cases -> {out}", file=sys.stderr)
+        print(
+            f"[ragas] default {len(merged)} (compat={len(compat)} isolation={n_iso} "
+            f"official_aligned={stats['aligned']} discarded={stats['discarded_unaligned']}) -> {out}",
+            file=sys.stderr,
+        )
+        if not official:
+            print("[ragas] aligned=0，默认套件仅保留 compat + 隔离负例", file=sys.stderr)
+            return 4
         return 0
 
     cases = synthesize_all()

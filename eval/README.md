@@ -4,8 +4,8 @@ Arbor 记忆评测。说明见 [docs/evaluation.md](../docs/evaluation.md) 与 [
 
 ```text
 fixtures/suite-v1/              P0 烟雾金标（13 题）
-fixtures/suite-ragas-v1/        规模集（RAGAS 分布，当前 377 条，离线合成）
-fixtures/suite-ragas-official/  官方 TestsetGenerator 产物（DeepSeek，不覆盖 377 条）
+fixtures/suite-ragas-v1/        默认规模集（离线 compat + 对齐后的官方题；含隔离负例）
+fixtures/suite-ragas-official/  官方 TestsetGenerator 对齐成功的子集（对照用）
 generate_testset.py             重新合成规模集
 baselines/                      对比表快照
 ```
@@ -13,9 +13,9 @@ baselines/                      对比表快照
 ```text
 python3 eval/check_llm_env.py
 python3 eval/generate_testset.py
-# 官方 RAGAS（进程里要有 DEEPSEEK_API_KEY，并已 pip install -r eval/requirements-eval.txt）
-# 产物写到 fixtures/suite-ragas-official/，不覆盖上面的 377 条
-python3 eval/generate_testset.py --backend ragas --size 10
+# 官方 RAGAS：先写 compat 金标，再把对齐到 memory_id 的官方题合并进 suite-ragas-v1
+# 对不上 ID 的题丢弃；隔离负例始终保留
+python3 eval/generate_testset.py --backend ragas --size 30
 ```
 
 官方生成器要求文档超过 100 tokens；单条记忆会先扩写（不新增事实）再交给 `TestsetGenerator`。
