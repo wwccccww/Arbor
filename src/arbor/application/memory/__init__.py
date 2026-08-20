@@ -1,3 +1,3 @@
-from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact, ProcessImportJob
 
-__all__ = ["ConfirmInboxItem", "DismissInboxItem", "ImportArtifact"]
+__all__ = ["ConfirmInboxItem", "DismissInboxItem", "ImportArtifact", "ProcessImportJob"]

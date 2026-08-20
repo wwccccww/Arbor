@@ -183,6 +183,7 @@ eval/
 | 无 `read_memory` 看人设 | 最小档案，无禁忌 |
 | 创建会话后能拉历史 | POST thread → POST message → GET messages |
 | 导入需要 `write_memory` | 无权限 404/403；成功后能查 job |
+| 导入文本进 Inbox | 待确认出现正文；active 记忆不增加，确认后才有 |
 | Owner 跑 retrieval 评测 | suite-v1 `tenant_leak_count==0`；Member 403 |
 | Owner 看审计日志 | 改人设 / 导入 / 确认各一条；Member 403 |
 

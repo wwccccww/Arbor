@@ -29,7 +29,7 @@ from arbor.application.conversation.threads import CreateThread, ListMessages, L
 from arbor.application.evaluation.commands import StartEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
-from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact, ProcessImportJob
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
@@ -205,6 +205,7 @@ def create_app(
     object_stores = stores or InMemoryStores()
     storage = InMemoryObjectStorage(object_stores)
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
+    process_import = ProcessImportJob(personas=personas, inbox=inbox, ids=ids, auth=AuthorizationPolicy())
     list_audit_logs = ListAuditLogs(audit_logs)
     import_jobs: dict[str, dict] = {}
     eval_runs: dict[str, dict] = {}
@@ -394,6 +395,15 @@ def create_app(
             data=data,
             capabilities=caps,
         )
+        inbox_created = process_import(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            filename=filename,
+            data=data,
+            hint=hint,
+            capabilities=caps,
+        )
         job_id = ids.new_id()
         import_jobs[job_id] = {
             "id": job_id,
@@ -402,8 +412,9 @@ def create_app(
             "status": "completed",
             "filename": filename,
             "hint": hint,
+            "inbox_created": inbox_created,
         }
-        return {"job_id": job_id, "status": "completed"}
+        return {"job_id": job_id, "status": "completed", "inbox_created": inbox_created}
 
     @app.get("/v1/imports/{job_id}")
     def get_import(
@@ -426,6 +437,7 @@ def create_app(
             "status": job["status"],
             "filename": job["filename"],
             "persona_id": job["persona_id"],
+            "inbox_created": job.get("inbox_created", 0),
         }
 
     @app.post("/v1/eval/runs", status_code=202)
