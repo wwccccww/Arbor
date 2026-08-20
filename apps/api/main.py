@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
 from arbor.adapters.outbound.inmemory import (
     FixtureEmbeddingClient,
+    InMemoryAuditLogRepository,
     InMemoryEventGraphRepository,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
@@ -18,8 +19,11 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedLLM,
     ScriptedReasoner,
     SeqIdGenerator,
+    FixedClock,
 )
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
+from arbor.application.audit.commands import RecordAudit
+from arbor.application.audit.queries import ListAuditLogs
 from arbor.application.conversation.send_message import SendMessage
 from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
 from arbor.application.evaluation.commands import StartEvalRun
@@ -143,6 +147,7 @@ def create_app(
         inbox = session.inbox
         vectors = session.vectors
         embed = session.embed
+        audit_logs = session.audit_logs
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
         if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
             linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
@@ -160,7 +165,9 @@ def create_app(
         inbox = InMemoryInboxRepository(stores)
         vectors = InMemoryVectorIndex(stores, memories)
         embed = FixtureEmbeddingClient()
+        audit_logs = InMemoryAuditLogRepository(stores)
     ids = SeqIdGenerator()
+    record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     send = SendMessage(
         personas=personas,
         memories=memories,
@@ -183,20 +190,22 @@ def create_app(
         ids=ids,
         auth=AuthorizationPolicy(),
         events=events,
+        audit=record_audit,
     )
     dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
     get_tree = GetEventTree(events, memories=memories)
     get_card = GetEventCard(events=events, memories=memories, personas=personas, auth=AuthorizationPolicy())
     list_personas = ListPersonas(personas)
     create_persona = CreatePersona(personas=personas, ids=ids, auth=AuthorizationPolicy())
-    patch_persona = PatchPersona(personas=personas, auth=AuthorizationPolicy())
+    patch_persona = PatchPersona(personas=personas, auth=AuthorizationPolicy(), audit=record_audit)
     replace_grants = ReplaceGrants(personas=personas, auth=AuthorizationPolicy())
     create_thread = CreateThread(personas=personas, threads=threads, ids=ids, auth=AuthorizationPolicy())
     list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
     list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
     object_stores = stores or InMemoryStores()
     storage = InMemoryObjectStorage(object_stores)
-    import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy())
+    import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
+    list_audit_logs = ListAuditLogs(audit_logs)
     import_jobs: dict[str, dict] = {}
     eval_runs: dict[str, dict] = {}
 
@@ -460,6 +469,42 @@ def create_app(
             "mode": run["mode"],
             "metrics": run["metrics"],
             "p0_tenant_leak_zero": run["p0_tenant_leak_zero"],
+        }
+
+    @app.get("/v1/audit-logs")
+    def get_audit_logs(
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+        action: str | None = Query(default=None),
+        persona_id: str | None = Query(default=None),
+        since: str | None = Query(default=None),
+        until: str | None = Query(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        items = list_audit_logs(
+            tenant_id=TenantId(x_tenant_id),
+            workspace_admin=_workspace_admin(user),
+            action=action,
+            persona_id=PersonaId(persona_id) if persona_id else None,
+            since=since,
+            until=until,
+        )
+        return {
+            "items": [
+                {
+                    "id": entry.id,
+                    "actor_user_id": entry.actor_user_id.value,
+                    "action": entry.action,
+                    "resource_type": entry.resource_type,
+                    "resource_id": entry.resource_id,
+                    "persona_id": entry.persona_id.value if entry.persona_id else None,
+                    "payload": entry.payload,
+                    "created_at": entry.created_at,
+                }
+                for entry in items
+            ]
         }
 
     @app.put("/v1/personas/{persona_id}/grants")

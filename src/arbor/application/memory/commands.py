@@ -19,6 +19,7 @@ class ConfirmInboxItem:
         ids,
         auth: AuthorizationPolicy,
         events=None,
+        audit=None,
     ) -> None:
         self.personas = personas
         self.memories = memories
@@ -28,6 +29,7 @@ class ConfirmInboxItem:
         self.ids = ids
         self.auth = auth
         self.events = events
+        self.audit = audit
 
     def __call__(
         self,
@@ -73,6 +75,16 @@ class ConfirmInboxItem:
             self.vectors.delete(tenant_id, old.id)
         self.inbox.save(item)
         self.vectors.upsert(tenant_id, persona_id, new_mem.id, self.embed.embed(new_mem.text), new_mem.status)
+        if self.audit:
+            self.audit(
+                tenant_id=tenant_id,
+                actor_user_id=user_id,
+                action="memory.confirm",
+                resource_type="memory",
+                resource_id=new_mem.id.value,
+                persona_id=persona_id,
+                payload={"inbox_id": item.id},
+            )
         return new_mem
 
     def _maybe_key_event(self, tenant_id: TenantId, persona_id: PersonaId, text: str) -> EventId:
@@ -122,10 +134,11 @@ class DismissInboxItem:
 
 
 class ImportArtifact:
-    def __init__(self, *, personas, storage, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, storage, auth: AuthorizationPolicy, audit=None) -> None:
         self.personas = personas
         self.storage = storage
         self.auth = auth
+        self.audit = audit
 
     def __call__(
         self,
@@ -142,3 +155,13 @@ class ImportArtifact:
         if Capability.WRITE_MEMORY not in caps:
             raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
         self.storage.put(filename, data)
+        if self.audit:
+            self.audit(
+                tenant_id=tenant_id,
+                actor_user_id=user_id,
+                action="memory.import",
+                resource_type="import",
+                resource_id=None,
+                persona_id=persona_id,
+                payload={"filename": filename},
+            )
