@@ -3,10 +3,11 @@
 Arbor 记忆评测。说明见 [docs/evaluation.md](../docs/evaluation.md) 与 [docs/ragas.md](../docs/ragas.md)。
 
 ```text
-fixtures/suite-v1/         P0 烟雾金标（13 题）
-fixtures/suite-ragas-v1/   规模集（RAGAS 分布，当前 377 条）
-generate_testset.py        重新合成规模集
-baselines/                 对比表快照
+fixtures/suite-v1/              P0 烟雾金标（13 题）
+fixtures/suite-ragas-v1/        规模集（RAGAS 分布，当前 377 条，离线合成）
+fixtures/suite-ragas-official/  官方 TestsetGenerator 产物（DeepSeek，不覆盖 377 条）
+generate_testset.py             重新合成规模集
+baselines/                      对比表快照
 ```
 
 ```text

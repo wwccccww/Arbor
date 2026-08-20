@@ -674,15 +674,17 @@ def try_ragas_backend(size: int) -> list[dict]:
             skipped += 1
             continue
         persona = _mem(hit[0])["persona_id"]
+        gold_contexts = [_mem(mid)["text"] for mid in hit]
         aligned.append(
             _case(
                 id=f"ragas-llm-{i:03d}",
+                suite="ragas-official",
                 generator="ragas",
                 evolution_type=str(row.get("evolution_type") or row.get("synthesizer_name") or "simple"),
                 skill="episode_detail",
                 query=str(row.get("user_input") or row.get("question") or ""),
                 reference=str(row.get("reference") or row.get("ground_truth") or ""),
-                reference_contexts=contexts,
+                reference_contexts=gold_contexts,
                 actor=_actor(persona),
                 expected_behavior="answer",
                 expected_source="vector",
@@ -717,7 +719,12 @@ def manifest(cases: list[dict], suite_version: str = "ragas-v1") -> dict:
             if suite_version == "ragas-official"
             else "Default backend ragas_compat implements RAGAS simple/reasoning/multi_context/conditional plus Arbor isolation slices. Official ragas TestsetGenerator writes suite-ragas-official/ and does not overwrite this suite."
         ),
-        "resume_blurb": f"{len(cases)} 条评测样本 / 2 租户 3 人设 / {len(MEMORIES)} 条源记忆 / RAGAS 演化类型 + 隔离负例，全部绑定 memory_id 或 refuse。",
+        "resume_blurb": (
+            f"{len(cases)} 条官方 TestsetGenerator 样本 / DeepSeek Chat + FakeEmbeddings / id 绑定率 "
+            f"{round(sum(1 for c in cases if c['expected_memory_ids']) / n, 4)}。"
+            if suite_version == "ragas-official"
+            else f"{len(cases)} 条评测样本 / 2 租户 3 人设 / {len(MEMORIES)} 条源记忆 / RAGAS 演化类型 + 隔离负例，全部绑定 memory_id 或 refuse。"
+        ),
     }
 
 

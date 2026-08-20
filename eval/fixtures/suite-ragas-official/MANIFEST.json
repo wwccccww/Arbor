@@ -1,0 +1,28 @@
+{
+  "suite_version": "ragas-official",
+  "n_cases": 51,
+  "n_unique_queries": 51,
+  "n_unique_references": 50,
+  "n_source_memories": 33,
+  "n_active_memories": 32,
+  "n_tenants": 2,
+  "n_personas": 3,
+  "evolution_distribution": {
+    "single_hop_specifc_query_synthesizer": 25,
+    "multi_hop_specific_query_synthesizer": 26
+  },
+  "skill_distribution": {
+    "episode_detail": 51
+  },
+  "persona_distribution": {
+    "0a000000-0000-4000-a000-000000000010": 33,
+    "0a000000-0000-4000-a000-000000000020": 12,
+    "0b000000-0000-4000-a000-000000000010": 6
+  },
+  "behavior_distribution": {
+    "answer": 51
+  },
+  "id_bound_rate": 1.0,
+  "generator_note": "Official ragas TestsetGenerator (DeepSeek Chat + FakeEmbeddings); rows aligned to memory_id.",
+  "resume_blurb": "51 条官方 TestsetGenerator 样本 / DeepSeek Chat + FakeEmbeddings / id 绑定率 1.0。"
+}
