@@ -10,9 +10,9 @@
 4. [数据模型](data-model.md) — PostgreSQL / pgvector 表与过滤约束
 5. [HTTP 接口](api.md) 与 [OpenAPI](openapi.yaml)
 6. [测试与质量](testing.md) — 金字塔、P0 清单、Fake 端口、CI 门禁
-6b. [测试样例](testing-examples.md) — Given-When-Then YAML，先于 pytest
-7. [评测](evaluation.md) — 怎么办：体检页、suite-v1 金标、门槛与工作流
-8. [ADR](adr) — 已冻结的技术决策
+7. [测试样例](testing-examples.md) — Given-When-Then YAML，先于 pytest
+8. [评测](evaluation.md) — 怎么办：体检页、suite-v1 金标、门槛与工作流
+9. [ADR](adr) — 已冻结的技术决策
 
 ## 文档与代码的关系
 
@@ -22,7 +22,7 @@
 - 新增外部系统：只允许新增出站适配器，禁止改领域实体去迁就 SDK。
 - 新增 HTTP 路径：先改 `openapi.yaml` 与 `api.md`，再实现入站适配器。
 - 检索相关改动：必须能在评测集上对比 Recall、泄漏率、跨租户命中（目标为 0）。
-- 新增领域规则或端口：先补 `docs/testing.md` 中对应层的用例，再写实现。
+- 新增领域规则或端口：先在 `tests/examples/` 补一条 Given-When-Then，再写实现。
 
 ## 词汇
 
