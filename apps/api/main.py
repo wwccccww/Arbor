@@ -22,6 +22,7 @@ from arbor.adapters.outbound.inmemory import (
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
 from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
+from arbor.application.evaluation.commands import StartEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact
@@ -78,6 +79,12 @@ class PersonaPatchIn(BaseModel):
     personality: dict | None = None
     taboos: list[str] | None = None
     relationships: list[dict] | None = None
+
+
+class EvalRunIn(BaseModel):
+    strategy: str
+    suite_version: str
+    mode: str = "retrieval"
 
 
 def _error(code: str, message: str, status: int, request_id: str = "test-request") -> JSONResponse:
@@ -191,6 +198,19 @@ def create_app(
     storage = InMemoryObjectStorage(object_stores)
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy())
     import_jobs: dict[str, dict] = {}
+    eval_runs: dict[str, dict] = {}
+
+    def run_retrieval(*, strategy: str, suite_version: str) -> dict:
+        from arbor.adapters.inbound.eval_runner import run_suite
+
+        name = "suite-v1" if suite_version == "v1" else "suite-ragas-v1"
+        suite_dir = ROOT / "eval" / "fixtures" / name
+        try:
+            return run_suite(strategy=strategy, suite_dir=suite_dir, backend="memory")
+        except FileNotFoundError as exc:
+            raise DomainError("VALIDATION_ERROR", "suite files missing") from exc
+
+    start_eval = StartEvalRun(run_retrieval=run_retrieval, ids=ids)
     app = FastAPI()
     app.state.stores = stores
     app.state.session = session
@@ -201,6 +221,7 @@ def create_app(
     app.state.dismiss = dismiss
     app.state.get_tree = get_tree
     app.state.import_jobs = import_jobs
+    app.state.eval_runs = eval_runs
     app.state.storage = storage
 
     @app.exception_handler(DomainError)
@@ -396,6 +417,49 @@ def create_app(
             "status": job["status"],
             "filename": job["filename"],
             "persona_id": job["persona_id"],
+        }
+
+    @app.post("/v1/eval/runs", status_code=202)
+    def post_eval_run(
+        payload: EvalRunIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        result = start_eval(
+            workspace_admin=_workspace_admin(user),
+            strategy=payload.strategy,
+            suite_version=payload.suite_version,
+            mode=payload.mode,
+        )
+        result["tenant_id"] = x_tenant_id
+        eval_runs[result["id"]] = result
+        return {"id": result["id"]}
+
+    @app.get("/v1/eval/runs/{run_id}")
+    def get_eval_run(
+        run_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        if not _workspace_admin(user):
+            raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
+        run = eval_runs.get(run_id)
+        if run is None or run["tenant_id"] != x_tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        return {
+            "id": run["id"],
+            "status": run["status"],
+            "strategy": run["strategy"],
+            "suite_version": run["suite_version"],
+            "mode": run["mode"],
+            "metrics": run["metrics"],
+            "p0_tenant_leak_zero": run["p0_tenant_leak_zero"],
         }
 
     @app.put("/v1/personas/{persona_id}/grants")
