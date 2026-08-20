@@ -9,5 +9,10 @@
     "identity_consistency": { "min": 1.0, "scope": "profile_fact_repeat", "severity": "soft" },
     "superseded_in_topk": { "max": 0, "severity": "p0" }
   },
-  "notes": "generation 模式不设文风门槛。泄漏类门槛在 generation 下同样生效。"
+  "generation": {
+    "citation_subset_rate": { "min": 1.0, "scope": "answer_or_cite", "severity": "p0" },
+    "ragas_faithfulness": { "min": 0.8, "scope": "answer_or_cite_nonempty", "severity": "soft_nightly" },
+    "judge_model": "not_same_as_generator"
+  },
+  "notes": "泄漏类门槛在 generation 下同样生效。RAGAS 不进 PR 门禁，见 docs/ragas.md。"
 }

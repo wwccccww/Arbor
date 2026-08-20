@@ -207,6 +207,13 @@ components:
           type: number
         tenant_leak_count:
           type: integer
+        citation_subset_rate:
+          type: number
+        ragas_faithfulness:
+          type: number
+          description: |
+            generation 辅指标。contexts 必须等于本轮注入文本。
+            检索 run 可省略。不作为隔离或召回的依据。
     InboxItem:
       type: object
       properties:
@@ -927,6 +934,10 @@ paths:
                   enum: [summary_only, vector_only, layered, layered_tree]
                 suite_version:
                   type: string
+                mode:
+                  type: string
+                  enum: [retrieval, generation]
+                  default: retrieval
       responses:
         "202":
           description: 已开始

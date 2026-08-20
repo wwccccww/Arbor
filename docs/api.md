@@ -225,10 +225,10 @@ Query：`view=tree|timeline`、`key_only=true`。
 ### `POST /v1/eval/runs`
 
 ```json
-{ "strategy": "layered_tree", "suite_version": "v1" }
+{ "strategy": "layered_tree", "suite_version": "v1", "mode": "retrieval" }
 ```
 
-空间 Admin。演示模式可打到夹具租户。
+`mode`：`retrieval`（默认）或 `generation`。`generation` 会跑引用子集检查；若配置了 `FaithfulnessScorer` 再写 `ragas_faithfulness`。空间 Admin。演示模式可打到夹具租户。
 
 ### `GET /v1/eval/runs/{run_id}`
 
@@ -238,12 +238,14 @@ Query：`view=tree|timeline`、`key_only=true`。
     "identity_consistency": 1.0,
     "recall_at_5": 0.82,
     "persona_leak_rate": 0.0,
-    "tenant_leak_count": 0
+    "tenant_leak_count": 0,
+    "citation_subset_rate": 1.0,
+    "ragas_faithfulness": 0.86
   }
 }
 ```
 
-`tenant_leak_count` 必须为 0，否则该策略不得标为默认。
+`tenant_leak_count` 必须为 0，否则该策略不得标为默认。`ragas_faithfulness` 仅 generation 有值；检索 run 可省略。接线见 [ragas.md](ragas.md)。
 
 ## 9. 审计
 

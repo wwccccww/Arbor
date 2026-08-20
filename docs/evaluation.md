@@ -30,7 +30,9 @@ suite-v1 夹具世界
         │
         └─ 模式 generation（夜间 / 手动）
              同一批题再走 SendMessage
-             DeepSeek 出回答 → 忠实度 / 一致率 / 拒答是否得当
+             硬检查：citations ⊆ 本轮注入 id；拒答不得含 forbidden 文本
+             辅检查：RAGAS faithfulness（contexts = 本轮注入文本）
+             详见 [ragas.md](ragas.md)
 ```
 
 实现约束：runner 是入站适配器，只调 `EvaluationPort` / `MemoryQueryPort` / `ChatPort`，禁止直连 SQL。
@@ -71,10 +73,12 @@ suite-v1 夹具世界
 
 **生成（仅 generation 模式）**
 
-- `answer`：回答可追溯到 citations ⊆ 注入 id
-- `refuse`：隔离题不得泄露 forbidden 文本
-- `cite`：引用了 expected_event_id
+- `answer` / `cite`：`citations ⊆` 本轮 `injected_memory_ids`（代码，P0）
+- 正文可追溯：RAGAS faithfulness，`contexts` 必须是本轮注入文本（档案 + 摘要 + 事件 + 记忆），见 [ragas.md](ragas.md)
+- `refuse`：不得泄露 forbidden 文本；隔离题出现 forbidden id 直接记泄漏，不跑 RAGAS 投票
 - 身份题 `repeat: 3`：三次答案关键槽位一致（城市、禁忌）才算一致
+- 多模态题另记感知槽位（相对原文件），RAGAS 不评「图认对了没」
+- 矛盾事实：注入集不得同时含互斥旧句与新句；superseded 不得进 top-k
 
 **汇总指标（写入 EvalRun.metrics）**
 
@@ -85,9 +89,12 @@ suite-v1 夹具世界
 | `recall_at_5` | v1 软门槛 ≥ 0.70，用来对比而非炫耀 |
 | `identity_consistency` | 身份题 = 1.0（retrieval 应对档案） |
 | `key_event_hit_rate` | 应高于 `vector_only` |
+| `citation_subset_rate` | generation：`answer`/`cite` 题应为 1.0 |
+| `ragas_faithfulness` | generation 辅列，软门槛 ≥ 0.8；不进 PR |
 | `latency_ms` | 拆 retrieval / llm，只记录 |
 
-不要把 RAGAS 当唯一分数。自动忠实度只能当 generation 模式的辅表。
+四策略对比表 **不包含** RAGAS。那张表只证明检索策略；忠实度只对默认策略的 generation 跑一次。
+
 
 ## 5. 必须出的对比表
 
@@ -132,8 +139,8 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 2. `retrieval` 跑 suite-v1，看泄漏是否仍为 0、Recall 和关键事件是否变差。
 3. 泄漏非 0 → 当 bug，先修过滤，不要调 prompt。
 4. Recall 下降而泄漏仍 0 → 再看切块/路由，允许改默认策略。
-5. 准备发版本 → 跑一趟 `generation`，抽查拒答和引用。
-6. 把表更新进 baseline 和 README。
+5. 准备发版本 → 跑一趟 `generation`：引用子集 + 拒答 + RAGAS faithfulness（评委勿用 DeepSeek）。
+6. 把检索对比表更新进 baseline 和 README；RAGAS 可写在报告附录，不替代泄漏为 0。
 
 加题：在 `cases.json` 增加一条，必须带 `forbidden_memory_ids`（隔离类）或 `expected_memory_ids`（召回类）。没有期望 ID 的开放聊天题不进 v1 套件。
 
@@ -143,7 +150,7 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 2. 应用层能按策略检索（Fake 向量即可）→ 先产出 retrieval 报告。
 3. 体检页读报告 JSON（可先静态放一份 `eval/baselines` 样例）。
 4. Postgres 契约过后再用 pgvector 跑同一套题。
-5. 最后才接 DeepSeek 的 generation 模式。
+5. 最后才接 DeepSeek 的 generation 模式与 RAGAS 适配器。
 
 不要先调一周 prompt 再想评测。没有 ID 金标，你无法知道是变好还是变随机。
 
@@ -156,6 +163,8 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 | 档案题只能向量命中 | 分层没接上，`ContextPolicy` 未注入 Profile |
 | 时间/因果题纯向量更好 | 允许，但默认仍可 layered_tree；在表里如实写 |
 | generation 文风差、检索指标好 | 改提示词，不改金标世界 |
+| RAGAS 低、引用检查与检索都绿 | 查评委模型或短句噪声；不改过滤 |
+| RAGAS 高、隔离题仍泄漏 | 以泄漏为准；faithfulness 不能为隔离开脱 |
 | 想刷分改 world.json 让题变简单 | 禁止；要改则升 `suite-v2` 并保留 v1 |
 
 ## 10. 文件一览

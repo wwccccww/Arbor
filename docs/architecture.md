@@ -86,6 +86,7 @@ Arbor 采用 **六边形架构（端口-适配器）** 承载 **DDD 限界上下
 | `UnitOfWork` | SQLAlchemy / async session | — |
 | `LLMClient` | DeepSeek Chat | 其他 OpenAI 兼容端点 |
 | `ReasoningClient` | DeepSeek Reasoner | 可回退到 `LLMClient` |
+| `FaithfulnessScorer` | RAGAS faithfulness 适配器 | 其他 LLM 评委；仅 generation |
 | `EmbeddingClient` | bge-m3 | 其他嵌入模型 |
 | `ObjectStorage` | S3 | 本地盘 |
 | `SpeechTranscriber` | Whisper | — |
@@ -187,6 +188,7 @@ src/arbor/
     outbound/postgres/
     outbound/pgvector/
     outbound/deepseek/
+    outbound/ragas/                # FaithfulnessScorer，仅评测 generation
     outbound/embedding_bge/
     outbound/s3/
     outbound/whisper/

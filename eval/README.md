@@ -18,6 +18,8 @@ arbor-eval --suite v1 --mode retrieval --strategy layered_tree
 # 四策略出表
 arbor-eval --suite v1 --mode retrieval --strategy all
 
-# 生成层，夜间
+# 生成层，夜间（引用子集 + RAGAS faithfulness，评委勿用 DeepSeek）
 arbor-eval --suite v1 --mode generation --strategy layered_tree
 ```
+
+RAGAS 接线约束见 [docs/ragas.md](../docs/ragas.md)：`contexts` 必须是本轮注入文本。

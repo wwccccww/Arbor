@@ -172,7 +172,7 @@ eval/
 
 ### 5.6 评测夹具（无 LLM 也可跑）
 
-见 [evaluation.md](evaluation.md)。CI 至少跑：跨租户 0 命中、人设泄漏、档案题不依赖向量。生成忠实度夜间再跑。
+见 [evaluation.md](evaluation.md) 与 [ragas.md](ragas.md)。CI 至少跑：跨租户 0 命中、人设泄漏、档案题不依赖向量。RAGAS faithfulness 仅夜间 generation，且不得代替隔离测试。
 
 ## 6. 与评测的分工
 
@@ -183,7 +183,7 @@ eval/
 | 失败 | 红线，阻断合并 | 对比表，默认策略有门槛（租户泄漏=0） |
 | LLM | Fake | 可选真实 DeepSeek |
 
-不要用 RAGAS 分数代替 `test_vector_search_isolation`。也不要在单元测试里扫 80 道金标题（慢、不稳）。
+不要用 RAGAS 分数代替 `test_vector_search_isolation`。RAGAS 只允许出现在评测 generation 适配器里，见 [ragas.md](ragas.md)。也不要在单元测试里扫整份金标题（慢、不稳）。
 
 ## 7. 前端测试（有 UI 之后）
 
