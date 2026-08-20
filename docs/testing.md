@@ -172,6 +172,7 @@ eval/
 | 事件树不串人设 | 林夏树不含小周节点 |
 | 无 `read_memory` 看事件树 | 404 或 403，不泄露存在性 |
 | 确认并 `mark_key_event` | 树上多一个关键节点 |
+| 事件卡需要 `read_memory` | 无权限或跨租户 404 |
 | Owner 列出人设、Member 仅已授权 | 列表不串无权的人设 |
 | 无 `read_memory` 看人设 | 最小档案，无禁忌 |
 | 创建会话后能拉历史 | POST thread → POST message → GET messages |

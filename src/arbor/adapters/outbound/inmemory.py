@@ -7,7 +7,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
 from arbor.domain.persona.persona import Persona
-from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId
 from arbor.domain.shared.textvec import cosine, fixture_embed
 
 
@@ -98,6 +98,12 @@ class InMemoryEventGraphRepository:
 
     def save_node(self, node: EventNode) -> None:
         self.stores.events[node.id.value] = node
+
+    def get(self, tenant_id: TenantId, event_id: EventId) -> EventNode | None:
+        node = self.stores.events.get(event_id.value)
+        if node is None or node.tenant_id != tenant_id:
+            return None
+        return node
 
     def list_nodes(self, tenant_id: TenantId, persona_id: PersonaId) -> list[EventNode]:
         return [
