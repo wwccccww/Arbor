@@ -176,7 +176,7 @@ Query：`type`、`event_id`、`status=active`、分页。需要 `read_memory`。
 ### `POST /v1/personas/{persona_id}/imports`
 
 `multipart/form-data`：file + 可选 `hint`。需要 `write_memory`。  
-返回 `job_id`。解析在队列中完成。
+返回 `job_id`。演示组合根同步解析 UTF-8 文本进 Inbox，不直写 Memory。
 
 ### `GET /v1/imports/{job_id}`
 

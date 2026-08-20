@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
-from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 
@@ -165,3 +165,52 @@ class ImportArtifact:
                 persona_id=persona_id,
                 payload={"filename": filename},
             )
+
+
+def _import_text(data: bytes) -> str:
+    try:
+        return data.decode("utf-8-sig").strip()
+    except UnicodeDecodeError:
+        return ""
+
+
+class ProcessImportJob:
+    """Turn uploaded text into pending Inbox items. Does not write MemoryItem."""
+
+    def __init__(self, *, personas, inbox, ids, auth: AuthorizationPolicy) -> None:
+        self.personas = personas
+        self.inbox = inbox
+        self.ids = ids
+        self.auth = auth
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        persona_id: PersonaId,
+        filename: str,
+        data: bytes = b"",
+        hint: str | None = None,
+        capabilities: list[Capability] | None = None,
+    ) -> int:
+        persona = self.personas.get(tenant_id, persona_id)
+        caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
+        if Capability.WRITE_MEMORY not in caps:
+            raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
+        text = _import_text(data)
+        if not text:
+            return 0
+        payload = {"text": text, "source": filename}
+        if hint:
+            payload["hint"] = hint
+        self.inbox.add(
+            InboxItem(
+                id=self.ids.new_id(),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                kind="fact",
+                payload=payload,
+            )
+        )
+        return 1
