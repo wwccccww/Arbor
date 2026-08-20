@@ -1,14 +1,15 @@
 from fastapi.testclient import TestClient
 
 from apps.api.main import create_app, create_app_from_env
-from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekUnavailable
-from arbor.adapters.outbound.inmemory import ScriptedLLM
+from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
+from arbor.adapters.outbound.inmemory import ScriptedLLM, ScriptedReasoner
 
 
 def test_create_app_stays_scripted_even_if_key_present(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-should-not-be-used")
     app = create_app()
     assert isinstance(app.state.send.llm, ScriptedLLM)
+    assert isinstance(app.state.send.reasoner, ScriptedReasoner)
 
 
 def test_create_app_from_env_uses_scripted_without_key(monkeypatch):
@@ -16,6 +17,7 @@ def test_create_app_from_env_uses_scripted_without_key(monkeypatch):
     monkeypatch.setattr("arbor.env.database_url", lambda: "")
     app = create_app_from_env()
     assert isinstance(app.state.send.llm, ScriptedLLM)
+    assert isinstance(app.state.send.reasoner, ScriptedReasoner)
 
 
 def test_create_app_from_env_uses_deepseek_when_key_present(monkeypatch):
@@ -23,6 +25,7 @@ def test_create_app_from_env_uses_deepseek_when_key_present(monkeypatch):
     monkeypatch.setattr("arbor.env.database_url", lambda: "")
     app = create_app_from_env()
     assert isinstance(app.state.send.llm, DeepSeekChatLLM)
+    assert isinstance(app.state.send.reasoner, DeepSeekReasoner)
 
 
 def test_chat_maps_deepseek_unavailable():

@@ -55,6 +55,32 @@ class ConfirmInboxItem:
         return new_mem
 
 
+class DismissInboxItem:
+    def __init__(self, *, personas, inbox, auth: AuthorizationPolicy) -> None:
+        self.personas = personas
+        self.inbox = inbox
+        self.auth = auth
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        persona_id: PersonaId,
+        inbox_id: str,
+        capabilities: list[Capability] | None = None,
+    ) -> None:
+        persona = self.personas.get(tenant_id, persona_id)
+        caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
+        if Capability.WRITE_MEMORY not in caps and not (persona and self.auth.can_write_memory(persona, user_id)):
+            raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
+        item = self.inbox.get(tenant_id, inbox_id)
+        if item is None or item.persona_id != persona_id:
+            raise DomainError("NOT_FOUND", "no pending inbox")
+        item.dismiss()
+        self.inbox.save(item)
+
+
 class ImportArtifact:
     def __init__(self, *, personas, storage, auth: AuthorizationPolicy) -> None:
         self.personas = personas

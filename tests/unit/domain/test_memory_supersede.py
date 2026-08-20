@@ -48,3 +48,18 @@ def test_profile_no_silent_update():
     )
     assert inbox.status == "pending"
     assert profile.taboos == ["香菜"]
+
+
+def test_inbox_dismiss():
+    inbox = InboxItem(
+        id="inb-3",
+        tenant_id=TenantId("t"),
+        persona_id=PersonaId("p"),
+        kind="fact",
+        payload={"text": "临时"},
+    )
+    inbox.dismiss()
+    assert inbox.status == "dismissed"
+    with pytest.raises(DomainError) as exc:
+        inbox.dismiss()
+    assert exc.value.code == "CONFLICT_INBOX_STATE"

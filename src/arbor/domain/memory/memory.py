@@ -62,3 +62,8 @@ class InboxItem:
             old.mark_superseded()
             new_memory.supersedes = old.id
         return new_memory
+
+    def dismiss(self) -> None:
+        if self.status != "pending":
+            raise DomainError("CONFLICT_INBOX_STATE", "inbox item is not pending")
+        self.status = "dismissed"
