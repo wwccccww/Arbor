@@ -75,6 +75,10 @@
 
 创建者成为 owner。
 
+### `DELETE /v1/tenants/{tenant_id}`
+
+仅 Owner。空间里还有人设时拒绝（本刀不级联删记忆）。空空间删除后不再出现在列表里。
+
 ### `GET /v1/tenants/{tenant_id}/members`
 
 ### `POST /v1/tenants/{tenant_id}/members`

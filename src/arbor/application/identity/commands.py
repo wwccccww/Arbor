@@ -40,6 +40,19 @@ class CreateTenant:
         return tenant
 
 
+class DeleteTenant:
+    def __init__(self, *, tenants, personas) -> None:
+        self.tenants = tenants
+        self.personas = personas
+
+    def __call__(self, *, tenant_id: TenantId, actor_id: UserId) -> None:
+        tenant = _require_tenant(self.tenants, tenant_id, actor_id)
+        tenant.assert_owner(actor_id)
+        if self.personas.list(tenant_id):
+            raise DomainError("VALIDATION_ERROR", "tenant not empty")
+        self.tenants.delete(tenant_id)
+
+
 class ListMembers:
     def __init__(self, tenants, users) -> None:
         self.tenants = tenants

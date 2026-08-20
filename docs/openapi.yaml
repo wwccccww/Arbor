@@ -399,6 +399,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tenant"
 
+  /tenants/{tenant_id}:
+    delete:
+      tags: [Tenants]
+      summary: 删除空空间
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 已删除
+        "400":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /tenants/{tenant_id}/members:
     parameters:
       - name: tenant_id
