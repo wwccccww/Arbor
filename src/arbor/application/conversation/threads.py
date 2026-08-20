@@ -115,6 +115,7 @@ class ExportThread:
                     "role": message.role,
                     "content": message.content,
                     "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                    "attachments": [{"filename": item["filename"]} for item in message.attachments or [] if item.get("filename")],
                 }
                 for message in thread.messages
             ],

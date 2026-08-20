@@ -9,7 +9,7 @@ def test_thread_messages_roundtrip(pg):
         persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
         summary="新会话",
         messages=[
-            Message(role="user", content="还在吗"),
+            Message(role="user", content="还在吗", attachments=[{"filename": "note.txt", "uri": "chat/note.txt"}]),
             Message(
                 role="assistant",
                 content="在",
@@ -22,6 +22,7 @@ def test_thread_messages_roundtrip(pg):
     assert loaded is not None
     assert [m.role for m in loaded.messages] == ["user", "assistant"]
     assert loaded.messages[0].content == "还在吗"
+    assert loaded.messages[0].attachments == [{"filename": "note.txt", "uri": "chat/note.txt"}]
     assert loaded.messages[1].citations[0].memory_id.value == "0a000000-0000-4000-a000-000000000302"
     listed = pg.threads.list(thread.tenant_id, thread.persona_id)
     assert any(item.id == thread.id for item in listed)

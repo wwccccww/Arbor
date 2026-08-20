@@ -24,6 +24,7 @@ class Message:
     role: str
     content: str
     citations: list[Citation] = field(default_factory=list)
+    attachments: list[dict] = field(default_factory=list)
 
 
 @dataclass

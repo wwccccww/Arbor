@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, File, Form, Header, Query, UploadFile
+from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -71,6 +71,7 @@ LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
 
 class MessageIn(BaseModel):
     text: str = ""
+    attachments: list = Field(default_factory=list)
 
 
 class GrantsIn(BaseModel):
@@ -150,6 +151,38 @@ def _persona_json(persona, caps: list[Capability]) -> dict:
         body["relationships"] = list(persona.profile.relationships)
         body["personality"] = persona.profile.personality
     return body
+
+
+def _public_attachments(items) -> list[dict]:
+    return [
+        {"filename": item["filename"]}
+        for item in items or []
+        if isinstance(item, dict) and item.get("filename")
+    ]
+
+
+async def _read_chat_payload(request: Request, storage, tenant: TenantId, thread_id: str) -> tuple[str, list]:
+    content_type = request.headers.get("content-type") or ""
+    if content_type.startswith("multipart/form-data"):
+        form = await request.form()
+        text = str(form.get("text") or "")
+        attachments: list[dict] = []
+        upload = form.get("file")
+        if upload is not None and hasattr(upload, "read"):
+            data = await upload.read()
+            filename = str(getattr(upload, "filename", None) or "upload.bin")
+            filename = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip() or "upload.bin"
+            uri = storage.put(f"chat/{tenant.value}/{thread_id}/{filename}", data)
+            attachments.append({"filename": filename, "uri": uri})
+        return text, attachments
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise DomainError("VALIDATION_ERROR", "invalid json") from exc
+    if not isinstance(body, dict):
+        raise DomainError("VALIDATION_ERROR", "invalid body")
+    payload = MessageIn.model_validate(body)
+    return payload.text, list(payload.attachments or [])
 
 
 def _ensure_demo_member(tenants, users) -> None:
@@ -786,15 +819,16 @@ def create_app(
                     "role": message.role,
                     "content": message.content,
                     "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                    "attachments": _public_attachments(message.attachments),
                 }
                 for message in loaded.messages
             ]
         }
 
     @app.post("/v1/threads/{thread_id}/messages")
-    def post_message(
+    async def post_message(
         thread_id: str,
-        payload: MessageIn,
+        request: Request,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
     ):
@@ -809,19 +843,22 @@ def create_app(
         caps = _caps_for(persona, user)
         if Capability.CHAT not in caps:
             raise DomainError("FORBIDDEN_CHAT", "no grant")
+        text, attachments = await _read_chat_payload(request, storage, tenant, thread_id)
         result = send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
             thread_id=ThreadId(thread_id),
             persona_id=thread.persona_id,
-            text=payload.text,
+            text=text,
             capabilities=caps,
+            attachments=attachments,
         )
         return {
             "text": result["text"],
             "citations": result["citations"],
             "injected_memory_ids": result["injected_memory_ids"],
             "inbox_created": result.get("inbox_added") or 0,
+            "attachments": result.get("attachments") or [],
         }
 
     @app.post("/v1/threads/{thread_id}/export")

@@ -150,6 +150,13 @@ components:
             $ref: "#/components/schemas/Citation"
         inbox_created:
           type: integer
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
     EventNode:
       type: object
       properties:
@@ -690,6 +697,31 @@ paths:
       responses:
         "200":
           description: 消息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:
+                          type: string
+                        content:
+                          type: string
+                        citations:
+                          type: array
+                          items:
+                            type: string
+                        attachments:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              filename:
+                                type: string
         "404":
           $ref: "#/components/responses/Error"
     post:

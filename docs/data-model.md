@@ -90,9 +90,10 @@ tenants ─┬─ memberships ─ users
 | tenant_id | uuid | |
 | thread_id | uuid | |
 | role | text | user / assistant / system |
-| content | jsonb | 文本与附件引用 |
+| content | text | 消息正文 |
 | citation_memory_ids | uuid[] | |
 | citation_event_ids | uuid[] | |
+| attachments | jsonb | `[{filename, uri}]`；聊天附件不进 Memory |
 | created_at | timestamptz | |
 
 ### memory_items
