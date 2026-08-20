@@ -74,6 +74,7 @@ tests/
       test_reasoner_parse.py
       test_persona_threads.py
       test_import_artifact.py
+      test_eval_commands.py
       test_get_event_tree.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
@@ -92,6 +93,7 @@ tests/
     test_event_tree.py
     test_personas_threads.py
     test_imports.py
+    test_eval.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -178,6 +180,7 @@ eval/
 | 无 `read_memory` 看人设 | 最小档案，无禁忌 |
 | 创建会话后能拉历史 | POST thread → POST message → GET messages |
 | 导入需要 `write_memory` | 无权限 404/403；成功后能查 job |
+| Owner 跑 retrieval 评测 | suite-v1 `tenant_leak_count==0`；Member 403 |
 
 ### 5.5 架构
 
