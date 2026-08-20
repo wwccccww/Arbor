@@ -548,7 +548,7 @@ def create_app(
         persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        items = list_memories(
+        page = list_memories(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
             persona_id=PersonaId(persona_id),
@@ -568,8 +568,9 @@ def create_app(
                     "status": item.status.value,
                     "event_id": item.event_id.value if item.event_id else None,
                 }
-                for item in items
-            ]
+                for item in page.items
+            ],
+            "total": page.total,
         }
 
     @app.post("/v1/personas/{persona_id}/imports", status_code=202)

@@ -34,8 +34,9 @@ def test_list_memories_requires_read_and_filters():
         persona_id=LINXIA,
         capabilities=list(Capability),
     )
-    assert all(item.status.value == "active" for item in active)
-    assert all(item.id.value != CAT_OLD for item in active)
+    assert all(item.status.value == "active" for item in active.items)
+    assert all(item.id.value != CAT_OLD for item in active.items)
+    assert active.total == len(active.items)
     by_event = query(
         tenant_id=TENANT,
         user_id=USER,
@@ -43,7 +44,8 @@ def test_list_memories_requires_read_and_filters():
         capabilities=list(Capability),
         event_id=FIGHT,
     )
-    assert [item.id.value for item in by_event] == ["0a000000-0000-4000-a000-000000000303"]
+    assert [item.id.value for item in by_event.items] == ["0a000000-0000-4000-a000-000000000303"]
+    assert by_event.total == 1
     superseded = query(
         tenant_id=TENANT,
         user_id=USER,
@@ -51,4 +53,14 @@ def test_list_memories_requires_read_and_filters():
         capabilities=list(Capability),
         status="superseded",
     )
-    assert [item.id.value for item in superseded] == [CAT_OLD]
+    assert [item.id.value for item in superseded.items] == [CAT_OLD]
+    paged = query(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        capabilities=list(Capability),
+        limit=1,
+        offset=0,
+    )
+    assert len(paged.items) == 1
+    assert paged.total > 1
