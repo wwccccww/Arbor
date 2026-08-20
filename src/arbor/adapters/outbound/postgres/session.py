@@ -7,6 +7,7 @@ from arbor.adapters.outbound.postgres.alembic_runner import upgrade_head
 from arbor.adapters.outbound.postgres.audit import PgAuditLogRepository
 from arbor.adapters.outbound.postgres.connection import connect, wipe_public_schema
 from arbor.adapters.outbound.postgres.events import PgEventGraphRepository
+from arbor.adapters.outbound.postgres.identity import PgTenantRepository, PgUserRepository
 from arbor.adapters.outbound.postgres.inbox import PgInboxRepository
 from arbor.adapters.outbound.postgres.memory import PgMemoryRepository
 from arbor.adapters.outbound.postgres.persona import PgPersonaRepository
@@ -31,6 +32,8 @@ class PostgresSession:
         self.threads = PgThreadRepository(self.conn)
         self.vectors = PgVectorIndex(self.conn, self.memories)
         self.audit_logs = PgAuditLogRepository(self.conn)
+        self.tenants = PgTenantRepository(self.conn)
+        self.users = PgUserRepository(self.conn)
 
     @classmethod
     def connect(cls, url: str) -> PostgresSession:

@@ -24,6 +24,8 @@ from arbor.application.evaluation.runner import (
 )
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
+from arbor.domain.identity.tenant import Membership, Role, Tenant
+from arbor.domain.identity.user import User
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.persona.persona import Persona, Profile
@@ -43,6 +45,24 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
     import json
 
     world = json.loads(path.read_text(encoding="utf-8"))
+    for tenant in world.get("tenants") or []:
+        stores.tenants[tenant["id"]] = Tenant(
+            id=TenantId(tenant["id"]),
+            name=tenant.get("name") or "",
+        )
+    for user in world.get("users") or []:
+        stores.users[user["id"]] = User(id=UserId(user["id"]), email=user.get("email") or "")
+        tenant_id = user.get("tenant_id")
+        tenant = stores.tenants.get(tenant_id) if tenant_id else None
+        if tenant is not None:
+            role = user.get("role") or "member"
+            tenant.memberships.append(
+                Membership(
+                    tenant_id=TenantId(tenant_id),
+                    user_id=UserId(user["id"]),
+                    role=Role(role),
+                )
+            )
     for persona in world["personas"]:
         stores.personas[persona["id"]] = Persona(
             id=PersonaId(persona["id"]),

@@ -6,9 +6,11 @@ from arbor.domain.audit.log import AuditLog
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
+from arbor.domain.identity.tenant import Tenant
+from arbor.domain.identity.user import User
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
 from arbor.domain.persona.persona import Persona
-from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.domain.shared.textvec import cosine, fixture_embed
 
 
@@ -23,6 +25,44 @@ class InMemoryStores:
     vectors: dict[str, tuple[str, str, list[float], MemoryStatus]] = field(default_factory=dict)
     objects: list[str] = field(default_factory=list)
     audit_logs: list[AuditLog] = field(default_factory=list)
+    tenants: dict[str, Tenant] = field(default_factory=dict)
+    users: dict[str, User] = field(default_factory=dict)
+
+
+class InMemoryTenantRepository:
+    def __init__(self, stores: InMemoryStores) -> None:
+        self.stores = stores
+
+    def get(self, tenant_id: TenantId) -> Tenant | None:
+        return self.stores.tenants.get(tenant_id.value)
+
+    def list_for_user(self, user_id: UserId) -> list[Tenant]:
+        return [
+            tenant
+            for tenant in self.stores.tenants.values()
+            if tenant.member(user_id) is not None
+        ]
+
+    def save(self, tenant: Tenant) -> None:
+        self.stores.tenants[tenant.id.value] = tenant
+
+
+class InMemoryUserRepository:
+    def __init__(self, stores: InMemoryStores) -> None:
+        self.stores = stores
+
+    def get(self, user_id: UserId) -> User | None:
+        return self.stores.users.get(user_id.value)
+
+    def get_by_email(self, email: str) -> User | None:
+        wanted = (email or "").strip().lower()
+        for user in self.stores.users.values():
+            if user.email.lower() == wanted:
+                return user
+        return None
+
+    def save(self, user: User) -> None:
+        self.stores.users[user.id.value] = user
 
 
 class InMemoryPersonaRepository:

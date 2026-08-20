@@ -4,6 +4,8 @@ from typing import Protocol
 
 from arbor.domain.audit.log import AuditLog
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
+from arbor.domain.identity.tenant import Tenant
+from arbor.domain.identity.user import User
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
 from arbor.domain.persona.persona import Persona
 from arbor.domain.conversation.thread import Thread
@@ -90,6 +92,18 @@ class AuditLogRepository(Protocol):
         since: str | None = None,
         until: str | None = None,
     ) -> list[AuditLog]: ...
+
+
+class TenantRepository(Protocol):
+    def get(self, tenant_id: TenantId) -> Tenant | None: ...
+    def list_for_user(self, user_id: UserId) -> list[Tenant]: ...
+    def save(self, tenant: Tenant) -> None: ...
+
+
+class UserRepository(Protocol):
+    def get(self, user_id: UserId) -> User | None: ...
+    def get_by_email(self, email: str) -> User | None: ...
+    def save(self, user: User) -> None: ...
 
 
 class Clock(Protocol):

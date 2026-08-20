@@ -51,3 +51,14 @@ class Tenant:
             if m.user_id == user_id and m.role in {Role.OWNER, Role.ADMIN}:
                 return True
         return False
+
+    def member(self, user_id: UserId) -> Membership | None:
+        for m in self.memberships:
+            if m.user_id == user_id:
+                return m
+        return None
+
+    def add_member(self, user_id: UserId, role: Role) -> None:
+        if self.member(user_id) is not None:
+            raise DomainError("VALIDATION_ERROR", "already a member")
+        self.memberships.append(Membership(tenant_id=self.id, user_id=user_id, role=role))
