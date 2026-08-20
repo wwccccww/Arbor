@@ -91,6 +91,7 @@ tests/
     test_inbox.py
     test_event_tree.py
     test_personas_threads.py
+    test_imports.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -176,6 +177,7 @@ eval/
 | Owner 列出人设、Member 仅已授权 | 列表不串无权的人设 |
 | 无 `read_memory` 看人设 | 最小档案，无禁忌 |
 | 创建会话后能拉历史 | POST thread → POST message → GET messages |
+| 导入需要 `write_memory` | 无权限 404/403；成功后能查 job |
 
 ### 5.5 架构
 

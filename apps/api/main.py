@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import FastAPI, Header, Query
+from fastapi import FastAPI, File, Form, Header, Query, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -11,6 +11,7 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
     InMemoryPersonaRepository,
+    InMemoryObjectStorage,
     InMemoryStores,
     InMemoryThreadRepository,
     InMemoryVectorIndex,
@@ -23,7 +24,7 @@ from arbor.application.conversation.send_message import SendMessage
 from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
-from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ImportArtifact
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
@@ -186,6 +187,10 @@ def create_app(
     create_thread = CreateThread(personas=personas, threads=threads, ids=ids, auth=AuthorizationPolicy())
     list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
     list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
+    object_stores = stores or InMemoryStores()
+    storage = InMemoryObjectStorage(object_stores)
+    import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy())
+    import_jobs: dict[str, dict] = {}
     app = FastAPI()
     app.state.stores = stores
     app.state.session = session
@@ -195,6 +200,8 @@ def create_app(
     app.state.confirm = confirm
     app.state.dismiss = dismiss
     app.state.get_tree = get_tree
+    app.state.import_jobs = import_jobs
+    app.state.storage = storage
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -331,6 +338,65 @@ def create_app(
         _require_read(persona, user)
         items = memories.list_active(TenantId(x_tenant_id), PersonaId(persona_id))
         return {"items": [{"id": m.id.value, "text": m.text} for m in items]}
+
+    @app.post("/v1/personas/{persona_id}/imports", status_code=202)
+    async def post_import(
+        persona_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+        file: UploadFile = File(...),
+        hint: str | None = Form(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = _require_write(persona, user)
+        data = await file.read()
+        filename = file.filename or "upload.bin"
+        import_artifact(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            filename=filename,
+            data=data,
+            capabilities=caps,
+        )
+        job_id = ids.new_id()
+        import_jobs[job_id] = {
+            "id": job_id,
+            "tenant_id": x_tenant_id,
+            "persona_id": persona_id,
+            "status": "completed",
+            "filename": filename,
+            "hint": hint,
+        }
+        return {"job_id": job_id, "status": "completed"}
+
+    @app.get("/v1/imports/{job_id}")
+    def get_import(
+        job_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        job = import_jobs.get(job_id)
+        if job is None or job["tenant_id"] != x_tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(job["persona_id"]))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        _require_write(persona, user)
+        return {
+            "id": job["id"],
+            "status": job["status"],
+            "filename": job["filename"],
+            "persona_id": job["persona_id"],
+        }
 
     @app.put("/v1/personas/{persona_id}/grants")
     def put_grants(
