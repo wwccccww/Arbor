@@ -75,7 +75,7 @@ tests/
       test_persona_threads.py
       test_import_artifact.py
       test_eval_commands.py
-      test_audit.py
+      test_audit_commands.py
       test_get_event_tree.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
