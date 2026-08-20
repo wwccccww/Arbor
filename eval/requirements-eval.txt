@@ -1,0 +1,5 @@
+# 仅官方 TestsetGenerator 需要（可选）
+# 当前默认离线 synthesizer 不依赖下列包。
+# ragas 0.3 + langchain 1.x 在本环境无法 import（vertexai 路径）。
+# ragas>=0.2,<0.3.8
+# langchain-openai

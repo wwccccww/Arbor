@@ -1,0 +1,377 @@
+{"user_input": "如果充电宝已经拆封，还能走7天无理由吗？", "reference": "不能，已拆封数码配件不支持无理由退货。", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果充电宝已经拆封，还能走7天无理由吗？", "reference": "不能，已拆封数码配件不支持无理由退货。", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果充电宝已经拆封，还能走7天无理由吗？", "reference": "不能，已拆封数码配件不支持无理由退货。", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "conditional"}
+{"user_input": "如果是质量问题退货，运费谁出？", "reference": "卖家承担往返运费。", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果是质量问题退货，运费谁出？", "reference": "卖家承担往返运费。", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果是质量问题退货，运费谁出？", "reference": "卖家承担往返运费。", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "conditional"}
+{"user_input": "如果包装已经拆了但商品是普通衣服，还能7天退吗？", "reference": "无理由退货需包装完好，包装破了一般不行。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果包装已经拆了但商品是普通衣服，还能7天退吗？", "reference": "无理由退货需包装完好，包装破了一般不行。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果包装已经拆了但商品是普通衣服，还能7天退吗？", "reference": "无理由退货需包装完好，包装破了一般不行。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "conditional"}
+{"user_input": "如果晚上十点才提交工单会怎样？", "reference": "超出 21:00，次日处理。", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果晚上十点才提交工单会怎样？", "reference": "超出 21:00，次日处理。", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果晚上十点才提交工单会怎样？", "reference": "超出 21:00，次日处理。", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "conditional"}
+{"user_input": "如果拆了袋的饼干只是不想吃了，能退吗？", "reference": "拆封食品不支持无理由。", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果拆了袋的饼干只是不想吃了，能退吗？", "reference": "拆封食品不支持无理由。", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果拆了袋的饼干只是不想吃了，能退吗？", "reference": "拆封食品不支持无理由。", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "conditional"}
+{"user_input": "如果想点微辣香菜拌面可以吗？", "reference": "微辣可以，香菜不行。", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。", "林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果想点微辣香菜拌面可以吗？", "reference": "微辣可以，香菜不行。", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。", "林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果想点微辣香菜拌面可以吗？", "reference": "微辣可以，香菜不行。", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。", "林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "conditional"}
+{"user_input": "如果周末想去余杭找你上班的地方？", "reference": "工作日在余杭，周末她回西湖区。", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果周末想去余杭找你上班的地方？", "reference": "工作日在余杭，周末她回西湖区。", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果周末想去余杭找你上班的地方？", "reference": "工作日在余杭，周末她回西湖区。", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "conditional"}
+{"user_input": "如果想送宠物当礼物，猫可以吗？", "reference": "不行，对猫毛过敏。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果想送宠物当礼物，猫可以吗？", "reference": "不行，对猫毛过敏。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果想送宠物当礼物，猫可以吗？", "reference": "不行，对猫毛过敏。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "conditional"}
+{"user_input": "如果带榴莲进房间可以吗？", "reference": "不可以，讨厌榴莲。", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果带榴莲进房间可以吗？", "reference": "不可以，讨厌榴莲。", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果带榴莲进房间可以吗？", "reference": "不可以，讨厌榴莲。", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "conditional"}
+{"user_input": "如果周日晚上21点等电话，你会打来吗？", "reference": "不会，没有该约定，周末通常打游戏。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "conditional"}
+{"user_input": "我有点记不清了，如果周日晚上21点等电话，你会打来吗？", "reference": "不会，没有该约定，周末通常打游戏。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "conditional"}
+{"user_input": "请根据你记得的事实回答：如果周日晚上21点等电话，你会打来吗？", "reference": "不会，没有该约定，周末通常打游戏。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "conditional"}
+{"user_input": "今天杭州天气怎么样？", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "帮我算一下 17*19。", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "现在上热搜第一是什么？", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "你觉得林夏性格好不好？", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "今天股市涨了吗？", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "上海今天限行尾号是多少？", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "随便聊聊宇宙起源吧。", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "写一首关于退货的诗，不要查手册。", "reference": "不依赖私密记忆即可回答或拒答；不得强行注入争吵/禁忌。", "reference_contexts": [], "evolution_type": "arbor_irrelevant"}
+{"user_input": "你在复旦附近租房吗？", "reference": "租户A林夏不应确认上海设定。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "宿舍橘猫还好吗？", "reference": "租户A林夏不应确认上海设定。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "外滩黑风衣那张是你吗？", "reference": "租户A林夏不应确认上海设定。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "你讨厌榴莲吗？", "reference": "租户A林夏不应确认上海设定。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我们在湖滨路老张面馆吵过架吗？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "你住在杭州西湖区吗？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "你讨厌香菜还是榴莲？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "每周日21点要打电话吗？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "断桥那张米色外套是你吗？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "你对猫毛过敏所以不能养猫？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "和好那天买过桂花糕吗？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "工单8842充电器补发到哪了？", "reference": "按上海林夏的档案回答或否认杭州经历，不得引用租户A记忆。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "arbor_isolation"}
+{"user_input": "林夏讨厌吃什么？你们在哪家面馆吵过架？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，林夏讨厌吃什么？你们在哪家面馆吵过架？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：林夏讨厌吃什么？你们在哪家面馆吵过架？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "林夏住在西湖区吗？生日是哪天？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，林夏住在西湖区吗？生日是哪天？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：林夏住在西湖区吗？生日是哪天？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "周日21点打电话的约定还在吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，周日21点打电话的约定还在吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：周日21点打电话的约定还在吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "那张断桥米色外套照片是谁的？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，那张断桥米色外套照片是谁的？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：那张断桥米色外套照片是谁的？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "林夏对猫毛过敏吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，林夏对猫毛过敏吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：林夏对猫毛过敏吗？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "下周末是不是去爬玉皇山？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "我有点记不清了，下周末是不是去爬玉皇山？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "请根据你记得的事实回答：下周末是不是去爬玉皇山？", "reference": "不知道。我只处理售后，没有林夏的私人经历。", "reference_contexts": [], "evolution_type": "arbor_isolation"}
+{"user_input": "你住哪、上班在哪？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，你住哪、上班在哪？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：你住哪、上班在哪？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "工作日和周末分别在哪个区？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，工作日和周末分别在哪个区？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：工作日和周末分别在哪个区？", "reference": "住西湖区，余杭上班周末回去。", "reference_contexts": ["林夏住在杭州西湖区。", "林夏在余杭上班，周末回西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "忌口和辣度分别是什么？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，忌口和辣度分别是什么？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：忌口和辣度分别是什么？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "微辣和香菜哪个绝对不行？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，微辣和香菜哪个绝对不行？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：微辣和香菜哪个绝对不行？", "reference": "可微辣，绝对不能香菜。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "multi_context"}
+{"user_input": "第一次见面和第一次看电影分别在哪？", "reference": "见面在西湖断桥；约会在湖滨银泰看《好东西》。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，第一次见面和第一次看电影分别在哪？", "reference": "见面在西湖断桥；约会在湖滨银泰看《好东西》。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：第一次见面和第一次看电影分别在哪？", "reference": "见面在西湖断桥；约会在湖滨银泰看《好东西》。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "multi_context"}
+{"user_input": "生日和每周通话提醒我一下。", "reference": "生日9月18日；每周日21:00打电话。", "reference_contexts": ["林夏生日是9月18日。", "和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，生日和每周通话提醒我一下。", "reference": "生日9月18日；每周日21:00打电话。", "reference_contexts": ["林夏生日是9月18日。", "和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：生日和每周通话提醒我一下。", "reference": "生日9月18日；每周日21:00打电话。", "reference_contexts": ["林夏生日是9月18日。", "和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "multi_context"}
+{"user_input": "两张照片分别在哪拍的、穿什么？", "reference": "断桥米色外套；老张面馆门口雨天。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，两张照片分别在哪拍的、穿什么？", "reference": "断桥米色外套；老张面馆门口雨天。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：两张照片分别在哪拍的、穿什么？", "reference": "断桥米色外套；老张面馆门口雨天。", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。", "照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "multi_context"}
+{"user_input": "7天退货和食品拆封规则一起说。", "reference": "普通商品7天需包装完好；食品拆封后无理由不退。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，7天退货和食品拆封规则一起说。", "reference": "普通商品7天需包装完好；食品拆封后无理由不退。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：7天退货和食品拆封规则一起说。", "reference": "普通商品7天需包装完好；食品拆封后无理由不退。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "multi_context"}
+{"user_input": "8842 客户是谁、补发什么、单号多少？", "reference": "张先生，补发充电器，SF1234567890。", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。", "工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，8842 客户是谁、补发什么、单号多少？", "reference": "张先生，补发充电器，SF1234567890。", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。", "工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：8842 客户是谁、补发什么、单号多少？", "reference": "张先生，补发充电器，SF1234567890。", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。", "工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "multi_context"}
+{"user_input": "你住哪、房子靠近哪、讨厌什么？", "reference": "上海杨浦、复旦附近、讨厌榴莲。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏在复旦附近租房。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，你住哪、房子靠近哪、讨厌什么？", "reference": "上海杨浦、复旦附近、讨厌榴莲。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏在复旦附近租房。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：你住哪、房子靠近哪、讨厌什么？", "reference": "上海杨浦、复旦附近、讨厌榴莲。", "reference_contexts": ["林夏住在上海杨浦区。", "林夏在复旦附近租房。", "林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "multi_context"}
+{"user_input": "养猫情况和外滩那张照片。", "reference": "宿舍橘猫；外滩黑风衣。", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。", "照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，养猫情况和外滩那张照片。", "reference": "宿舍橘猫；外滩黑风衣。", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。", "照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：养猫情况和外滩那张照片。", "reference": "宿舍橘猫；外滩黑风衣。", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。", "照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "multi_context"}
+{"user_input": "母亲住哪、你自己住哪？", "reference": "母亲姓陈住杭州；自己住西湖区。", "reference_contexts": ["林夏母亲姓陈，住在杭州。", "林夏住在杭州西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "我有点记不清了，母亲住哪、你自己住哪？", "reference": "母亲姓陈住杭州；自己住西湖区。", "reference_contexts": ["林夏母亲姓陈，住在杭州。", "林夏住在杭州西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "请根据你记得的事实回答：母亲住哪、你自己住哪？", "reference": "母亲姓陈住杭州；自己住西湖区。", "reference_contexts": ["林夏母亲姓陈，住在杭州。", "林夏住在杭州西湖区。"], "evolution_type": "multi_context"}
+{"user_input": "为什么后来一周没说话？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，为什么后来一周没说话？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：为什么后来一周没说话？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "冷战的直接原因是什么？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，冷战的直接原因是什么？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：冷战的直接原因是什么？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "为什么会因为一碗面闹翻？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，为什么会因为一碗面闹翻？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：为什么会因为一碗面闹翻？", "reference": "因为老张面馆的面放了香菜引发争吵，之后大约一周没说话。", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。", "面店争吵之后大约一周没有互相说话。"], "evolution_type": "reasoning"}
+{"user_input": "为什么不能再给林夏点带香菜的菜？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，为什么不能再给林夏点带香菜的菜？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：为什么不能再给林夏点带香菜的菜？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "点餐禁忌和那次吵架有什么关系？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，点餐禁忌和那次吵架有什么关系？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：点餐禁忌和那次吵架有什么关系？", "reference": "林夏讨厌香菜，上次在老张面馆因香菜争吵。", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。", "2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "reasoning"}
+{"user_input": "为什么现在不能养猫？以前不是说喜欢吗？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，为什么现在不能养猫？以前不是说喜欢吗？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：为什么现在不能养猫？以前不是说喜欢吗？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "喜欢猫和过敏哪个算数？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，喜欢猫和过敏哪个算数？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：喜欢猫和过敏哪个算数？", "reference": "后来确认对猫毛过敏，旧的「喜欢猫」已作废，不能养。", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "reasoning"}
+{"user_input": "周日电话和爬玉皇山的约定怎么衔接？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，周日电话和爬玉皇山的约定怎么衔接？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：周日电话和爬玉皇山的约定怎么衔接？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "通话里除了问好还定了什么出行？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，通话里除了问好还定了什么出行？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：通话里除了问好还定了什么出行？", "reference": "每周日 21:00 打电话；其中一次约定下周末九点去爬玉皇山。", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。", "语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "reasoning"}
+{"user_input": "工单升级之后物流到哪一步了？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，工单升级之后物流到哪一步了？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：工单升级之后物流到哪一步了？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "张先生的充电器补发有单号了吗？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，张先生的充电器补发有单号了吗？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：张先生的充电器补发有单号了吗？", "reference": "8842 承诺三日补发充电器，运单 SF1234567890。", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。", "补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "reasoning"}
+{"user_input": "质量问题退货和普通7天退货运费规则有何不同？", "reference": "7天无理由需包装完好且买家承担运费；质量问题卖家承担往返运费。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，质量问题退货和普通7天退货运费规则有何不同？", "reference": "7天无理由需包装完好且买家承担运费；质量问题卖家承担往返运费。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：质量问题退货和普通7天退货运费规则有何不同？", "reference": "7天无理由需包装完好且买家承担运费；质量问题卖家承担往返运费。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "reasoning"}
+{"user_input": "拆封充电宝不能退，是因为7天政策失效了吗？", "reference": "普通商品7天无理由仍在；已拆封数码配件是例外，不支持无理由。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，拆封充电宝不能退，是因为7天政策失效了吗？", "reference": "普通商品7天无理由仍在；已拆封数码配件是例外，不支持无理由。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：拆封充电宝不能退，是因为7天政策失效了吗？", "reference": "普通商品7天无理由仍在；已拆封数码配件是例外，不支持无理由。", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。", "售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "reasoning"}
+{"user_input": "租户B的林夏周末为什么不会等周日电话？", "reference": "她周末打游戏，没有每周日打电话的约定。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "reasoning"}
+{"user_input": "我有点记不清了，租户B的林夏周末为什么不会等周日电话？", "reference": "她周末打游戏，没有每周日打电话的约定。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "reasoning"}
+{"user_input": "请根据你记得的事实回答：租户B的林夏周末为什么不会等周日电话？", "reference": "她周末打游戏，没有每周日打电话的约定。", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "reasoning"}
+{"user_input": "你住在哪里？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你住在哪里？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你住在哪里？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "家在哪个城市？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，家在哪个城市？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：家在哪个城市？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "现在住哪一区？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，现在住哪一区？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：现在住哪一区？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "你是杭州人还是外地现在住哪？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你是杭州人还是外地现在住哪？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你是杭州人还是外地现在住哪？", "reference": "杭州西湖区", "reference_contexts": ["林夏住在杭州西湖区。"], "evolution_type": "simple"}
+{"user_input": "点餐有什么不能放？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，点餐有什么不能放？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：点餐有什么不能放？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "你讨厌什么配菜？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你讨厌什么配菜？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你讨厌什么配菜？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "香菜可以点吗？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，香菜可以点吗？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：香菜可以点吗？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我点面要注意什么？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，我点面要注意什么？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：我点面要注意什么？", "reference": "不能放香菜", "reference_contexts": ["林夏讨厌香菜，点餐不能放香菜。"], "evolution_type": "simple"}
+{"user_input": "我们是在哪家店吵起来的？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，我们是在哪家店吵起来的？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：我们是在哪家店吵起来的？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "那次吵架的馆子叫什么？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，那次吵架的馆子叫什么？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：那次吵架的馆子叫什么？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "湖滨路那家面馆叫什么名字？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，湖滨路那家面馆叫什么名字？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：湖滨路那家面馆叫什么名字？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "11月2号晚上在哪吃的面？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，11月2号晚上在哪吃的面？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：11月2号晚上在哪吃的面？", "reference": "老张面馆", "reference_contexts": ["2024年11月2日晚上，两人在杭州湖滨路「老张面馆」争吵，导火索是面里放了香菜。"], "evolution_type": "simple"}
+{"user_input": "吵完以后多久没说话？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，吵完以后多久没说话？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：吵完以后多久没说话？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "那次之后冷战了多久？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，那次之后冷战了多久？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：那次之后冷战了多久？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "一周没联系是因为什么时候开始的？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，一周没联系是因为什么时候开始的？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：一周没联系是因为什么时候开始的？", "reference": "大约一周没说话", "reference_contexts": ["面店争吵之后大约一周没有互相说话。"], "evolution_type": "simple"}
+{"user_input": "我们约定几点打电话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，我们约定几点打电话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：我们约定几点打电话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "每周哪一天要通话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，每周哪一天要通话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：每周哪一天要通话？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "周日晚上的约定是什么？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，周日晚上的约定是什么？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：周日晚上的约定是什么？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "21点的电话还作数吗？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，21点的电话还作数吗？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：21点的电话还作数吗？", "reference": "每周日晚上 21:00 打电话", "reference_contexts": ["和好后约定每周日晚上 21:00 打电话。"], "evolution_type": "simple"}
+{"user_input": "第一次见面那张照片在哪拍的？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，第一次见面那张照片在哪拍的？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：第一次见面那张照片在哪拍的？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "断桥那张照片你穿了什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，断桥那张照片你穿了什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：断桥那张照片你穿了什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "米色外套那张背景是什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，米色外套那张背景是什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：米色外套那张背景是什么？", "reference": "西湖断桥，米色外套", "reference_contexts": ["照片：西湖边第一次见面，背景是断桥，林夏穿米色外套。"], "evolution_type": "simple"}
+{"user_input": "林夏适合养猫吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，林夏适合养猫吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：林夏适合养猫吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "对猫过敏吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，对猫过敏吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：对猫过敏吗？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "能不能养宠物猫？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，能不能养宠物猫？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：能不能养宠物猫？", "reference": "对猫毛过敏，不能养", "reference_contexts": ["后来发现林夏对猫毛过敏，不能养猫。"], "evolution_type": "simple"}
+{"user_input": "你平时喝什么茶？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你平时喝什么茶？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你平时喝什么茶？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "龙井还喝吗？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，龙井还喝吗？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：龙井还喝吗？", "reference": "日常喝龙井", "reference_contexts": ["林夏日常喝龙井，不加香菜类配菜。"], "evolution_type": "simple"}
+{"user_input": "你生日是哪天？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你生日是哪天？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你生日是哪天？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "9月有什么日子我该记得？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，9月有什么日子我该记得？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：9月有什么日子我该记得？", "reference": "9月18日", "reference_contexts": ["林夏生日是9月18日。"], "evolution_type": "simple"}
+{"user_input": "你在哪上班？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你在哪上班？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你在哪上班？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "工作日住余杭吗？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，工作日住余杭吗？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：工作日住余杭吗？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "周末回哪个区？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，周末回哪个区？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：周末回哪个区？", "reference": "余杭上班，周末回西湖区", "reference_contexts": ["林夏在余杭上班，周末回西湖区。"], "evolution_type": "simple"}
+{"user_input": "和好那天买了什么？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，和好那天买了什么？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：和好那天买了什么？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "桂花糕是什么时候买的？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，桂花糕是什么时候买的？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：桂花糕是什么时候买的？", "reference": "和好当天买了桂花糕", "reference_contexts": ["和好当天一起买了桂花糕。"], "evolution_type": "simple"}
+{"user_input": "第一次正式约会看了什么电影？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，第一次正式约会看了什么电影？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：第一次正式约会看了什么电影？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "银泰看的那部片子叫什么？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，银泰看的那部片子叫什么？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：银泰看的那部片子叫什么？", "reference": "《好东西》", "reference_contexts": ["第一次正式约会在湖滨银泰看了电影《好东西》。"], "evolution_type": "simple"}
+{"user_input": "下周末去爬哪座山？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，下周末去爬哪座山？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：下周末去爬哪座山？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "语音里说几点在哪集合？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，语音里说几点在哪集合？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：语音里说几点在哪集合？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "龙井村口集合是去干什么？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，龙井村口集合是去干什么？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：龙井村口集合是去干什么？", "reference": "玉皇山，早上九点龙井村口", "reference_contexts": ["语音转写：周日电话里约定下周末去爬玉皇山，早上九点龙井村口集合。"], "evolution_type": "simple"}
+{"user_input": "面馆门口那张照片是什么天气？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，面馆门口那张照片是什么天气？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：面馆门口那张照片是什么天气？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "雨天那张是在哪家店门口？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，雨天那张是在哪家店门口？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：雨天那张是在哪家店门口？", "reference": "老张面馆门口，像刚下过雨", "reference_contexts": ["照片：老张面馆门口，地面反光像刚下过雨，林夏没吃那碗放了香菜的面。"], "evolution_type": "simple"}
+{"user_input": "你妈妈姓什么？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你妈妈姓什么？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你妈妈姓什么？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "母亲住在哪？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，母亲住在哪？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：母亲住在哪？", "reference": "姓陈，住杭州", "reference_contexts": ["林夏母亲姓陈，住在杭州。"], "evolution_type": "simple"}
+{"user_input": "能吃辣吗？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，能吃辣吗？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：能吃辣吗？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "微辣可以还是完全不吃辣？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，微辣可以还是完全不吃辣？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：微辣可以还是完全不吃辣？", "reference": "可以微辣，但不能香菜", "reference_contexts": ["林夏可以吃微辣，但不能接受香菜。"], "evolution_type": "simple"}
+{"user_input": "打电话时你习惯先问什么？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，打电话时你习惯先问什么？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：打电话时你习惯先问什么？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "通话开头你会问哪句？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，通话开头你会问哪句？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：通话开头你会问哪句？", "reference": "先问今天吃了什么", "reference_contexts": ["打电话时林夏习惯先问今天吃了什么，再决定周末安排。"], "evolution_type": "simple"}
+{"user_input": "普通商品几天可以无理由退货？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，普通商品几天可以无理由退货？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：普通商品几天可以无理由退货？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "7天退货要满足什么条件？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，7天退货要满足什么条件？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：7天退货要满足什么条件？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "包装破了还能无理由退吗？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，包装破了还能无理由退吗？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：包装破了还能无理由退吗？", "reference": "7天无理由，包装须完好", "reference_contexts": ["售后手册：普通商品支持7天无理由退货，需包装完好。"], "evolution_type": "simple"}
+{"user_input": "工单8842承诺补发什么？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，工单8842承诺补发什么？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：工单8842承诺补发什么？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "三日内补发的是哪件配件？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，三日内补发的是哪件配件？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：三日内补发的是哪件配件？", "reference": "三日内补发充电器", "reference_contexts": ["工单 #8842 已升级，承诺三日内补发充电器。"], "evolution_type": "simple"}
+{"user_input": "拆封的充电宝能无理由退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，拆封的充电宝能无理由退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：拆封的充电宝能无理由退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "耳机拆封后还支持7天退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，耳机拆封后还支持7天退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：耳机拆封后还支持7天退吗？", "reference": "已拆封数码配件不支持无理由退货", "reference_contexts": ["售后手册：已拆封的耳机、充电宝等个护/数码配件不支持无理由退货。"], "evolution_type": "simple"}
+{"user_input": "质量问题运费谁出？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，质量问题运费谁出？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：质量问题运费谁出？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "无理由退货运费谁承担？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，无理由退货运费谁承担？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：无理由退货运费谁承担？", "reference": "质量问题卖家承担；无理由买家承担", "reference_contexts": ["质量问题退换，往返运费由卖家承担；无理由退货运费由买家承担。"], "evolution_type": "simple"}
+{"user_input": "发票怎么给我？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，发票怎么给我？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：发票怎么给我？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "电子发票发到哪里？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，电子发票发到哪里？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：电子发票发到哪里？", "reference": "纸质随包裹，电子发下单邮箱", "reference_contexts": ["发票随包裹寄出，电子发票发送到下单邮箱。"], "evolution_type": "simple"}
+{"user_input": "8842 是哪位客户？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，8842 是哪位客户？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：8842 是哪位客户？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "张先生投诉的是什么？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，张先生投诉的是什么？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：张先生投诉的是什么？", "reference": "张先生，充电器不充电", "reference_contexts": ["工单 #8842 客户为张先生，投诉充电器不充电。"], "evolution_type": "simple"}
+{"user_input": "补发单号是多少？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，补发单号是多少？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：补发单号是多少？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "SF 开头的运单号是？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，SF 开头的运单号是？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：SF 开头的运单号是？", "reference": "SF1234567890", "reference_contexts": ["补发运单号 SF1234567890，预计两日内送达。"], "evolution_type": "simple"}
+{"user_input": "客服几点上班？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，客服几点上班？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：客服几点上班？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "晚上十点提交的工单何时处理？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，晚上十点提交的工单何时处理？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：晚上十点提交的工单何时处理？", "reference": "9:00–21:00，超时次日处理", "reference_contexts": ["在线客服工作时间每天 9:00–21:00，超时工单次日处理。"], "evolution_type": "simple"}
+{"user_input": "拆封的零食能7天无理由退吗？", "reference": "拆封食品不支持无理由，质量问题除外", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，拆封的零食能7天无理由退吗？", "reference": "拆封食品不支持无理由，质量问题除外", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：拆封的零食能7天无理由退吗？", "reference": "拆封食品不支持无理由，质量问题除外", "reference_contexts": ["食品类商品拆封后不支持7天无理由，质量问题除外。"], "evolution_type": "simple"}
+{"user_input": "你住在哪里？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你住在哪里？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你住在哪里？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "现在住上海哪一区？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，现在住上海哪一区？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：现在住上海哪一区？", "reference": "上海杨浦区", "reference_contexts": ["林夏住在上海杨浦区。"], "evolution_type": "simple"}
+{"user_input": "房间里不能出现什么？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，房间里不能出现什么？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：房间里不能出现什么？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "你讨厌哪种水果？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你讨厌哪种水果？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你讨厌哪种水果？", "reference": "讨厌榴莲", "reference_contexts": ["林夏讨厌榴莲，房间里不能出现榴莲。"], "evolution_type": "simple"}
+{"user_input": "周末你一般干什么？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，周末你一般干什么？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：周末你一般干什么？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "有没有每周日打电话的约定？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，有没有每周日打电话的约定？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：有没有每周日打电话的约定？", "reference": "周末打游戏，没有周日电话约定", "reference_contexts": ["林夏周末通常打游戏，没有每周日打电话的约定。"], "evolution_type": "simple"}
+{"user_input": "房子靠近哪所学校？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，房子靠近哪所学校？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：房子靠近哪所学校？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "租房在复旦附近吗？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，租房在复旦附近吗？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：租房在复旦附近吗？", "reference": "复旦附近", "reference_contexts": ["林夏在复旦附近租房。"], "evolution_type": "simple"}
+{"user_input": "你养猫了吗？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，你养猫了吗？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：你养猫了吗？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "宿舍那只猫什么颜色？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，宿舍那只猫什么颜色？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：宿舍那只猫什么颜色？", "reference": "养了一只橘猫", "reference_contexts": ["林夏很喜欢猫，宿舍养了一只橘猫。"], "evolution_type": "simple"}
+{"user_input": "外滩那张照片你穿什么？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，外滩那张照片你穿什么？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：外滩那张照片你穿什么？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}
+{"user_input": "黑色风衣那张是在哪拍的？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}
+{"user_input": "我有点记不清了，黑色风衣那张是在哪拍的？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}
+{"user_input": "请根据你记得的事实回答：黑色风衣那张是在哪拍的？", "reference": "外滩，黑色风衣", "reference_contexts": ["照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"], "evolution_type": "simple"}

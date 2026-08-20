@@ -102,3 +102,16 @@ RAGAS 的 `contexts` 不得同时包含互斥的旧句和新句。若注入集�
 - PR 门禁依赖 RAGAS（抖、贵、要外网）
 - 把向量库全文当 `contexts`
 - 生成与评委都固定为 DeepSeek
+
+## 9. 用 RAGAS 思路生成评估集
+
+打分（faithfulness）见上文。出题是另一条管道，产物在 [eval/fixtures/suite-ragas-v1](../eval/fixtures/suite-ragas-v1/)：
+
+- 分布对齐 RAGAS：`simple` / `reasoning` / `multi_context` / `conditional`
+- 另合成 `arbor_isolation` / `arbor_irrelevant`（官方生成器不会从单库文档长出跨租户泄漏题）
+- 每条尽量带 `expected_memory_ids` 或 `refuse`
+- 默认 `python3 eval/generate_testset.py`（`--backend ragas_compat`）
+- 有 `DEEPSEEK_API_KEY` 且 ragas 可导入时：`--backend ragas`，产出必须经 memory_id 对齐才能并入默认套件
+
+规模集用于回归和简历数字（当前 377 条）；P0 体检仍用 13 题 `suite-v1`。
+

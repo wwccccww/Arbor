@@ -66,7 +66,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | [docs/testing.md](docs/testing.md) | 单元 / 契约 / API / 架构测试与 CI |
 | [docs/testing-examples.md](docs/testing-examples.md) | 如何先写测试样例（YAML） |
 | [docs/evaluation.md](docs/evaluation.md) | 评测怎么办：体检页、金标、门槛、工作流 |
-| [docs/ragas.md](docs/ragas.md) | RAGAS 只评本轮注入记忆上的忠实度 |
+| [docs/ragas.md](docs/ragas.md) | RAGAS 打分契约 + 评估集生成 |
 | [docs/adr](docs/adr) | 架构决策记录 |
 
 ## 目标目录（实现时）

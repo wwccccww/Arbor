@@ -1,25 +1,21 @@
 # eval/
 
-Arbor 记忆评测套件。说明见 [docs/evaluation.md](../docs/evaluation.md)。
-
-当前只有 **suite-v1 金标数据**，没有 runner（等生成代码时再写，且必须走应用端口）。
+Arbor 记忆评测。说明见 [docs/evaluation.md](../docs/evaluation.md) 与 [docs/ragas.md](../docs/ragas.md)。
 
 ```text
-fixtures/suite-v1/     冻结的记忆世界与题目
-baselines/             对比表快照（有结果后再填）
+fixtures/suite-v1/         P0 烟雾金标（13 题）
+fixtures/suite-ragas-v1/   规模集（RAGAS 分布，当前 377 条）
+generate_testset.py        重新合成规模集
+baselines/                 对比表快照
 ```
 
-跑法（实现后）：
-
 ```text
-# 检索层，CI / 体检默认
+python3 eval/generate_testset.py
+# 有 Key 且 ragas 可导入时
+DEEPSEEK_API_KEY=... python3 eval/generate_testset.py --backend ragas --size 50
+
+# 实现 runner 之后
 arbor-eval --suite v1 --mode retrieval --strategy layered_tree
-
-# 四策略出表
-arbor-eval --suite v1 --mode retrieval --strategy all
-
-# 生成层，夜间（引用子集 + RAGAS faithfulness，评委勿用 DeepSeek）
-arbor-eval --suite v1 --mode generation --strategy layered_tree
+arbor-eval --suite ragas-v1 --mode retrieval --strategy all
+arbor-eval --suite ragas-v1 --mode generation --strategy layered_tree
 ```
-
-RAGAS 接线约束见 [docs/ragas.md](../docs/ragas.md)：`contexts` 必须是本轮注入文本。

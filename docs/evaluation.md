@@ -39,7 +39,9 @@ suite-v1 夹具世界
 
 ## 3. 金标世界（已经放进仓库）
 
-路径：[eval/fixtures/suite-v1/](../eval/fixtures/suite-v1/)。
+路径：[eval/fixtures/suite-v1/](../eval/fixtures/suite-v1/)（P0 烟雾，13 题）。
+
+规模集：[eval/fixtures/suite-ragas-v1/](../eval/fixtures/suite-ragas-v1/)（RAGAS 分布合成 + 隔离负例，当前 **377** 条）。改检索后应全量跑规模集；面试体检默认仍用 v1。生成命令：`python3 eval/generate_testset.py`。详见 [ragas.md §9](ragas.md)。
 
 规模（v1 刻意小，先跑通再加题）：
 
@@ -58,7 +60,7 @@ suite-v1 夹具世界
 
 题目绑定 **稳定 ID**（见 `world.json` / `cases.json`），不绑定向量距离。换 bge 只重建嵌入，题不用改。
 
-扩题方式：只加 JSON，不加 Python。目标是每类 10～20 题，不是第一天就 200 题。
+扩题：P0 仍保持 suite-v1 小而稳。规模题用 `python3 eval/generate_testset.py` 重放，不要手改 377 条 cases.json。
 
 ## 4. 怎么打分
 
