@@ -14,6 +14,17 @@ class PgInboxRepository:
     def add(self, item: InboxItem) -> None:
         self.save(item)
 
+    def get(self, tenant_id: TenantId, inbox_id: str) -> InboxItem | None:
+        row = self.conn.execute(
+            """
+            SELECT id, tenant_id, persona_id, kind, payload, conflict_with, status
+            FROM inbox_items
+            WHERE id = %s AND tenant_id = %s::uuid
+            """,
+            (inbox_id, tenant_id.value),
+        ).fetchone()
+        return inbox_from_row(row) if row else None
+
     def list_pending(self, tenant_id: TenantId, persona_id: PersonaId) -> list[InboxItem]:
         rows = self.conn.execute(
             """

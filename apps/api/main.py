@@ -18,8 +18,9 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
-from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekUnavailable
+from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
@@ -72,6 +73,7 @@ def create_app(
     extra_citation: str | None = None,
     database_url: str | None = None,
     llm=None,
+    reasoner=None,
 ) -> FastAPI:
     session = None
     stores = None
@@ -105,6 +107,7 @@ def create_app(
         inbox = InMemoryInboxRepository(stores)
         vectors = InMemoryVectorIndex(stores, memories)
         embed = FixtureEmbeddingClient()
+    ids = SeqIdGenerator()
     send = SendMessage(
         personas=personas,
         memories=memories,
@@ -113,16 +116,29 @@ def create_app(
         inbox=inbox,
         vectors=vectors,
         llm=llm or ScriptedLLM(extra_citation_memory_id=extra_citation),
-        reasoner=ScriptedReasoner(),
+        reasoner=reasoner or ScriptedReasoner(),
         embed=embed,
-        ids=SeqIdGenerator(),
+        ids=ids,
         auth=AuthorizationPolicy(),
     )
+    confirm = ConfirmInboxItem(
+        personas=personas,
+        memories=memories,
+        inbox=inbox,
+        vectors=vectors,
+        embed=embed,
+        ids=ids,
+        auth=AuthorizationPolicy(),
+    )
+    dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
     app = FastAPI()
     app.state.stores = stores
     app.state.session = session
     app.state.send = send
     app.state.personas = personas
+    app.state.inbox = inbox
+    app.state.confirm = confirm
+    app.state.dismiss = dismiss
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -235,7 +251,88 @@ def create_app(
             "text": result["text"],
             "citations": result["citations"],
             "injected_memory_ids": result["injected_memory_ids"],
+            "inbox_created": result.get("inbox_added") or 0,
         }
+
+    def _require_write(persona, user):
+        caps = _caps_for(persona, user)
+        if Capability.WRITE_MEMORY not in caps and Capability.ADMIN not in caps:
+            raise DomainError("NOT_FOUND", "not found")
+        return caps
+
+    @app.get("/v1/personas/{persona_id}/inbox")
+    def list_inbox(
+        persona_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        _require_write(persona, user)
+        items = inbox.list_pending(TenantId(x_tenant_id), PersonaId(persona_id))
+        return {
+            "items": [
+                {
+                    "id": item.id,
+                    "kind": item.kind,
+                    "status": item.status,
+                    "payload": item.payload,
+                }
+                for item in items
+            ]
+        }
+
+    @app.post("/v1/inbox/{inbox_id}/confirm")
+    def confirm_inbox(
+        inbox_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        tenant = TenantId(x_tenant_id or user["tenant_id"])
+        item = inbox.get(tenant, inbox_id)
+        if item is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(tenant, item.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = _require_write(persona, user)
+        memory = confirm(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            persona_id=item.persona_id,
+            inbox_id=inbox_id,
+            capabilities=caps,
+        )
+        return {"id": memory.id.value, "text": memory.text}
+
+    @app.post("/v1/inbox/{inbox_id}/dismiss")
+    def dismiss_inbox(
+        inbox_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        tenant = TenantId(x_tenant_id or user["tenant_id"])
+        item = inbox.get(tenant, inbox_id)
+        if item is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(tenant, item.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = _require_write(persona, user)
+        dismiss(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            persona_id=item.persona_id,
+            inbox_id=inbox_id,
+            capabilities=caps,
+        )
+        return {"ok": True}
 
     return app
 
@@ -243,5 +340,9 @@ def create_app(
 def create_app_from_env() -> FastAPI:
     from arbor.env import chat_api_key, database_url as env_database_url
 
-    llm = DeepSeekChatLLM() if chat_api_key() else None
-    return create_app(database_url=env_database_url() or None, llm=llm)
+    llm = None
+    reasoner = None
+    if chat_api_key():
+        llm = DeepSeekChatLLM()
+        reasoner = DeepSeekReasoner()
+    return create_app(database_url=env_database_url() or None, llm=llm, reasoner=reasoner)

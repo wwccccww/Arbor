@@ -35,6 +35,11 @@ def chat_model() -> str:
     return os.environ.get("DEEPSEEK_CHAT_MODEL", "deepseek-chat")
 
 
+def reasoner_model() -> str:
+    load_dotenv()
+    return os.environ.get("DEEPSEEK_REASONER_MODEL") or os.environ.get("DEEPSEEK_CHAT_MODEL") or "deepseek-reasoner"
+
+
 def judge_api_key() -> str:
     """Separate judge for RAGAS. Must not be the generator key."""
     load_dotenv()

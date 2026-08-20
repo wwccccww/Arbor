@@ -32,7 +32,12 @@ class ConfirmInboxItem:
         pending = self.inbox.list_pending(tenant_id, persona_id)
         if not pending:
             raise DomainError("NOT_FOUND", "no pending inbox")
-        item = next((p for p in pending if inbox_id is None or p.id == inbox_id), pending[0])
+        if inbox_id is None:
+            item = pending[0]
+        else:
+            item = next((p for p in pending if p.id == inbox_id), None)
+            if item is None:
+                raise DomainError("NOT_FOUND", "no pending inbox")
         old = None
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)
@@ -53,6 +58,32 @@ class ConfirmInboxItem:
         self.inbox.save(item)
         self.vectors.upsert(tenant_id, persona_id, new_mem.id, self.embed.embed(new_mem.text), new_mem.status)
         return new_mem
+
+
+class DismissInboxItem:
+    def __init__(self, *, personas, inbox, auth: AuthorizationPolicy) -> None:
+        self.personas = personas
+        self.inbox = inbox
+        self.auth = auth
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        persona_id: PersonaId,
+        inbox_id: str,
+        capabilities: list[Capability] | None = None,
+    ) -> None:
+        persona = self.personas.get(tenant_id, persona_id)
+        caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
+        if Capability.WRITE_MEMORY not in caps and not (persona and self.auth.can_write_memory(persona, user_id)):
+            raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
+        item = self.inbox.get(tenant_id, inbox_id)
+        if item is None or item.persona_id != persona_id:
+            raise DomainError("NOT_FOUND", "no pending inbox")
+        item.dismiss()
+        self.inbox.save(item)
 
 
 class ImportArtifact:

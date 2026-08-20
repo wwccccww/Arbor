@@ -72,6 +72,12 @@ class InMemoryInboxRepository:
     def add(self, item: InboxItem) -> None:
         self.stores.inbox[item.id] = item
 
+    def get(self, tenant_id: TenantId, inbox_id: str) -> InboxItem | None:
+        item = self.stores.inbox.get(inbox_id)
+        if item is None or item.tenant_id != tenant_id:
+            return None
+        return item
+
     def list_pending(self, tenant_id: TenantId, persona_id: PersonaId) -> list[InboxItem]:
         return [
             i

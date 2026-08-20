@@ -71,6 +71,7 @@ tests/
     application/
       test_send_message.py
       test_confirm_inbox.py
+      test_reasoner_parse.py
       test_import_artifact.py
       test_get_event_tree.py
   architecture/
@@ -85,6 +86,7 @@ tests/
     test_persona_grants.py
     test_chat_citations.py
     test_forbidden_codes.py
+    test_inbox.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -161,6 +163,8 @@ eval/
 | 对话响应 citations ⊆ 实际注入 id | |
 | `X-Tenant-Id` 与资源不符 | 404 |
 | OpenAPI 里的错误体含 `code` | |
+| 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
+| 无 `write_memory` 看 Inbox | 404 或 403，不泄露存在性 |
 
 ### 5.5 架构
 
@@ -205,7 +209,7 @@ PR 流水线建议分 job，失败信息要对分层：
 lint          ruff + mypy + import-linter
 unit          tests/unit + tests/architecture
 contract      Postgres service + DATABASE_URL → tests/contract/postgres
-api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库。有 DEEPSEEK_API_KEY 时走 DeepSeek，单测 create_app() 仍用 ScriptedLLM。
+api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库。有 DEEPSEEK_API_KEY 时走 DeepSeek Chat/Reasoner，单测 create_app() 仍用 ScriptedLLM / ScriptedReasoner。
 eval-fixture  suite-v1 / ragas-v1 检索（CI 在 pgvector 上跑，泄漏必须为 0）
 eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
 web           vitest（有前端时）
