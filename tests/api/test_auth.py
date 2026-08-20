@@ -26,6 +26,17 @@ def test_error_shape():
     r = client.get("/v1/me")
     err = r.json()["error"]
     assert "code" in err and "message" in err and "request_id" in err
+    rid = err["request_id"]
+    assert rid != "test-request"
+    assert len(rid) == 26
+    assert set(rid) <= set("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+
+
+def test_error_request_ids_differ():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    first = client.get("/v1/me").json()["error"]["request_id"]
+    second = client.get("/v1/me").json()["error"]["request_id"]
+    assert first != second
 
 
 def test_memory_hidden_without_grant():

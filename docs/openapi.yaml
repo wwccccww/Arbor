@@ -61,6 +61,7 @@ components:
               type: string
             request_id:
               type: string
+              description: 每次错误单独生成的 ULID
     User:
       type: object
       properties:
