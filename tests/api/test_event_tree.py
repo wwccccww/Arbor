@@ -13,7 +13,9 @@ def _headers(token="token-a"):
 
 LINXIA = "0a000000-0000-4000-a000-000000000010"
 ZHOU_EVENT = "0a000000-0000-4000-a000-000000000201"
+LINXIA_MEET = "0a000000-0000-4000-a000-000000000101"
 LINXIA_FIGHT = "0a000000-0000-4000-a000-000000000102"
+CAPTION = "0a000000-0000-4000-a000-000000000306"
 
 
 def test_event_tree_stays_in_persona():
@@ -79,6 +81,13 @@ def test_event_card_includes_related_memories():
     assert body["id"] == LINXIA_FIGHT
     assert body["title"] == "面店争吵"
     assert any(item["id"] == "0a000000-0000-4000-a000-000000000303" for item in body["memories"])
+    assert body["attachments"] == []
+    meet = client.get(f"/v1/events/{LINXIA_MEET}", headers=_headers())
+    assert meet.status_code == 200
+    attachments = meet.json()["attachments"]
+    assert {item["id"] for item in attachments} == {CAPTION}
+    assert attachments[0]["type"] == "image_caption"
+    assert CAPTION not in {item["id"] for item in meet.json()["memories"]}
 
 
 def test_event_card_hidden_without_read_memory_and_wrong_tenant():

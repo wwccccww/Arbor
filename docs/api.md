@@ -231,7 +231,8 @@ Query：`view=tree|timeline`、`key_only=true`。
 
 ### `GET /v1/events/{event_id}`
 
-事件卡：节点 + 附件 + 相关记忆预览。需要 `read_memory`。
+事件卡：节点 + 附件 + 相关记忆预览。需要 `read_memory`。无权限 404。  
+附件来自该事件上 active 的 `image_caption` / `file_chunk` / `transcript`；其余类型留在 `memories`。
 
 ## 8. 评测
 

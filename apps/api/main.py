@@ -1051,7 +1051,10 @@ def create_app(
             "type": node.type,
             "importance": node.importance,
             "summary": node.summary,
-            "attachments": [],
+            "attachments": [
+                {"id": item.id.value, "type": item.type.value, "text": item.text}
+                for item in card["attachments"]
+            ],
             "memories": [{"id": item.id.value, "text": item.text} for item in card["memories"]],
         }
 
