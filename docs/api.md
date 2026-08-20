@@ -2,6 +2,8 @@
 
 入站适配器：`apps/api`（FastAPI）。路径与错误码以本文和 [openapi.yaml](openapi.yaml) 为准。Router 只做 HTTP ↔ 命令/查询对象，业务在应用层。
 
+生产入口 `create_app_from_env()`：有 `DEEPSEEK_API_KEY` 时用 DeepSeek，否则 ScriptedLLM。单测调用 `create_app()` 始终用假 LLM，即使环境里有密钥。
+
 基路径：`/v1`  
 认证：`Authorization: Bearer <access_token>`  
 租户：`X-Tenant-Id: <uuid>`（除登录、列出自己加入的空间外，均必填）
@@ -29,6 +31,7 @@
 | 409 | `CONFLICT_INBOX_STATE` `PERSONA_TENANT_MISMATCH` |
 | 422 | 请求体 schema |
 | 429 | `RATE_LIMITED` |
+| 503 | `UPSTREAM_UNAVAILABLE`（DeepSeek 不可用） |
 
 跨租户或跨人设「猜 UUID」一律 404，不暴露存在性（实现可对无权资源返回 404）。
 

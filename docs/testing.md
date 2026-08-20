@@ -205,7 +205,7 @@ PR 流水线建议分 job，失败信息要对分层：
 lint          ruff + mypy + import-linter
 unit          tests/unit + tests/architecture
 contract      Postgres service + DATABASE_URL → tests/contract/postgres
-api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库
+api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库。有 DEEPSEEK_API_KEY 时走 DeepSeek，单测 create_app() 仍用 ScriptedLLM。
 eval-fixture  suite-v1 / ragas-v1 检索（CI 在 pgvector 上跑，泄漏必须为 0）
 eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
 web           vitest（有前端时）
