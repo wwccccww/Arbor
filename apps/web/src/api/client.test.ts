@@ -80,4 +80,21 @@ describe('createClient', () => {
     expect((init as RequestInit).method).toBe('POST')
     expect(((init as RequestInit).body as FormData).get('hint')).toBe('fact')
   })
+
+  it('starts eval runs in retrieval mode only', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ id: 'run-1' }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    await client.startEvalRun()
+    const [, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({
+      strategy: 'layered_tree',
+      suite_version: 'v1',
+      mode: 'retrieval',
+    })
+  })
 })

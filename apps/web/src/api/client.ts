@@ -1,5 +1,5 @@
 import type { Session } from '../session'
-import type { ApiError, ChatMessage, Citation, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
+import type { ApiError, ChatMessage, Citation, EvalRun, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
 
 function asCitations(raw: unknown): Citation[] {
   if (!Array.isArray(raw)) return []
@@ -134,6 +134,21 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         }
         throw err
       }
+    },
+
+    async startEvalRun(strategy = 'layered_tree'): Promise<{ id: string }> {
+      return (await request('/eval/runs', {
+        method: 'POST',
+        body: JSON.stringify({
+          strategy,
+          suite_version: 'v1',
+          mode: 'retrieval',
+        }),
+      })) as { id: string }
+    },
+
+    async getEvalRun(runId: string): Promise<EvalRun> {
+      return (await request(`/eval/runs/${runId}`)) as EvalRun
     },
   }
 }
