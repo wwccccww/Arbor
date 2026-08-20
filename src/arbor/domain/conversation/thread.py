@@ -25,6 +25,7 @@ class Message:
     content: str
     citations: list[Citation] = field(default_factory=list)
     attachments: list[dict] = field(default_factory=list)
+    id: str | None = None
 
 
 @dataclass

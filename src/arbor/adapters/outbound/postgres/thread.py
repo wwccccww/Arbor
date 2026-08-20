@@ -59,11 +59,12 @@ class PgThreadRepository:
             self.conn.execute(
                 """
                 INSERT INTO messages (
-                    tenant_id, thread_id, role, content, citation_memory_ids, citation_event_ids, attachments
+                    id, tenant_id, thread_id, role, content, citation_memory_ids, citation_event_ids, attachments
                 )
-                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s)
+                VALUES (COALESCE(%s::uuid, gen_random_uuid()), %s::uuid, %s::uuid, %s, %s, %s, %s, %s)
                 """,
                 (
+                    message.id,
                     thread.tenant_id.value,
                     thread.id.value,
                     message.role,
@@ -77,7 +78,7 @@ class PgThreadRepository:
     def _load_messages(self, tenant_id: TenantId, thread_id: ThreadId) -> list[Message]:
         rows = self.conn.execute(
             """
-            SELECT role, content, citation_memory_ids, citation_event_ids, attachments
+            SELECT id, role, content, citation_memory_ids, citation_event_ids, attachments
             FROM messages
             WHERE tenant_id = %s::uuid AND thread_id = %s::uuid
             ORDER BY created_at, id
@@ -93,6 +94,7 @@ class PgThreadRepository:
                 citations.append(Citation(event_id=EventId(str(eid))))
             messages.append(
                 Message(
+                    id=str(row["id"]) if row.get("id") else None,
                     role=row["role"],
                     content=row["content"] or "",
                     citations=citations,

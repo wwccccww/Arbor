@@ -826,6 +826,7 @@ def create_app(
         return {
             "items": [
                 {
+                    "id": message.id,
                     "role": message.role,
                     "content": message.content,
                     "citations": [c.memory_id.value for c in message.citations if c.memory_id],
@@ -864,8 +865,10 @@ def create_app(
             attachments=attachments,
         )
         return {
+            "message_id": result.get("message_id"),
+            "role": "assistant",
             "text": result["text"],
-            "citations": result["citations"],
+            "citations": result.get("citation_items") or [],
             "injected_memory_ids": result["injected_memory_ids"],
             "inbox_created": result.get("inbox_added") or 0,
             "attachments": result.get("attachments") or [],

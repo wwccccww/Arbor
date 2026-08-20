@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from arbor.env import database_url
 from apps.api.main import create_app
+from tests.api.test_auth import _citation_ids
 
 
 pytestmark = pytest.mark.postgres
@@ -37,4 +38,6 @@ def test_postgres_app_chat_citations_subset():
     )
     assert r.status_code == 200
     body = r.json()
-    assert set(body["citations"]) <= set(body["injected_memory_ids"])
+    assert _citation_ids(body) <= set(body["injected_memory_ids"])
+    assert body["role"] == "assistant"
+    assert body["message_id"]
