@@ -210,6 +210,8 @@ Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100�
 { "mark_key_event": true }
 ```
 
+已确认或已忽略的条目再操作返回 409 `CONFLICT_INBOX_STATE`。未知 id 仍是 404。
+
 ### `POST /v1/inbox/{inbox_id}/dismiss`
 
 ## 7. 事件树

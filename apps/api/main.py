@@ -400,6 +400,8 @@ def create_app(
             status = 403
         elif exc.code == "NOT_FOUND":
             status = 404
+        elif exc.code in {"CONFLICT_INBOX_STATE", "PERSONA_TENANT_MISMATCH"}:
+            status = 409
         elif exc.code == "RATE_LIMITED":
             status = 429
         elif exc.code == "UPSTREAM_UNAVAILABLE":
