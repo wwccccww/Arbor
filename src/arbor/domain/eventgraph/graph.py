@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from arbor.domain.errors import DomainError
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId
 
+KEY_EVENT_TYPES = frozenset({"milestone", "promise", "conflict"})
+KEY_EVENT_IMPORTANCE = 4
+
 
 @dataclass
 class EventNode:
@@ -16,6 +19,9 @@ class EventNode:
     type: str = "daily"
     importance: int = 3
     happened_at: str | None = None
+
+    def is_key(self) -> bool:
+        return self.importance >= KEY_EVENT_IMPORTANCE or self.type in KEY_EVENT_TYPES
 
 
 @dataclass
@@ -37,3 +43,26 @@ class EventEdge:
             tenant_id=from_event.tenant_id,
             persona_id=from_event.persona_id,
         )
+
+
+class EventTreeProjector:
+    """Read-only projection. Key events come from importance/type, not vector similarity."""
+
+    def project(
+        self,
+        nodes: list[EventNode],
+        edges: list[EventEdge],
+        *,
+        view: str = "tree",
+        key_only: bool = False,
+    ) -> tuple[list[EventNode], list[EventEdge]]:
+        if view not in {"tree", "timeline"}:
+            raise DomainError("VALIDATION_ERROR", "view must be tree or timeline")
+        selected = [node for node in nodes if not key_only or node.is_key()]
+        ids = {node.id.value for node in selected}
+        selected_edges = [
+            edge for edge in edges if edge.from_id.value in ids and edge.to_id.value in ids
+        ]
+        if view == "timeline":
+            selected = sorted(selected, key=lambda node: node.happened_at or "")
+        return selected, selected_edges

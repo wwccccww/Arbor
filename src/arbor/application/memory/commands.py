@@ -1,13 +1,25 @@
 from __future__ import annotations
 
 from arbor.domain.errors import DomainError
+from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
-from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 
 
 class ConfirmInboxItem:
-    def __init__(self, *, personas, memories, inbox, vectors, embed, ids, auth: AuthorizationPolicy) -> None:
+    def __init__(
+        self,
+        *,
+        personas,
+        memories,
+        inbox,
+        vectors,
+        embed,
+        ids,
+        auth: AuthorizationPolicy,
+        events=None,
+    ) -> None:
         self.personas = personas
         self.memories = memories
         self.inbox = inbox
@@ -15,6 +27,7 @@ class ConfirmInboxItem:
         self.embed = embed
         self.ids = ids
         self.auth = auth
+        self.events = events
 
     def __call__(
         self,
@@ -24,6 +37,7 @@ class ConfirmInboxItem:
         persona_id: PersonaId,
         inbox_id: str | None = None,
         capabilities: list[Capability] | None = None,
+        mark_key_event: bool = False,
     ) -> MemoryItem:
         persona = self.personas.get(tenant_id, persona_id)
         caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
@@ -41,14 +55,16 @@ class ConfirmInboxItem:
         old = None
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)
-        new_id = MemoryId(self.ids.new_id())
+        text = item.payload.get("text", "")
+        event_id = self._maybe_key_event(tenant_id, persona_id, text) if mark_key_event else None
         new_mem = MemoryItem(
-            id=new_id,
+            id=MemoryId(self.ids.new_id()),
             tenant_id=tenant_id,
             persona_id=persona_id,
-            text=item.payload.get("text", ""),
+            text=text,
             type=MemoryType.FACT,
             status=MemoryStatus.ACTIVE,
+            event_id=event_id,
         )
         item.confirm(new_mem, old)
         self.memories.save(new_mem)
@@ -58,6 +74,25 @@ class ConfirmInboxItem:
         self.inbox.save(item)
         self.vectors.upsert(tenant_id, persona_id, new_mem.id, self.embed.embed(new_mem.text), new_mem.status)
         return new_mem
+
+    def _maybe_key_event(self, tenant_id: TenantId, persona_id: PersonaId, text: str) -> EventId:
+        if self.events is None:
+            raise DomainError("VALIDATION_ERROR", "event graph required")
+        previous = self.events.list_nodes(tenant_id, persona_id)
+        node = EventNode(
+            id=EventId(self.ids.new_id()),
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            title=(text or "关键事件")[:80],
+            summary=text,
+            type="milestone",
+            importance=5,
+        )
+        self.events.save_node(node)
+        if previous:
+            latest = max(previous, key=lambda event: (event.happened_at or "", event.id.value))
+            self.events.add_edge(EventEdge.between(latest, node, "temporal"))
+        return node.id
 
 
 class DismissInboxItem:

@@ -2,6 +2,7 @@ import pytest
 
 from arbor.adapters.outbound.inmemory import (
     FixtureEmbeddingClient,
+    InMemoryEventGraphRepository,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
     InMemoryPersonaRepository,
@@ -84,3 +85,48 @@ def test_dismiss_inbox_item():
     )
     assert pending == []
     assert inbox.get(TenantId("0a000000-0000-4000-a000-000000000001"), "drop-me").status == "dismissed"
+
+
+def test_confirm_mark_key_event_grows_tree():
+    stores, _send = _stack()
+    memories = InMemoryMemoryRepository(stores)
+    events = InMemoryEventGraphRepository(stores)
+    inbox = InMemoryInboxRepository(stores)
+    _pending_item(stores, "和好后去了西湖", "key-1")
+    confirm = ConfirmInboxItem(
+        personas=InMemoryPersonaRepository(stores),
+        memories=memories,
+        inbox=inbox,
+        vectors=InMemoryVectorIndex(stores, memories),
+        embed=FixtureEmbeddingClient(),
+        ids=SeqIdGenerator(),
+        auth=AuthorizationPolicy(),
+        events=events,
+    )
+    before = {node.id.value for node in events.list_nodes(
+        TenantId("0a000000-0000-4000-a000-000000000001"),
+        PersonaId("0a000000-0000-4000-a000-000000000010"),
+    )}
+    memory = confirm(
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        user_id=USER,
+        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
+        inbox_id="key-1",
+        capabilities=list(Capability),
+        mark_key_event=True,
+    )
+    assert memory.event_id is not None
+    after = events.list_nodes(
+        TenantId("0a000000-0000-4000-a000-000000000001"),
+        PersonaId("0a000000-0000-4000-a000-000000000010"),
+    )
+    new_ids = {node.id.value for node in after} - before
+    assert memory.event_id.value in new_ids
+    created = next(node for node in after if node.id == memory.event_id)
+    assert created.is_key() is True
+    assert created.type == "milestone"
+    edges = events.list_edges(
+        TenantId("0a000000-0000-4000-a000-000000000001"),
+        PersonaId("0a000000-0000-4000-a000-000000000010"),
+    )
+    assert any(edge.to_id == memory.event_id for edge in edges)
