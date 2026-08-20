@@ -33,6 +33,7 @@ pythonpath = ["src", "."]
 testpaths = ["tests"]
 markers = [
   "postgres: needs DATABASE_URL and a real Postgres",
+  "llm: needs DEEPSEEK_API_KEY; not required on pull requests",
 ]
 
 [tool.ruff]

@@ -111,7 +111,7 @@ suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模�
 | `layered` | **1.0** | 0.89 | 0 | **0** | 0.94 | <1ms |
 | `layered_tree` | **1.0** | **0.90** | 0 | **0** | **0.99** | <1ms |
 
-简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation / RAGAS 未跑。源记忆只有 33 条，477 是问法扩张。
+简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation 已接入 `pytest -m llm` / `arbor-eval --mode generation`（suite-v1，需密钥）。RAGAS 评委需独立 `ARBOR_JUDGE_API_KEY`，未配置则 skip。源记忆只有 33 条，477 是问法扩张。
 
 基线文件：`eval/baselines/suite-ragas-v1.json`（`arbor-eval --suite ragas-v1 --strategy all --write-baseline`）。
 

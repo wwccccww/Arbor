@@ -206,7 +206,8 @@ lint          ruff + mypy + import-linter
 unit          tests/unit + tests/architecture
 contract      Postgres service → tests/contract
 api           同一 Postgres → tests/api
-eval-fixture  suite-v1 隔离与 Recall（Fake/夹具嵌入）
+eval-fixture  suite-v1 / ragas-v1 检索（无 LLM）
+eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
 web           vitest（有前端时）
 ```
 

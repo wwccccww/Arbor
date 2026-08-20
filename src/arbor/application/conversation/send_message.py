@@ -129,6 +129,17 @@ class SendMessage:
             "text": llm_out.get("text", ""),
             "citations": citations,
             "injected_memory_ids": list(slots.injected_memory_ids),
+            "injected_contexts": [
+                "档案: " + " ".join(f"{k}={v}" for k, v in (prompt_slots.get("profile") or {}).items() if v),
+                *(["摘要: " + prompt_slots["thread_summary"]] if prompt_slots.get("thread_summary") else []),
+                *[
+                    f"事件: {event.get('title', '')} {event.get('summary', '')}".strip()
+                    if isinstance(event, dict)
+                    else f"事件: {event}"
+                    for event in prompt_slots.get("event_hits") or []
+                ],
+                *[str(memory) for memory in prompt_slots.get("memory_hits") or [] if memory],
+            ],
             "slot_order": slots.slot_order(),
             "prompt_slots": prompt_slots,
             "inbox_added": inbox_added,

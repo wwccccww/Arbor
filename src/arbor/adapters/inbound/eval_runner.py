@@ -5,11 +5,17 @@ from pathlib import Path
 from arbor.adapters.outbound.inmemory import (
     FixtureEmbeddingClient,
     InMemoryEventGraphRepository,
+    InMemoryInboxRepository,
     InMemoryMemoryRepository,
+    InMemoryPersonaRepository,
     InMemoryStores,
     InMemoryThreadRepository,
     InMemoryVectorIndex,
+    ScriptedReasoner,
+    SeqIdGenerator,
 )
+from arbor.application.conversation.send_message import SendMessage
+from arbor.application.evaluation.generation import aggregate_generation, score_generation_case
 from arbor.application.evaluation.runner import (
     comparison_row,
     evaluate_retrieval,
@@ -19,7 +25,7 @@ from arbor.application.evaluation.runner import (
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
-from arbor.domain.persona.authorization import Capability, Grant
+from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.persona.persona import Persona, Profile
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.domain.shared.textvec import fixture_embed
@@ -165,3 +171,71 @@ def run_all_strategies(suite_dir: Path) -> dict:
         reports[name] = report
         table[name] = comparison_row(report)
     return {"strategies": table, "reports": reports}
+
+
+def run_generation(
+    *,
+    suite_dir: Path,
+    strategy: str = "layered_tree",
+    llm=None,
+    scorer=None,
+) -> dict:
+    from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
+    from arbor.adapters.outbound.ragas_scorer import RagasFaithfulnessScorer
+
+    world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
+    stores = InMemoryStores()
+    load_world(world_path, stores)
+    memories, events, threads, index, embed, _summary = _ports(stores)
+    personas = InMemoryPersonaRepository(stores)
+    inbox = InMemoryInboxRepository(stores)
+    send = SendMessage(
+        personas=personas,
+        memories=memories,
+        threads=threads,
+        events=events,
+        inbox=inbox,
+        vectors=index,
+        llm=llm or DeepSeekChatLLM(),
+        reasoner=ScriptedReasoner(),
+        embed=embed,
+        ids=SeqIdGenerator(),
+        auth=AuthorizationPolicy(),
+        strategy=strategy,
+    )
+    scorer = scorer if scorer is not None else RagasFaithfulnessScorer()
+    mem_index = {item["id"]: item for item in world["memories"]}
+    rows = []
+    for case in cases_doc["cases"]:
+        actor = case["actor"]
+        tenant_id = TenantId(actor["tenant_id"])
+        persona_id = PersonaId(actor["persona_id"])
+        thread = next((item for item in stores.threads.values() if item.persona_id == persona_id), None)
+        thread_id = thread.id if thread else ThreadId(f"eval-{persona_id.value}")
+        result = send(
+            tenant_id=tenant_id,
+            user_id=UserId(actor["user_id"]),
+            thread_id=thread_id,
+            persona_id=persona_id,
+            text=case["query"],
+            capabilities=list(Capability),
+        )
+        leak_ids = [mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])]
+        result["leak_ids"] = leak_ids
+        contexts = [ctx for ctx in result.get("injected_contexts") or [] if ctx]
+        ragas = None
+        if case.get("expected_behavior") in {"answer", "cite"} and not leak_ids:
+            ragas = scorer.score(case["query"], result.get("text") or "", contexts)
+        result["ragas_faithfulness"] = ragas
+        row = score_generation_case(case, result, mem_index)
+        row["query"] = case["query"]
+        row["text"] = result.get("text") or ""
+        rows.append(row)
+    metrics = aggregate_generation(rows)
+    return {
+        "suite_version": cases_doc.get("suite_version") or world.get("suite_version"),
+        "strategy": strategy,
+        "mode": "generation",
+        "metrics": metrics,
+        "cases": rows,
+    }

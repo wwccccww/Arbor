@@ -23,7 +23,12 @@ python3 eval/generate_testset.py
 python3 eval/generate_testset.py --backend ragas --size 100
 ```
 
-`generation` 模式尚未接 DeepSeek，CLI 以退出码 2 拒绝，避免在 PR 里误跑 RAGAS。
+`generation` 需要 `DEEPSEEK_API_KEY`。默认只跑 suite-v1（13 题）：引用子集 + 拒答不得含 forbidden 文本。RAGAS faithfulness 要单独的 `ARBOR_JUDGE_API_KEY`（不能与生成密钥相同），否则记 `ragas_skipped`。
+
+```text
+pytest -m llm
+python3 eval/runner.py --mode generation --suite v1 --write-baseline
+```
 
 suite-v1 检索基线（夹具嵌入，2026-08-20）：
 
