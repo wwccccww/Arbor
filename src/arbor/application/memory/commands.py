@@ -45,14 +45,14 @@ class ConfirmInboxItem:
         caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
         if Capability.WRITE_MEMORY not in caps and not (persona and self.auth.can_write_memory(persona, user_id)):
             raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
-        pending = self.inbox.list_pending(tenant_id, persona_id)
-        if not pending:
-            raise DomainError("NOT_FOUND", "no pending inbox")
         if inbox_id is None:
+            pending = self.inbox.list_pending(tenant_id, persona_id)
+            if not pending:
+                raise DomainError("NOT_FOUND", "no pending inbox")
             item = pending[0]
         else:
-            item = next((p for p in pending if p.id == inbox_id), None)
-            if item is None:
+            item = self.inbox.get(tenant_id, inbox_id)
+            if item is None or item.persona_id != persona_id:
                 raise DomainError("NOT_FOUND", "no pending inbox")
         old = None
         if item.conflicts_with:

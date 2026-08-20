@@ -100,6 +100,7 @@ tests/
     test_chat_citations.py
     test_forbidden_codes.py
     test_inbox.py
+    test_inbox_conflict.py
     test_event_tree.py
     test_personas_threads.py
     test_imports.py
@@ -194,6 +195,7 @@ eval/
 | `X-Tenant-Id` 与资源不符 | 404 |
 | OpenAPI 里的错误体含 `code` | `request_id` 为 ULID，两次错误不相同 |
 | 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
+| 重复确认/忽略 Inbox | 已确认或已忽略再操作 409 `CONFLICT_INBOX_STATE` |
 | 无 `write_memory` 看 Inbox | 404 或 403，不泄露存在性 |
 | 事件树不串人设 | 林夏树不含小周节点 |
 | 无 `read_memory` 看事件树 | 404 或 403，不泄露存在性 |

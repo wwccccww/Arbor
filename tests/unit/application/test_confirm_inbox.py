@@ -63,6 +63,33 @@ def test_confirm_missing_inbox_id_does_not_confirm_another():
     assert [item.id for item in pending] == ["keep-me"]
 
 
+def test_confirm_non_pending_inbox_is_conflict():
+    stores, _send = _stack()
+    memories = InMemoryMemoryRepository(stores)
+    inbox = InMemoryInboxRepository(stores)
+    _pending_item(stores, "只能确认一次", "once-me")
+    confirm = ConfirmInboxItem(
+        personas=InMemoryPersonaRepository(stores),
+        memories=memories,
+        inbox=inbox,
+        vectors=InMemoryVectorIndex(stores, memories),
+        embed=FixtureEmbeddingClient(),
+        ids=SeqIdGenerator(),
+        auth=AuthorizationPolicy(),
+    )
+    kwargs = dict(
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        user_id=USER,
+        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
+        inbox_id="once-me",
+        capabilities=list(Capability),
+    )
+    confirm(**kwargs)
+    with pytest.raises(DomainError) as exc:
+        confirm(**kwargs)
+    assert exc.value.code == "CONFLICT_INBOX_STATE"
+
+
 def test_dismiss_inbox_item():
     stores, _send = _stack()
     inbox = InMemoryInboxRepository(stores)
