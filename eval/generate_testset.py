@@ -548,6 +548,55 @@ class RagasBackendError(RuntimeError):
         self.code = code
 
 
+def _ragas_page_content(mem: dict, min_tokens: int = 101) -> str:
+    """把短记忆扩成 RAGAS default_transforms 能接受的文档（需 >100 tokens）。
+
+    原文放在文首，便于用前 16 字 stem 回绑 memory_id；正文重复金标，不新增事实。
+    """
+    from ragas.utils import num_tokens_from_string
+
+    persona = next(p for p in PERSONAS if p["id"] == mem["persona_id"])
+    slots = ", ".join(f"{k}={v}" for k, v in (mem.get("slots") or {}).items()) or "none"
+    event = mem.get("event_id") or "none"
+    body = (
+        f"{mem['text']}\n\n"
+        f"Arbor persona memory record.\n"
+        f"memory_id: {mem['id']}\n"
+        f"tenant_id: {mem['tenant_id']}\n"
+        f"persona_id: {mem['persona_id']}\n"
+        f"persona_name: {persona['display_name']}\n"
+        f"persona_skin: {persona['skin']}\n"
+        f"persona_one_liner: {persona['one_liner']}\n"
+        f"memory_type: {mem['type']}\n"
+        f"memory_status: {mem['status']}\n"
+        f"event_id: {event}\n"
+        f"slots: {slots}\n"
+        f"verbatim_fact: {mem['text']}\n"
+        "Instruction: generate questions only from the verbatim fact. "
+        "Do not mix facts from other tenants or personas. "
+        f"The gold answer must be supported by: {mem['text']}\n"
+    )
+    filler = (
+        f" This record belongs to the Arbor evaluation knowledge graph. "
+        f"When using this fact, keep memory_id {mem['id']}. "
+        f"Source sentence: {mem['text']}"
+    )
+    while num_tokens_from_string(body) < min_tokens:
+        body += filler
+    return body
+
+
+def _align_memory_ids(blob: str) -> list[str]:
+    hit: list[str] = []
+    for m in MEMORIES:
+        if m["status"] != "active":
+            continue
+        stem = m["text"][:16]
+        if m["id"] in blob or (stem and stem in blob):
+            hit.append(m["id"])
+    return list(dict.fromkeys(hit))
+
+
 def try_ragas_backend(size: int) -> list[dict]:
     """调用官方 TestsetGenerator（DeepSeek Chat + 本地占位 embedding）。"""
     import os as _os
@@ -565,6 +614,7 @@ def try_ragas_backend(size: int) -> list[dict]:
         from langchain_core.documents import Document
         from langchain_openai import ChatOpenAI
         from ragas.testset import TestsetGenerator
+        from ragas.utils import num_tokens_from_string
     except Exception as exc:  # noqa: BLE001
         raise RagasBackendError(2, f"[ragas] import failed: {exc}") from exc
 
@@ -586,7 +636,7 @@ def try_ragas_backend(size: int) -> list[dict]:
 
     docs = [
         Document(
-            page_content=m["text"],
+            page_content=_ragas_page_content(m),
             metadata={
                 "memory_id": m["id"],
                 "persona_id": m["persona_id"],
@@ -596,9 +646,20 @@ def try_ragas_backend(size: int) -> list[dict]:
         for m in MEMORIES
         if m["status"] == "active"
     ]
+    token_counts = [num_tokens_from_string(d.page_content) for d in docs]
+    n_mid = sum(1 for n in token_counts if 101 <= n <= 500)
+    print(
+        f"[ragas] docs={len(docs)} token_min={min(token_counts)} token_max={max(token_counts)} "
+        f"bin_101_500={n_mid}/{len(docs)}",
+        file=sys.stderr,
+    )
     try:
         generator = TestsetGenerator.from_langchain(llm, embeddings)
-        testset = generator.generate_with_langchain_docs(docs, testset_size=size)
+        testset = generator.generate_with_langchain_docs(
+            docs,
+            testset_size=size,
+            raise_exceptions=False,
+        )
         rows = testset.to_pandas().to_dict(orient="records")
     except Exception as exc:  # noqa: BLE001
         raise RagasBackendError(3, f"[ragas] generate failed: {exc}") from exc
@@ -608,14 +669,7 @@ def try_ragas_backend(size: int) -> list[dict]:
     for i, row in enumerate(rows, 1):
         contexts = list(row.get("reference_contexts") or row.get("contexts") or [])
         blob = "\n".join(str(x) for x in contexts) + "\n" + str(row.get("reference") or row.get("ground_truth") or "")
-        hit = []
-        for m in MEMORIES:
-            if m["status"] != "active":
-                continue
-            stem = m["text"][:16]
-            if stem and stem in blob:
-                hit.append(m["id"])
-        hit = list(dict.fromkeys(hit))
+        hit = _align_memory_ids(blob)
         if not hit:
             skipped += 1
             continue
@@ -635,7 +689,7 @@ def try_ragas_backend(size: int) -> list[dict]:
                 expected_memory_ids=hit,
             )
         )
-    print(f"[ragas] aligned={len(aligned)} skipped_unaligned={skipped}", file=sys.stderr)
+    print(f"[ragas] aligned={len(aligned)} skipped_unaligned={skipped} raw_rows={len(rows)}", file=sys.stderr)
     return aligned
 
 
