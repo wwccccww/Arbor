@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
@@ -27,7 +27,13 @@ from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, 
 from arbor.application.audit.commands import RecordAudit
 from arbor.application.audit.queries import ListAuditLogs
 from arbor.application.conversation.send_message import SendMessage
-from arbor.application.conversation.threads import CreateThread, ExportThread, ListMessages, ListThreads
+from arbor.application.conversation.threads import (
+    CreateThread,
+    ExportThread,
+    GetChatAttachment,
+    ListMessages,
+    ListThreads,
+)
 from arbor.application.evaluation.commands import StartEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
@@ -292,6 +298,9 @@ def create_app(
     export_thread = ExportThread(personas=personas, threads=threads, auth=AuthorizationPolicy(), audit=record_audit)
     object_stores = stores or InMemoryStores()
     storage = InMemoryObjectStorage(object_stores)
+    get_chat_attachment = GetChatAttachment(
+        personas=personas, threads=threads, storage=storage, auth=AuthorizationPolicy()
+    )
     import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
     process_import = ProcessImportJob(personas=personas, inbox=inbox, ids=ids, auth=AuthorizationPolicy())
     list_memories = ListMemories(personas=personas, memories=memories, auth=AuthorizationPolicy())
@@ -861,6 +870,37 @@ def create_app(
             "inbox_created": result.get("inbox_added") or 0,
             "attachments": result.get("attachments") or [],
         }
+
+    @app.get("/v1/threads/{thread_id}/attachments/{filename}")
+    def get_chat_file(
+        thread_id: str,
+        filename: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        tenant = TenantId(x_tenant_id)
+        thread = threads.get(tenant, ThreadId(thread_id))
+        if thread is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(tenant, thread.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        result = get_chat_attachment(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            thread_id=ThreadId(thread_id),
+            filename=filename,
+            capabilities=_caps_for(persona, user),
+        )
+        safe_name = result["filename"].replace('"', "")
+        return Response(
+            content=result["data"],
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+        )
 
     @app.post("/v1/threads/{thread_id}/export")
     def post_thread_export(

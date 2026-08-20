@@ -23,7 +23,7 @@ class InMemoryStores:
     edges: list[EventEdge] = field(default_factory=list)
     threads: dict[str, Thread] = field(default_factory=dict)
     vectors: dict[str, tuple[str, str, list[float], MemoryStatus]] = field(default_factory=dict)
-    objects: list[str] = field(default_factory=list)
+    objects: dict[str, bytes] = field(default_factory=dict)
     audit_logs: list[AuditLog] = field(default_factory=list)
     tenants: dict[str, Tenant] = field(default_factory=dict)
     users: dict[str, User] = field(default_factory=dict)
@@ -291,8 +291,11 @@ class InMemoryObjectStorage:
         self.stores = stores
 
     def put(self, name: str, data: bytes) -> str:
-        self.stores.objects.append(name)
+        self.stores.objects[name] = data
         return name
+
+    def get(self, name: str) -> bytes | None:
+        return self.stores.objects.get(name)
 
     def count(self) -> int:
         return len(self.stores.objects)
