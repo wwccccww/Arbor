@@ -81,6 +81,7 @@ tests/
       test_get_event_tree.py
       test_list_memories.py
       test_send_message_attachments.py
+      test_get_chat_attachment.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
   contract/
@@ -165,6 +166,7 @@ eval/
 | `ListMemories` 无 `read_memory` | 404，不泄露条目 |
 | `ListMemories` 按 type/event/status 过滤 | 默认不含 superseded；分页返回 `total` |
 | 聊天附件不进 Memory / Inbox | 用户消息带 filename；仓储无新 active |
+| `GetChatAttachment` 无 `chat` 或无 uri | 404；有存储则返回原字节 |
 
 ### 5.3 适配器契约（真实 Postgres）
 
@@ -204,7 +206,7 @@ eval/
 | Owner 删空空间 | 新建空租户可删；有人设的演示租户 400；Member 403/404 |
 | 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
 | 记忆列表过滤 | 按 type/event/status；默认不含 superseded；无 `read_memory` 404；`total` 为过滤后分页前条数 |
-| 聊天附件 | multipart 文件进对象存储；GET 能看见 filename；不进 Inbox/Memory；无 `chat` 404 |
+| 聊天附件 | multipart 文件进对象存储；GET 能看见 filename；下载返回原字节；不进 Inbox/Memory；无 `chat` 404 |
 
 ### 5.5 架构
 

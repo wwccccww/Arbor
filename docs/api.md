@@ -144,6 +144,10 @@ Owner/Admin。
 
 ### `GET /v1/threads/{thread_id}/messages`
 
+### `GET /v1/threads/{thread_id}/attachments/{filename}`
+
+需要 `chat`。返回本会话里已存储的文件字节。只认消息上带 `uri` 的 multipart 附件；JSON 只带 filename、未存文件的 404。无权限或跨租户 404。不写 Memory。
+
 ### `POST /v1/threads/{thread_id}/export`
 
 需要 `chat`。返回会话 JSON（消息正文 + 引用 id），写一条脱敏审计 `thread.export`（只记 `message_count`，不写对话正文）。不改 Memory。无权限或跨租户 404。
@@ -159,7 +163,7 @@ Owner/Admin。
 }
 ```
 
-聊天附件只挂在用户消息上，不解析进 Inbox，不直写 Memory。需要 `chat`。GET 历史只回 `filename`。
+聊天附件只挂在用户消息上，不解析进 Inbox，不直写 Memory。需要 `chat`。GET 历史只回 `filename`；下载走 `GET /v1/threads/{thread_id}/attachments/{filename}`。
 
 响应：
 

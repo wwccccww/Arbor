@@ -57,6 +57,51 @@ def test_chat_multipart_file_stays_off_memory():
     assert json_sent.json()["attachments"] == [{"filename": "shot.png"}]
 
 
+def test_chat_attachment_download_requires_chat():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    sent = client.post(
+        f"/v1/threads/{THREAD}/messages",
+        headers=_headers(),
+        files={"file": ("note.txt", FILE_TEXT.encode(), "text/plain")},
+        data={"text": "看看这个"},
+    )
+    assert sent.status_code == 200
+    downloaded = client.get(
+        f"/v1/threads/{THREAD}/attachments/note.txt",
+        headers=_headers(),
+    )
+    assert downloaded.status_code == 200
+    assert downloaded.content == FILE_TEXT.encode()
+    assert "note.txt" in downloaded.headers.get("content-disposition", "")
+    member = client.get(
+        f"/v1/threads/{THREAD}/attachments/note.txt",
+        headers=_headers("token-member"),
+    )
+    assert member.status_code == 200
+    assert member.content == FILE_TEXT.encode()
+    missing = client.get(
+        f"/v1/threads/{THREAD}/attachments/shot.png",
+        headers=_headers(),
+    )
+    assert missing.status_code == 404
+    created = client.post(f"/v1/personas/{ZHOU}/threads", headers=_headers())
+    assert created.status_code == 201
+    zhou_thread = created.json()["id"]
+    hidden = client.get(
+        f"/v1/threads/{zhou_thread}/attachments/note.txt",
+        headers=_headers("token-member"),
+    )
+    assert hidden.status_code in {403, 404}
+    wrong_tenant = client.get(
+        f"/v1/threads/{THREAD}/attachments/note.txt",
+        headers={
+            "Authorization": "Bearer token-a",
+            "X-Tenant-Id": "0b000000-0000-4000-a000-000000000001",
+        },
+    )
+    assert wrong_tenant.status_code == 404
+
+
 def test_chat_attachment_hidden_without_chat():
     client = TestClient(create_app(), raise_server_exceptions=False)
     created = client.post(f"/v1/personas/{ZHOU}/threads", headers=_headers())

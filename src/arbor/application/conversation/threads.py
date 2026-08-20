@@ -81,6 +81,49 @@ class ListMessages:
         return thread
 
 
+class GetChatAttachment:
+    """Return stored chat file bytes. Does not write memory."""
+
+    def __init__(self, *, personas, threads, storage, auth: AuthorizationPolicy) -> None:
+        self.personas = personas
+        self.threads = threads
+        self.storage = storage
+        self.auth = auth
+
+    def __call__(
+        self,
+        *,
+        tenant_id: TenantId,
+        user_id: UserId,
+        thread_id: ThreadId,
+        filename: str,
+        capabilities: list[Capability] | None = None,
+    ) -> dict:
+        thread = self.threads.get(tenant_id, thread_id)
+        if thread is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = self.personas.get(tenant_id, thread.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = capabilities or self.auth.capabilities_for(persona, user_id)
+        if Capability.CHAT not in caps:
+            raise DomainError("NOT_FOUND", "not found")
+        wanted = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip()
+        if not wanted:
+            raise DomainError("NOT_FOUND", "not found")
+        uri = None
+        for message in thread.messages:
+            for item in message.attachments or []:
+                if item.get("filename") == wanted and item.get("uri"):
+                    uri = item["uri"]
+        if not uri:
+            raise DomainError("NOT_FOUND", "not found")
+        data = self.storage.get(uri)
+        if data is None:
+            raise DomainError("NOT_FOUND", "not found")
+        return {"filename": wanted, "data": data}
+
+
 class ExportThread:
     """Return conversation JSON and record a sanitized audit row. Does not write memory."""
 

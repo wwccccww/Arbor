@@ -763,6 +763,29 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
+  /threads/{thread_id}/attachments/{filename}:
+    get:
+      tags: [Threads]
+      summary: 下载会话附件
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/ThreadId"
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 文件字节
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          $ref: "#/components/responses/Error"
+
   /threads/{thread_id}/export:
     post:
       tags: [Threads]
