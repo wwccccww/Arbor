@@ -89,7 +89,7 @@ tests/
 apps/web/src/**/*.test.ts(x)
 eval/
   fixtures/suite-v1/
-  runner/                        # 入站适配器，只调端口
+  runner.py                      # 入站 CLI，转发 arbor-eval；只跑检索，不调 DeepSeek
 ```
 
 生产代码 **不得** import `tests.*`。Fake 若被演示模式复用，再提升为 `src/arbor/adapters/outbound/inmemory/`。
@@ -204,9 +204,10 @@ PR 流水线建议分 job，失败信息要对分层：
 ```text
 lint          ruff + mypy + import-linter
 unit          tests/unit + tests/architecture
-contract      Postgres service → tests/contract
-api           同一 Postgres → tests/api
-eval-fixture  suite-v1 隔离与 Recall（Fake/夹具嵌入）
+contract      Postgres service + DATABASE_URL → tests/contract/postgres
+api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库
+eval-fixture  suite-v1 / ragas-v1 检索（CI 在 pgvector 上跑，泄漏必须为 0）
+eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
 web           vitest（有前端时）
 ```
 

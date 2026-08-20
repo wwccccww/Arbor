@@ -45,7 +45,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 |---|---|
 | 前端 | React + TypeScript + Vite + React Flow |
 | 后端 | Python 3.12 + FastAPI（仅作为入站适配器） |
-| 主库 / 向量 | PostgreSQL 16 + pgvector |
+| 主库 / 向量 | PostgreSQL 16 + pgvector（`infra/compose/postgres.yml`） |
 | 队列 | Redis + ARQ |
 | 对象存储 | S3 兼容 |
 | 对话 / 抽取 | DeepSeek `deepseek-chat` / `deepseek-reasoner` |
@@ -79,7 +79,7 @@ src/arbor/application        # 用例编排
 src/arbor/ports              # 入站 / 出站端口（接口）
 src/arbor/adapters           # FastAPI、Postgres、DeepSeek、bge、S3…
 tests/                       # 单测、契约测、API、架构边界
-eval/                        # suite-v1 金标；runner 实现时再补
+eval/                        # suite-v1 金标、arbor-eval runner、四策略基线
 infra/compose                # Postgres + Redis
 docs/
 ```

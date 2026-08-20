@@ -48,3 +48,5 @@
 | `MANIFEST.json` | 分布与官方对齐统计 |
 
 打分时：retrieval 仍看 ID；generation 的 faithfulness 见 [docs/ragas.md](../../../docs/ragas.md)，`contexts` 必须是本轮注入文本。
+
+检索已接入 `arbor-eval --suite ragas-v1`。当前基线见 [eval/baselines/suite-ragas-v1.json](../../../eval/baselines/suite-ragas-v1.json)：四策略跨租户泄漏均为 0；`layered_tree` Recall@5=0.90、身份一致=1.0、关键事件=0.99。嵌入是夹具哈希，不是 bge。

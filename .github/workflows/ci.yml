@@ -1,0 +1,33 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [main, cursor/**]
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: arbor
+          POSTGRES_PASSWORD: arbor
+          POSTGRES_DB: arbor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arbor -d arbor"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://arbor:arbor@localhost:5432/arbor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres

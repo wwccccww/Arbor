@@ -22,10 +22,10 @@ Gherkin/Cucumber、Postman 大集合、用 RAGAS 当单测，都不适合当第�
 ## 推荐路径（就按这个做）
 
 ```text
-现在     写 YAML 样例（本目录）——人读、机器以后也能读
-接着     生成代码时：pytest 读这些 YAML，或一对一抄成 test_*.py
-契约层   加载 tests/fixtures/mini-world.yaml 进 Postgres
-评测层   继续只用 eval/fixtures/suite-v1，不要混进 pytest 领域测
+现在     YAML 样例仍是规格源
+接着     pytest：领域层直接读 YAML；应用/HTTP/契约按文件名一对一落地
+契约层   无 DATABASE_URL 时 skip 真 Postgres，内存端口契约仍跑
+评测层   继续只用 eval/fixtures/suite-v1，不要把 13 题混进领域单测
 ```
 
 一条样例只断言 **一个行为**。不要在领域样例里写「Recall@5」；那是评测。

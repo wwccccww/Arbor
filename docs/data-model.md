@@ -110,7 +110,7 @@ tenants ─┬─ memberships ─ users
 | source | jsonb | 导入来源、页码、附件 URI |
 | status | text | active / superseded / deleted |
 | supersedes | uuid null | |
-| embedding | vector(n) | n 与 bge-m3 维数一致 |
+| embedding | vector(64) | 当前适配器与 `fixture_embed` 维数一致；换 bge-m3 时迁移为新维并重写基线 |
 | created_at | timestamptz | |
 
 **索引**

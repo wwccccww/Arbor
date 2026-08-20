@@ -41,7 +41,7 @@ suite-v1 夹具世界
 
 路径：[eval/fixtures/suite-v1/](../eval/fixtures/suite-v1/)（P0 烟雾，13 题）。
 
-规模集：[eval/fixtures/suite-ragas-v1/](../eval/fixtures/suite-ragas-v1/)（离线 RAGAS 分布 377 + 官方对齐 100，含隔离负例，合计 **477** 条）。改检索后应全量跑规模集；面试体检默认仍用 v1。生成命令：`python3 eval/generate_testset.py`。详见 [ragas.md §9](ragas.md)。
+规模集：[eval/fixtures/suite-ragas-v1/](../eval/fixtures/suite-ragas-v1/)（离线 RAGAS 分布 377 + 官方对齐 100，含隔离负例，合计 **477** 条）。改检索后应全量跑规模集（`arbor-eval --suite ragas-v1`）；面试体检默认仍用 v1。生成命令：`python3 eval/generate_testset.py`。基线：[eval/baselines/suite-ragas-v1.json](../eval/baselines/suite-ragas-v1.json)。详见 [ragas.md §9](ragas.md)。
 
 规模（v1 刻意小，先跑通再加题）：
 
@@ -100,18 +100,20 @@ suite-v1 夹具世界
 
 ## 5. 必须出的对比表
 
-每次发布默认策略前，四列都要跑：
+每次发布默认策略前，四列都要跑。**简历用规模集 477**，不要用 suite-v1 的满分表。
+
+suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模集（夹具嵌入，2026-08-20）：
 
 | strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件命中 | 检索延迟 |
 |---|---|---|---|---|---|---|
-| `summary_only` | | | | 0 | 低 | |
-| `vector_only` | 易漂 | | 易串 | **必须 0** | 较差 | |
-| `layered` | 应升高 | | 应下降 | 0 | 中 | |
-| `layered_tree` | 默认候选 | | | 0 | 应最高 | |
+| `summary_only` | 0.0 | 0.0 | 0 | **0** | 0.0 | <1ms |
+| `vector_only` | 0.68 | 0.77 | 0 | **0** | 0.94 | <1ms |
+| `layered` | **1.0** | 0.89 | 0 | **0** | 0.94 | <1ms |
+| `layered_tree` | **1.0** | **0.90** | 0 | **0** | **0.99** | <1ms |
 
-简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。
+简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation 已接入 `pytest -m llm` / `arbor-eval --mode generation`（suite-v1，需密钥）。RAGAS 评委需独立 `ARBOR_JUDGE_API_KEY`，未配置则 skip。源记忆只有 33 条，477 是问法扩张。
 
-基线文件：`eval/baselines/suite-v1.json`（有 runner 后填数，先占位）。
+基线文件：`eval/baselines/suite-ragas-v1.json`（`arbor-eval --suite ragas-v1 --strategy all --write-baseline`）。
 
 ## 6. 记忆体检页怎么接
 
@@ -151,7 +153,7 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 1. 冻结 suite-v1 JSON（本仓库已做）。
 2. 应用层能按策略检索（Fake 向量即可）→ 先产出 retrieval 报告。
 3. 体检页读报告 JSON（可先静态放一份 `eval/baselines` 样例）。
-4. Postgres 契约过后再用 pgvector 跑同一套题。
+4. Postgres 契约过后再用 pgvector 跑同一套题：`arbor-eval --suite v1 --backend postgres`（需 `DATABASE_URL`）。
 5. 最后才接 DeepSeek 的 generation 模式与 RAGAS 适配器。
 
 不要先调一周 prompt 再想评测。没有 ID 金标，你无法知道是变好还是变随机。
@@ -174,12 +176,15 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 ```text
 eval/
   README.md
+  runner.py                     # 入站 CLI 入口，转发 arbor-eval
   fixtures/suite-v1/
-    world.json       # 租户、人设、记忆、事件
-    cases.json       # 题目与期望 ID
-    thresholds.json  # 默认策略门槛
+    world.json                  # 租户、人设、记忆、事件
+    cases.json                  # 题目与期望 ID
+    thresholds.json             # 默认策略门槛
   baselines/
-    suite-v1.placeholder.json
+    suite-v1.json               # 13 题烟雾对比表
+    suite-ragas-v1.json         # 477 问规模对比表
+    suite-v1.placeholder.json   # 历史占位
 ```
 
-Runner 代码实现时再放 `eval/runner/`，仍只依赖端口。
+组合根在 `src/arbor/adapters/inbound/`（`eval_runner.py` + `cli/eval_cli.py`）。应用层 `evaluation/runner.py` 只打分、不 import 适配器。
