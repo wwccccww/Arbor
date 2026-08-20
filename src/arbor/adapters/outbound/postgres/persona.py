@@ -35,6 +35,13 @@ class PgPersonaRepository:
         ]
         return persona_from_row(row, grants)
 
+    def list(self, tenant_id: TenantId) -> list[Persona]:
+        rows = self.conn.execute(
+            "SELECT id FROM personas WHERE tenant_id = %s::uuid ORDER BY display_name, id",
+            (tenant_id.value,),
+        ).fetchall()
+        return [p for p in (self.get(tenant_id, PersonaId(str(row["id"]))) for row in rows) if p]
+
     def save(self, persona: Persona) -> None:
         self.conn.execute(
             """

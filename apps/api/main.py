@@ -20,8 +20,11 @@ from arbor.adapters.outbound.inmemory import (
 )
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.application.conversation.send_message import SendMessage
+from arbor.application.conversation.threads import CreateThread, ListMessages, ListThreads
 from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
+from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
+from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
@@ -57,6 +60,24 @@ class ConfirmIn(BaseModel):
     mark_key_event: bool = False
 
 
+class PersonaIn(BaseModel):
+    skin: str = "companion"
+    display_name: str = ""
+    one_liner: str = ""
+    personality: dict | None = None
+    taboos: list[str] = Field(default_factory=list)
+    relationships: list[dict] = Field(default_factory=list)
+
+
+class PersonaPatchIn(BaseModel):
+    skin: str | None = None
+    display_name: str | None = None
+    one_liner: str | None = None
+    personality: dict | None = None
+    taboos: list[str] | None = None
+    relationships: list[dict] | None = None
+
+
 def _error(code: str, message: str, status: int, request_id: str = "test-request") -> JSONResponse:
     return JSONResponse(
         status_code=status,
@@ -71,6 +92,24 @@ def _caps_for(persona, user: dict) -> list[Capability]:
         if grant.user_id.value == user["user_id"]:
             return list(grant.capabilities)
     return []
+
+
+def _workspace_admin(user: dict) -> bool:
+    return user["role"] in {"owner", "admin"}
+
+
+def _persona_json(persona, caps: list[Capability]) -> dict:
+    body = {
+        "id": persona.id.value,
+        "skin": persona.skin,
+        "display_name": persona.profile.display_name,
+        "one_liner": persona.profile.one_liner,
+    }
+    if Capability.READ_MEMORY in caps:
+        body["taboos"] = list(persona.profile.taboos)
+        body["relationships"] = list(persona.profile.relationships)
+        body["personality"] = persona.profile.personality
+    return body
 
 
 def create_app(
@@ -138,6 +177,13 @@ def create_app(
     )
     dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
     get_tree = GetEventTree(events, memories=memories)
+    list_personas = ListPersonas(personas)
+    create_persona = CreatePersona(personas=personas, ids=ids, auth=AuthorizationPolicy())
+    patch_persona = PatchPersona(personas=personas, auth=AuthorizationPolicy())
+    replace_grants = ReplaceGrants(personas=personas, auth=AuthorizationPolicy())
+    create_thread = CreateThread(personas=personas, threads=threads, ids=ids, auth=AuthorizationPolicy())
+    list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
+    list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
     app = FastAPI()
     app.state.stores = stores
     app.state.session = session
@@ -182,19 +228,91 @@ def create_app(
             "tenants": [{"id": user["tenant_id"]}],
         }
 
+    @app.get("/v1/personas")
+    def get_personas(
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        items = list_personas(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            workspace_admin=_workspace_admin(user),
+        )
+        return {
+            "items": [_persona_json(persona, _caps_for(persona, user)) for persona in items]
+        }
+
+    @app.post("/v1/personas", status_code=201)
+    def post_persona(
+        payload: PersonaIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = create_persona(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            workspace_admin=_workspace_admin(user),
+            skin=payload.skin,
+            display_name=payload.display_name,
+            one_liner=payload.one_liner,
+            personality=payload.personality,
+            taboos=payload.taboos,
+            relationships=payload.relationships,
+        )
+        return _persona_json(persona, list(Capability))
+
     @app.get("/v1/personas/{persona_id}")
     def get_persona(
         persona_id: str,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
     ):
-        current_user(authorization)
+        user = current_user(authorization)
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
         persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
         if persona is None or x_tenant_id != persona.tenant_id.value:
             raise DomainError("NOT_FOUND", "not found")
-        return {"id": persona_id, "display_name": persona.profile.display_name}
+        caps = _caps_for(persona, user)
+        if not caps:
+            raise DomainError("NOT_FOUND", "not found")
+        return _persona_json(persona, caps)
+
+    @app.patch("/v1/personas/{persona_id}")
+    def patch_persona_route(
+        persona_id: str,
+        payload: PersonaPatchIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = _caps_for(persona, user)
+        if not caps:
+            raise DomainError("NOT_FOUND", "not found")
+        updated = patch_persona(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            capabilities=caps,
+            display_name=payload.display_name,
+            one_liner=payload.one_liner,
+            personality=payload.personality,
+            taboos=payload.taboos,
+            relationships=payload.relationships,
+            skin=payload.skin,
+        )
+        return _persona_json(updated, caps)
 
     @app.get("/v1/personas/{persona_id}/memories")
     def list_memories(
@@ -219,13 +337,101 @@ def create_app(
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
     ):
-        current_user(authorization)
+        user = current_user(authorization)
         persona = personas.get(TenantId(x_tenant_id or ""), PersonaId(persona_id))
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
-        persona.grants = []
-        personas.save(persona)
-        return {"ok": True, "grants": payload.grants}
+        caps = _caps_for(persona, user)
+        if not caps:
+            raise DomainError("NOT_FOUND", "not found")
+        updated = replace_grants(
+            tenant_id=TenantId(x_tenant_id or user["tenant_id"]),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            grants=payload.grants,
+            capabilities=caps,
+        )
+        return {
+            "ok": True,
+            "grants": [
+                {
+                    "user_id": grant.user_id.value,
+                    "capabilities": [cap.value for cap in grant.capabilities],
+                }
+                for grant in updated.grants
+            ],
+        }
+
+    @app.get("/v1/personas/{persona_id}/threads")
+    def get_threads(
+        persona_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        items = list_threads(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            capabilities=_caps_for(persona, user),
+        )
+        return {"items": [{"id": thread.id.value, "persona_id": thread.persona_id.value} for thread in items]}
+
+    @app.post("/v1/personas/{persona_id}/threads", status_code=201)
+    def post_thread(
+        persona_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        thread = create_thread(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            capabilities=_caps_for(persona, user),
+        )
+        return {"id": thread.id.value, "persona_id": thread.persona_id.value}
+
+    @app.get("/v1/threads/{thread_id}/messages")
+    def get_messages(
+        thread_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        tenant = TenantId(x_tenant_id or user["tenant_id"])
+        thread = threads.get(tenant, ThreadId(thread_id))
+        if thread is None:
+            raise DomainError("NOT_FOUND", "not found")
+        persona = personas.get(tenant, thread.persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        loaded = list_messages(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            thread_id=ThreadId(thread_id),
+            capabilities=_caps_for(persona, user),
+        )
+        return {
+            "items": [
+                {
+                    "role": message.role,
+                    "content": message.content,
+                    "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                }
+                for message in loaded.messages
+            ]
+        }
 
     @app.post("/v1/threads/{thread_id}/messages")
     def post_message(

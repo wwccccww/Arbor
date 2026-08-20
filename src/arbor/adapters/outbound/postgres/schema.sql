@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS threads (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS messages (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL,
+    thread_id uuid NOT NULL REFERENCES threads (id) ON DELETE CASCADE,
+    role text NOT NULL,
+    content text NOT NULL DEFAULT '',
+    citation_memory_ids uuid[] NOT NULL DEFAULT '{}',
+    citation_event_ids uuid[] NOT NULL DEFAULT '{}',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS event_nodes (
     id uuid PRIMARY KEY,
     tenant_id uuid NOT NULL,

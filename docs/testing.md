@@ -72,6 +72,7 @@ tests/
       test_send_message.py
       test_confirm_inbox.py
       test_reasoner_parse.py
+      test_persona_threads.py
       test_import_artifact.py
       test_get_event_tree.py
   architecture/
@@ -81,6 +82,7 @@ tests/
       test_memory_tenant_filter.py
       test_vector_search_isolation.py
       test_event_edge_check.py
+      test_thread_messages.py
   api/
     test_auth.py
     test_persona_grants.py
@@ -88,6 +90,7 @@ tests/
     test_forbidden_codes.py
     test_inbox.py
     test_event_tree.py
+    test_personas_threads.py
     test_openapi_smoke.py
 apps/web/src/**/*.test.ts(x)
 eval/
@@ -169,6 +172,9 @@ eval/
 | 事件树不串人设 | 林夏树不含小周节点 |
 | 无 `read_memory` 看事件树 | 404 或 403，不泄露存在性 |
 | 确认并 `mark_key_event` | 树上多一个关键节点 |
+| Owner 列出人设、Member 仅已授权 | 列表不串无权的人设 |
+| 无 `read_memory` 看人设 | 最小档案，无禁忌 |
+| 创建会话后能拉历史 | POST thread → POST message → GET messages |
 
 ### 5.5 架构
 

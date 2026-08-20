@@ -33,6 +33,9 @@ class InMemoryPersonaRepository:
             return None
         return p
 
+    def list(self, tenant_id: TenantId) -> list[Persona]:
+        return [p for p in self.stores.personas.values() if p.tenant_id == tenant_id]
+
     def save(self, persona: Persona) -> None:
         self.stores.personas[persona.id.value] = persona
 
@@ -124,6 +127,13 @@ class InMemoryThreadRepository:
         if t is None or t.tenant_id != tenant_id:
             return None
         return t
+
+    def list(self, tenant_id: TenantId, persona_id: PersonaId) -> list[Thread]:
+        return [
+            t
+            for t in self.stores.threads.values()
+            if t.tenant_id == tenant_id and t.persona_id == persona_id
+        ]
 
     def save(self, thread: Thread) -> None:
         self.stores.threads[thread.id.value] = thread
