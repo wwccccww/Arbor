@@ -76,7 +76,7 @@ tests/
       test_import_artifact.py
       test_eval_commands.py
       test_audit_commands.py
-      test_tenant_members.py
+      test_tenant_commands.py
       test_get_event_tree.py
   architecture/
     test_import_rules.py         # 或 import-linter 配置
@@ -87,7 +87,7 @@ tests/
       test_event_edge_check.py
       test_thread_messages.py
       test_audit_logs.py
-      test_tenant_members.py
+      test_membership_isolation.py
   api/
     test_auth.py
     test_persona_grants.py

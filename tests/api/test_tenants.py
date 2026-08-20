@@ -4,7 +4,6 @@ from apps.api.main import create_app
 
 TENANT = "0a000000-0000-4000-a000-000000000001"
 OWNER = "0a000000-0000-4000-a000-000000000002"
-MEMBER = "0a000000-0000-4000-a000-000000000003"
 
 
 def _headers(token="token-a", tenant=TENANT):
