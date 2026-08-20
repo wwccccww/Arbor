@@ -31,7 +31,7 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
     const headers = new Headers(init.headers)
     headers.set('Authorization', `Bearer ${session.token}`)
     headers.set('X-Tenant-Id', session.tenantId)
-    if (init.body && !headers.has('Content-Type')) {
+    if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json')
     }
     const res = await fetchImpl(`/v1${path}`, { ...init, headers })
@@ -107,6 +107,20 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
 
     async dismissInbox(inboxId: string): Promise<void> {
       await request(`/inbox/${inboxId}/dismiss`, { method: 'POST' })
+    },
+
+    async importFile(
+      personaId: string,
+      file: File,
+      hint?: string,
+    ): Promise<{ job_id: string; status: string; inbox_created: number }> {
+      const body = new FormData()
+      body.append('file', file)
+      if (hint) body.append('hint', hint)
+      return (await request(`/personas/${personaId}/imports`, {
+        method: 'POST',
+        body,
+      })) as { job_id: string; status: string; inbox_created: number }
     },
 
     async getEventTree(personaId: string): Promise<EventTree> {

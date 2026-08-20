@@ -3,6 +3,7 @@ import type { ArborClient } from '../api/client'
 import type { ChatMessage, EventNode, InboxItem, Persona } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventTreePane } from '../components/EventTreePane'
+import { ImportPane } from '../components/ImportPane'
 import { InboxPane } from '../components/InboxPane'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
@@ -39,6 +40,7 @@ export function Workbench({
   const [inboxBusy, setInboxBusy] = useState<string | undefined>()
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [sending, setSending] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -135,6 +137,21 @@ export function Workbench({
     }
   }
 
+  async function importFile(file: File, hint?: string) {
+    setImporting(true)
+    setError(null)
+    try {
+      await client.importFile(personaId, file, hint)
+      const pending = await client.listInbox(personaId)
+      setInboxForbidden(Boolean(pending.forbidden))
+      setInbox(pending.items)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div>
       <header className="workbench-bar">
@@ -152,6 +169,11 @@ export function Workbench({
           persona ? (
             <>
               <ProfilePane persona={persona} />
+              <ImportPane
+                forbidden={inboxForbidden}
+                busy={importing}
+                onImport={(file, hint) => void importFile(file, hint)}
+              />
               <InboxPane
                 items={inbox}
                 forbidden={inboxForbidden}

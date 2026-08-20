@@ -58,4 +58,26 @@ describe('createClient', () => {
     expect(urls).toContain('/v1/inbox/in-1/confirm')
     expect(urls).toContain('/v1/inbox/in-1/dismiss')
   })
+
+  it('posts multipart imports without a json content type', async () => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.body).toBeInstanceOf(FormData)
+      expect(new Headers(init?.headers).get('Content-Type')).toBeNull()
+      return new Response(JSON.stringify({ job_id: 'job-1', status: 'completed', inbox_created: 1 }), {
+        status: 202,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const result = await client.importFile(
+      'linxia',
+      new File(['hello'], 'notes.txt', { type: 'text/plain' }),
+      'fact',
+    )
+    expect(result.inbox_created).toBe(1)
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('/v1/personas/linxia/imports')
+    expect((init as RequestInit).method).toBe('POST')
+    expect(((init as RequestInit).body as FormData).get('hint')).toBe('fact')
+  })
 })

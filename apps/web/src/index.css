@@ -185,6 +185,12 @@ textarea {
   margin-top: 0.5rem;
 }
 
+.pane-left form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 @media (max-width: 900px) {
   .workbench:not(.workbench-narrow) {
     grid-template-columns: 1fr;
