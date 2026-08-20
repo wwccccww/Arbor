@@ -73,8 +73,8 @@ def create_app(*, extra_citation: str | None = None, database_url: str | None = 
         from arbor.adapters.outbound.postgres import PostgresSession
 
         session = PostgresSession.connect(database_url)
-        session.reset()
-        session.load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json")
+        session.migrate()
+        session.seed_demo_world_if_empty()
         personas = session.personas
         memories = session.memories
         threads = session.threads
