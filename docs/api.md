@@ -22,6 +22,8 @@
 }
 ```
 
+`request_id` 为每次错误单独生成的 ULID，不再写死。
+
 | HTTP | code 示例 |
 |---|---|
 | 400 | `VALIDATION_ERROR` |

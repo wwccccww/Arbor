@@ -191,7 +191,7 @@ eval/
 | `PUT grants` 后原 chat 用户 403 | 收权生效 |
 | 对话响应 citations ⊆ 实际注入 id | HTTP 引用为对象，含 preview；message_id / role=assistant |
 | `X-Tenant-Id` 与资源不符 | 404 |
-| OpenAPI 里的错误体含 `code` | |
+| OpenAPI 里的错误体含 `code` | `request_id` 为 ULID，两次错误不相同 |
 | 抽取进 Inbox，确认后待办清空 | HTTP `inbox_created` + confirm |
 | 无 `write_memory` 看 Inbox | 404 或 403，不泄露存在性 |
 | 事件树不串人设 | 林夏树不含小周节点 |
