@@ -153,7 +153,7 @@ API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generatio
 1. 冻结 suite-v1 JSON（本仓库已做）。
 2. 应用层能按策略检索（Fake 向量即可）→ 先产出 retrieval 报告。
 3. 体检页读报告 JSON（可先静态放一份 `eval/baselines` 样例）。
-4. Postgres 契约过后再用 pgvector 跑同一套题。
+4. Postgres 契约过后再用 pgvector 跑同一套题：`arbor-eval --suite v1 --backend postgres`（需 `DATABASE_URL`）。
 5. 最后才接 DeepSeek 的 generation 模式与 RAGAS 适配器。
 
 不要先调一周 prompt 再想评测。没有 ID 金标，你无法知道是变好还是变随机。

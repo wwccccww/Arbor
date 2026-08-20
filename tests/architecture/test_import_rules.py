@@ -5,6 +5,7 @@ import inspect
 from pathlib import Path
 
 from arbor.adapters.outbound.inmemory import InMemoryVectorIndex
+from arbor.adapters.outbound.postgres import PgVectorIndex
 from arbor.ports.outbound import VectorIndex
 
 ROOT = Path(__file__).resolve().parents[2] / "src" / "arbor"
@@ -52,7 +53,7 @@ def test_deepseek_adapter_does_not_import_postgres():
 
 
 def test_vector_index_search_requires_tenant_and_persona():
-    for target in (InMemoryVectorIndex.search, VectorIndex.search):
+    for target in (InMemoryVectorIndex.search, VectorIndex.search, PgVectorIndex.search):
         params = inspect.signature(target).parameters
         assert "tenant_id" in params and "persona_id" in params
         assert params["tenant_id"].default is inspect.Parameter.empty

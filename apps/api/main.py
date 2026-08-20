@@ -66,18 +66,39 @@ def _caps_for(persona, user: dict) -> list[Capability]:
     return []
 
 
-def create_app(*, extra_citation: str | None = None) -> FastAPI:
-    stores = InMemoryStores()
-    load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json", stores)
-    linxia = stores.personas[LINXIA_ID]
-    if not any(g.user_id == MEMBER_ID for g in linxia.grants):
-        linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
-    personas = InMemoryPersonaRepository(stores)
-    memories = InMemoryMemoryRepository(stores)
-    threads = InMemoryThreadRepository(stores)
-    events = InMemoryEventGraphRepository(stores)
-    inbox = InMemoryInboxRepository(stores)
-    vectors = InMemoryVectorIndex(stores, memories)
+def create_app(*, extra_citation: str | None = None, database_url: str | None = None) -> FastAPI:
+    session = None
+    stores = None
+    if database_url:
+        from arbor.adapters.outbound.postgres import PostgresSession
+
+        session = PostgresSession.connect(database_url)
+        session.reset()
+        session.load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json")
+        personas = session.personas
+        memories = session.memories
+        threads = session.threads
+        events = session.events
+        inbox = session.inbox
+        vectors = session.vectors
+        embed = session.embed
+        linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
+        if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
+            linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
+            personas.save(linxia)
+    else:
+        stores = InMemoryStores()
+        load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json", stores)
+        linxia = stores.personas[LINXIA_ID]
+        if not any(g.user_id == MEMBER_ID for g in linxia.grants):
+            linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
+        personas = InMemoryPersonaRepository(stores)
+        memories = InMemoryMemoryRepository(stores)
+        threads = InMemoryThreadRepository(stores)
+        events = InMemoryEventGraphRepository(stores)
+        inbox = InMemoryInboxRepository(stores)
+        vectors = InMemoryVectorIndex(stores, memories)
+        embed = FixtureEmbeddingClient()
     send = SendMessage(
         personas=personas,
         memories=memories,
@@ -87,12 +108,13 @@ def create_app(*, extra_citation: str | None = None) -> FastAPI:
         vectors=vectors,
         llm=ScriptedLLM(extra_citation_memory_id=extra_citation),
         reasoner=ScriptedReasoner(),
-        embed=FixtureEmbeddingClient(),
+        embed=embed,
         ids=SeqIdGenerator(),
         auth=AuthorizationPolicy(),
     )
     app = FastAPI()
     app.state.stores = stores
+    app.state.session = session
     app.state.send = send
     app.state.personas = personas
 
@@ -204,3 +226,9 @@ def create_app(*, extra_citation: str | None = None) -> FastAPI:
         }
 
     return app
+
+
+def create_app_from_env() -> FastAPI:
+    from arbor.env import database_url as env_database_url
+
+    return create_app(database_url=env_database_url() or None)

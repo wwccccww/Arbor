@@ -43,3 +43,8 @@ def judge_api_key() -> str:
     if not judge or judge == generator:
         return ""
     return judge
+
+
+def database_url() -> str:
+    load_dotenv()
+    return os.environ.get("DATABASE_URL") or ""

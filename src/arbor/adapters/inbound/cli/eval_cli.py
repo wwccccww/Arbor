@@ -9,7 +9,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from arbor.adapters.inbound.eval_runner import ROOT, run_all_strategies, run_generation, run_suite
+from arbor.adapters.inbound.eval_runner import ROOT, resolve_backend, run_all_strategies, run_generation, run_suite
 from arbor.application.retrieval import STRATEGIES
 from arbor.env import chat_api_key
 
@@ -35,10 +35,12 @@ def _baseline_payload(suite: str, payload: dict) -> dict:
         "n_cases": next(iter(payload["strategies"].values()), {}).get("n_cases"),
         "embeddings": "fixture_embed (deterministic hash, not bge-m3)",
         "note": (
-            "夹具嵌入 + 内存向量。跨租户泄漏必须为 0。"
+            "夹具嵌入。向量后端见 backend 字段：memory 或 postgres/pgvector。"
+            "跨租户泄漏必须为 0。"
             "RAGAS faithfulness 不进检索表。"
             "规模集是 33 条源记忆上的问法扩张，不是大规模语料。"
         ),
+        "backend": payload.get("backend"),
         "strategies": payload["strategies"],
         "layered_tree_by_skill": metrics.get("by_skill"),
     }
@@ -49,6 +51,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--suite", default="v1", choices=list(SUITE_DIRS))
     parser.add_argument("--mode", default="retrieval", choices=["retrieval", "generation"])
     parser.add_argument("--strategy", default="all", choices=["all", *STRATEGIES])
+    parser.add_argument(
+        "--backend",
+        default="auto",
+        choices=["auto", "memory", "postgres"],
+        help="auto uses Postgres when DATABASE_URL is set",
+    )
     parser.add_argument("--out", default="")
     parser.add_argument("--allow-large", action="store_true", help="allow generation on ragas-v1")
     parser.add_argument(
@@ -74,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
             print("generation needs DEEPSEEK_API_KEY in this process", file=sys.stderr)
             return 2
         strategy = "layered_tree" if args.strategy == "all" else args.strategy
-        payload = run_generation(suite_dir=suite_dir, strategy=strategy)
+        payload = run_generation(suite_dir=suite_dir, strategy=strategy, backend=args.backend)
         print(json.dumps({"metrics": payload["metrics"]}, ensure_ascii=False, indent=2))
         if args.out:
             slim = {"metrics": payload["metrics"], "cases": payload["cases"]}
@@ -106,11 +114,17 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
 
+    try:
+        backend = resolve_backend(args.backend)
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 2
+
     if args.strategy == "all":
-        payload = run_all_strategies(suite_dir)
-        print(json.dumps({"strategies": payload["strategies"]}, ensure_ascii=False, indent=2))
+        payload = run_all_strategies(suite_dir, backend=backend)
+        print(json.dumps({"backend": payload.get("backend"), "strategies": payload["strategies"]}, ensure_ascii=False, indent=2))
     else:
-        payload = run_suite(suite_dir=suite_dir, strategy=args.strategy)
+        payload = run_suite(suite_dir=suite_dir, strategy=args.strategy, backend=backend)
         print(
             json.dumps(
                 {

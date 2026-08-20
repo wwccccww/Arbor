@@ -14,6 +14,9 @@ baselines/                      对比表快照
 # CI / 体检：无 LLM。v1 烟雾 + 477 规模检索，跨租户泄漏必须为 0
 arbor-eval --suite v1 --strategy all
 arbor-eval --suite ragas-v1 --strategy all --write-baseline
+# 有 DATABASE_URL 时默认走 pgvector；可强制内存
+arbor-eval --suite v1 --strategy all --backend postgres
+arbor-eval --suite v1 --strategy all --backend memory
 python3 eval/runner.py --suite ragas-v1 --strategy all --write-baseline
 
 python3 eval/check_llm_env.py

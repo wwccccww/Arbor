@@ -45,7 +45,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 |---|---|
 | 前端 | React + TypeScript + Vite + React Flow |
 | 后端 | Python 3.12 + FastAPI（仅作为入站适配器） |
-| 主库 / 向量 | PostgreSQL 16 + pgvector |
+| 主库 / 向量 | PostgreSQL 16 + pgvector（`infra/compose/postgres.yml`） |
 | 队列 | Redis + ARQ |
 | 对象存储 | S3 兼容 |
 | 对话 / 抽取 | DeepSeek `deepseek-chat` / `deepseek-reasoner` |

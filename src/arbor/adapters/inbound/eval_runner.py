@@ -29,6 +29,7 @@ from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, 
 from arbor.domain.persona.persona import Persona, Profile
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.domain.shared.textvec import fixture_embed
+from arbor.env import database_url
 from arbor.paths import repo_root
 
 ROOT = repo_root()
@@ -129,6 +130,16 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
             index.upsert(item.tenant_id, item.persona_id, item.id, fixture_embed(item.text), item.status)
 
 
+def resolve_backend(backend: str = "auto") -> str:
+    if backend == "auto":
+        return "postgres" if database_url() else "memory"
+    if backend not in {"memory", "postgres"}:
+        raise ValueError(backend)
+    if backend == "postgres" and not database_url():
+        raise RuntimeError("postgres backend needs DATABASE_URL")
+    return backend
+
+
 def _ports(stores: InMemoryStores):
     memories = InMemoryMemoryRepository(stores)
     events = InMemoryEventGraphRepository(stores)
@@ -145,32 +156,82 @@ def _ports(stores: InMemoryStores):
     return memories, events, threads, index, embed, summary_for
 
 
-def run_suite(*, suite_dir: Path, strategy: str, k: int | None = None) -> dict:
+def _open_postgres(world_path: Path):
+    from arbor.adapters.outbound.postgres import PostgresSession
+
+    session = PostgresSession.connect(database_url())
+    session.reset()
+    session.load_world(world_path)
+    return session
+
+
+def _postgres_ports(session):
+    def summary_for(persona_id: PersonaId) -> str:
+        return session.threads.summary_for(persona_id)
+
+    return session.memories, session.events, session.threads, session.vectors, session.embed, summary_for
+
+
+def run_suite(
+    *,
+    suite_dir: Path,
+    strategy: str,
+    k: int | None = None,
+    backend: str = "auto",
+    session=None,
+) -> dict:
     world, cases_doc, _thresholds, default_k, world_path = load_suite_files(suite_dir)
-    stores = InMemoryStores()
-    load_world(world_path, stores)
-    memories, events, _threads, index, embed, summary_for = _ports(stores)
-    return evaluate_retrieval(
-        strategy=strategy,
-        cases_doc=cases_doc,
-        world=world,
-        k=k or default_k,
-        list_active=memories.list_active,
-        list_events=events.list_nodes,
-        summary_for=summary_for,
-        vector_search=index.search,
-        embed=embed.embed,
-    )
+    backend = resolve_backend(backend)
+    owns = False
+    stores = None
+    if backend == "postgres":
+        if session is None:
+            session = _open_postgres(world_path)
+            owns = True
+        memories, events, _threads, index, embed, summary_for = _postgres_ports(session)
+    else:
+        stores = InMemoryStores()
+        load_world(world_path, stores)
+        memories, events, _threads, index, embed, summary_for = _ports(stores)
+    try:
+        report = evaluate_retrieval(
+            strategy=strategy,
+            cases_doc=cases_doc,
+            world=world,
+            k=k or default_k,
+            list_active=memories.list_active,
+            list_events=events.list_nodes,
+            summary_for=summary_for,
+            vector_search=index.search,
+            embed=embed.embed,
+        )
+        report["backend"] = backend
+        return report
+    finally:
+        if owns and session is not None:
+            session.close()
 
 
-def run_all_strategies(suite_dir: Path) -> dict:
-    table = {}
-    reports = {}
-    for name in strategy_names():
-        report = run_suite(suite_dir=suite_dir, strategy=name)
-        reports[name] = report
-        table[name] = comparison_row(report)
-    return {"strategies": table, "reports": reports}
+def run_all_strategies(suite_dir: Path, backend: str = "auto") -> dict:
+    backend = resolve_backend(backend)
+    session = None
+    world_path = None
+    if backend == "postgres":
+        from arbor.application.evaluation.runner import resolve_world_path
+
+        world_path = resolve_world_path(suite_dir)
+        session = _open_postgres(world_path)
+    try:
+        table = {}
+        reports = {}
+        for name in strategy_names():
+            report = run_suite(suite_dir=suite_dir, strategy=name, backend=backend, session=session)
+            reports[name] = report
+            table[name] = comparison_row(report)
+        return {"strategies": table, "reports": reports, "backend": backend}
+    finally:
+        if session is not None:
+            session.close()
 
 
 def run_generation(
@@ -179,16 +240,26 @@ def run_generation(
     strategy: str = "layered_tree",
     llm=None,
     scorer=None,
+    backend: str = "auto",
 ) -> dict:
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
     from arbor.adapters.outbound.ragas_scorer import RagasFaithfulnessScorer
 
     world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
-    stores = InMemoryStores()
-    load_world(world_path, stores)
-    memories, events, threads, index, embed, _summary = _ports(stores)
-    personas = InMemoryPersonaRepository(stores)
-    inbox = InMemoryInboxRepository(stores)
+    backend = resolve_backend(backend)
+    session = None
+    stores = None
+    if backend == "postgres":
+        session = _open_postgres(world_path)
+        memories, events, threads, index, embed, _summary = _postgres_ports(session)
+        personas = session.personas
+        inbox = session.inbox
+    else:
+        stores = InMemoryStores()
+        load_world(world_path, stores)
+        memories, events, threads, index, embed, _summary = _ports(stores)
+        personas = InMemoryPersonaRepository(stores)
+        inbox = InMemoryInboxRepository(stores)
     send = SendMessage(
         personas=personas,
         memories=memories,
@@ -206,36 +277,44 @@ def run_generation(
     scorer = scorer if scorer is not None else RagasFaithfulnessScorer()
     mem_index = {item["id"]: item for item in world["memories"]}
     rows = []
-    for case in cases_doc["cases"]:
-        actor = case["actor"]
-        tenant_id = TenantId(actor["tenant_id"])
-        persona_id = PersonaId(actor["persona_id"])
-        thread = next((item for item in stores.threads.values() if item.persona_id == persona_id), None)
-        thread_id = thread.id if thread else ThreadId(f"eval-{persona_id.value}")
-        result = send(
-            tenant_id=tenant_id,
-            user_id=UserId(actor["user_id"]),
-            thread_id=thread_id,
-            persona_id=persona_id,
-            text=case["query"],
-            capabilities=list(Capability),
-        )
-        leak_ids = [mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])]
-        result["leak_ids"] = leak_ids
-        contexts = [ctx for ctx in result.get("injected_contexts") or [] if ctx]
-        ragas = None
-        if case.get("expected_behavior") in {"answer", "cite"} and not leak_ids:
-            ragas = scorer.score(case["query"], result.get("text") or "", contexts)
-        result["ragas_faithfulness"] = ragas
-        row = score_generation_case(case, result, mem_index)
-        row["query"] = case["query"]
-        row["text"] = result.get("text") or ""
-        rows.append(row)
+    try:
+        for case in cases_doc["cases"]:
+            actor = case["actor"]
+            tenant_id = TenantId(actor["tenant_id"])
+            persona_id = PersonaId(actor["persona_id"])
+            if stores is not None:
+                thread = next((item for item in stores.threads.values() if item.persona_id == persona_id), None)
+            else:
+                thread = threads.get_by_persona(tenant_id, persona_id)
+            thread_id = thread.id if thread else ThreadId(f"eval-{persona_id.value}")
+            result = send(
+                tenant_id=tenant_id,
+                user_id=UserId(actor["user_id"]),
+                thread_id=thread_id,
+                persona_id=persona_id,
+                text=case["query"],
+                capabilities=list(Capability),
+            )
+            leak_ids = [mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])]
+            result["leak_ids"] = leak_ids
+            contexts = [ctx for ctx in result.get("injected_contexts") or [] if ctx]
+            ragas = None
+            if case.get("expected_behavior") in {"answer", "cite"} and not leak_ids:
+                ragas = scorer.score(case["query"], result.get("text") or "", contexts)
+            result["ragas_faithfulness"] = ragas
+            row = score_generation_case(case, result, mem_index)
+            row["query"] = case["query"]
+            row["text"] = result.get("text") or ""
+            rows.append(row)
+    finally:
+        if session is not None:
+            session.close()
     metrics = aggregate_generation(rows)
     return {
         "suite_version": cases_doc.get("suite_version") or world.get("suite_version"),
         "strategy": strategy,
         "mode": "generation",
+        "backend": backend,
         "metrics": metrics,
         "cases": rows,
     }
