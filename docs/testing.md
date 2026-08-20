@@ -192,6 +192,7 @@ eval/
 | Owner 跑 retrieval 评测 | suite-v1 `tenant_leak_count==0`；Member 403 |
 | Owner 看审计日志 | 改人设 / 导入 / 确认各一条；Member 403 |
 | Owner 管成员 | 列出/邀请；Member 403；不能降级最后一名 owner |
+| Owner 删空空间 | 新建空租户可删；有人设的演示租户 400；Member 403/404 |
 | 导出会话 | 有 `chat` 返回 JSON；审计 `thread.export` 无正文；无权限 404 |
 
 ### 5.5 架构

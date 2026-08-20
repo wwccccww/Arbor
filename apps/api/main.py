@@ -34,6 +34,7 @@ from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.identity.commands import (
     AddTenantMember,
     CreateTenant,
+    DeleteTenant,
     ListMembers,
     ListTenants,
     PatchTenantMember,
@@ -262,6 +263,7 @@ def create_app(
     list_audit_logs = ListAuditLogs(audit_logs)
     list_tenants = ListTenants(tenants)
     create_tenant = CreateTenant(tenants=tenants, ids=ids)
+    delete_tenant = DeleteTenant(tenants=tenants, personas=personas)
     list_members = ListMembers(tenants, users)
     add_member = AddTenantMember(tenants=tenants, users=users, ids=ids)
     patch_member = PatchTenantMember(tenants)
@@ -342,6 +344,17 @@ def create_app(
         actor = UserId(user["user_id"])
         tenant = create_tenant(user_id=actor, name=payload.name)
         return _tenant_json(tenant, actor)
+
+    @app.delete("/v1/tenants/{tenant_id}", status_code=204)
+    def remove_tenant(
+        tenant_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if x_tenant_id and x_tenant_id != tenant_id:
+            raise DomainError("NOT_FOUND", "not found")
+        delete_tenant(tenant_id=TenantId(tenant_id), actor_id=UserId(user["user_id"]))
 
     @app.get("/v1/tenants/{tenant_id}/members")
     def get_members(

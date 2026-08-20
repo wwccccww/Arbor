@@ -62,3 +62,10 @@ class Tenant:
         if self.member(user_id) is not None:
             raise DomainError("VALIDATION_ERROR", "already a member")
         self.memberships.append(Membership(tenant_id=self.id, user_id=user_id, role=role))
+
+    def assert_owner(self, user_id: UserId) -> None:
+        membership = self.member(user_id)
+        if membership is None:
+            raise DomainError("NOT_FOUND", "not found")
+        if membership.role is not Role.OWNER:
+            raise DomainError("FORBIDDEN_WORKSPACE", "owner required")

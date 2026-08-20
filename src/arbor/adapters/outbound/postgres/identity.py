@@ -69,6 +69,10 @@ class PgTenantRepository:
                 (tenant.id.value, membership.user_id.value, membership.role.value),
             )
 
+    def delete(self, tenant_id: TenantId) -> None:
+        self.conn.execute("DELETE FROM memberships WHERE tenant_id = %s::uuid", (tenant_id.value,))
+        self.conn.execute("DELETE FROM tenants WHERE id = %s::uuid", (tenant_id.value,))
+
 
 class PgUserRepository:
     def __init__(self, conn) -> None:

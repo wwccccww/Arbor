@@ -46,6 +46,9 @@ class InMemoryTenantRepository:
     def save(self, tenant: Tenant) -> None:
         self.stores.tenants[tenant.id.value] = tenant
 
+    def delete(self, tenant_id: TenantId) -> None:
+        self.stores.tenants.pop(tenant_id.value, None)
+
 
 class InMemoryUserRepository:
     def __init__(self, stores: InMemoryStores) -> None:

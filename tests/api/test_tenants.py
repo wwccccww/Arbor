@@ -81,3 +81,22 @@ def test_cannot_demote_last_owner_over_http():
     )
     assert r.status_code == 400
     assert r.json()["error"]["code"] == "TENANT_OWNER_REQUIRED"
+
+
+def test_owner_deletes_empty_tenant_not_demo():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        "/v1/tenants",
+        headers={"Authorization": "Bearer token-a"},
+        json={"name": "待删除"},
+    )
+    assert created.status_code == 201
+    new_id = created.json()["id"]
+    blocked = client.delete(f"/v1/tenants/{TENANT}", headers={"Authorization": "Bearer token-a"})
+    assert blocked.status_code == 400
+    member = client.delete(f"/v1/tenants/{new_id}", headers={"Authorization": "Bearer token-member"})
+    assert member.status_code in {403, 404}
+    removed = client.delete(f"/v1/tenants/{new_id}", headers={"Authorization": "Bearer token-a"})
+    assert removed.status_code == 204
+    listed = client.get("/v1/tenants", headers={"Authorization": "Bearer token-a"})
+    assert all(item["id"] != new_id for item in listed.json()["items"])
