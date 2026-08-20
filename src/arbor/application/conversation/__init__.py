@@ -5,6 +5,7 @@ from arbor.application.conversation.threads import (
     GetChatAttachment,
     ListMessages,
     ListThreads,
+    MessagePage,
 )
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "GetChatAttachment",
     "ListMessages",
     "ListThreads",
+    "MessagePage",
     "SendMessage",
 ]

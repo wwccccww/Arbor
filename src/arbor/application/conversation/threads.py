@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
@@ -55,6 +57,12 @@ class ListThreads:
         return self.threads.list(tenant_id, persona_id)
 
 
+@dataclass(frozen=True)
+class MessagePage:
+    items: list
+    total: int
+
+
 class ListMessages:
     def __init__(self, *, personas, threads, auth: AuthorizationPolicy) -> None:
         self.personas = personas
@@ -68,7 +76,9 @@ class ListMessages:
         user_id: UserId,
         thread_id: ThreadId,
         capabilities: list[Capability] | None = None,
-    ) -> Thread:
+        limit: int = 50,
+        offset: int = 0,
+    ) -> MessagePage:
         thread = self.threads.get(tenant_id, thread_id)
         if thread is None:
             raise DomainError("NOT_FOUND", "not found")
@@ -78,7 +88,12 @@ class ListMessages:
         caps = capabilities or self.auth.capabilities_for(persona, user_id)
         if Capability.CHAT not in caps:
             raise DomainError("NOT_FOUND", "not found")
-        return thread
+        if limit < 1 or limit > 100:
+            raise DomainError("VALIDATION_ERROR", "limit must be 1..100")
+        if offset < 0:
+            raise DomainError("VALIDATION_ERROR", "offset must be >= 0")
+        items = list(thread.messages)
+        return MessagePage(items=items[offset : offset + limit], total=len(items))
 
 
 class GetChatAttachment:
