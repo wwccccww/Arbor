@@ -106,6 +106,7 @@ eval/
 | `ObjectStorage` | 本地临时目录 |
 | `JobQueue` | 同步立即执行 |
 | `Clock` | 固定时间 |
+| `FaithfulnessScorer` | 测试里返回固定 1.0 或跳过；禁止在 unit 测试调真 RAGAS |
 
 `LLMClient` Fake 必须把「注入的 memory_ids」记录下来，供「无 read_memory 不得出现禁忌」断言使用。这是应用层测试的核心探针，比检查回复文案重要。
 
