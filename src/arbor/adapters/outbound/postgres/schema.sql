@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content text NOT NULL DEFAULT '',
     citation_memory_ids uuid[] NOT NULL DEFAULT '{}',
     citation_event_ids uuid[] NOT NULL DEFAULT '{}',
+    attachments jsonb NOT NULL DEFAULT '[]'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 

@@ -150,7 +150,7 @@ Owner/Admin。
 
 ### `POST /v1/threads/{thread_id}/messages`
 
-发送用户消息。`multipart/form-data` 可带文件；或 JSON：
+发送用户消息。`multipart/form-data` 可带 `text` + `file`（文件进对象存储）；或 JSON：
 
 ```json
 {
@@ -158,6 +158,8 @@ Owner/Admin。
   "attachments": []
 }
 ```
+
+聊天附件只挂在用户消息上，不解析进 Inbox，不直写 Memory。需要 `chat`。GET 历史只回 `filename`。
 
 响应：
 

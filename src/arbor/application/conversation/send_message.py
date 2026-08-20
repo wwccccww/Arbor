@@ -35,6 +35,7 @@ class SendMessage:
         persona_id: PersonaId,
         text: str,
         capabilities: list[Capability] | None = None,
+        attachments: list | None = None,
     ) -> dict:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
@@ -112,8 +113,9 @@ class SendMessage:
             self.inbox.add(item)
             inbox_added = 1
 
+        stored_attachments = _normalize_attachments(attachments)
         thread.append_message(
-            Message(role="user", content=text),
+            Message(role="user", content=text, attachments=stored_attachments),
             can_chat=True,
         )
         thread.append_message(
@@ -143,4 +145,30 @@ class SendMessage:
             "slot_order": slots.slot_order(),
             "prompt_slots": prompt_slots,
             "inbox_added": inbox_added,
+            "attachments": [{"filename": item["filename"]} for item in stored_attachments],
         }
+
+
+def _normalize_attachments(raw) -> list[dict]:
+    if not raw:
+        return []
+    if not isinstance(raw, list):
+        raise DomainError("VALIDATION_ERROR", "attachments must be a list")
+    items: list[dict] = []
+    for item in raw:
+        if isinstance(item, str):
+            filename = item.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip()
+            uri = ""
+        elif isinstance(item, dict):
+            filename = str(item.get("filename") or item.get("name") or "")
+            filename = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip()
+            uri = str(item.get("uri") or "").strip()
+        else:
+            raise DomainError("VALIDATION_ERROR", "invalid attachment")
+        if not filename:
+            raise DomainError("VALIDATION_ERROR", "attachment filename required")
+        entry = {"filename": filename}
+        if uri:
+            entry["uri"] = uri
+        items.append(entry)
+    return items

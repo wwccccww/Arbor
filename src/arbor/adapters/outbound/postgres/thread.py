@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from psycopg.types.json import Jsonb
+
 from arbor.adapters.outbound.postgres.mapping import thread_from_row
 from arbor.domain.conversation.thread import Citation, Message, Thread
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId
@@ -57,9 +59,9 @@ class PgThreadRepository:
             self.conn.execute(
                 """
                 INSERT INTO messages (
-                    tenant_id, thread_id, role, content, citation_memory_ids, citation_event_ids
+                    tenant_id, thread_id, role, content, citation_memory_ids, citation_event_ids, attachments
                 )
-                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s)
+                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s)
                 """,
                 (
                     thread.tenant_id.value,
@@ -68,13 +70,14 @@ class PgThreadRepository:
                     message.content,
                     memory_ids,
                     event_ids,
+                    Jsonb(list(message.attachments or [])),
                 ),
             )
 
     def _load_messages(self, tenant_id: TenantId, thread_id: ThreadId) -> list[Message]:
         rows = self.conn.execute(
             """
-            SELECT role, content, citation_memory_ids, citation_event_ids
+            SELECT role, content, citation_memory_ids, citation_event_ids, attachments
             FROM messages
             WHERE tenant_id = %s::uuid AND thread_id = %s::uuid
             ORDER BY created_at, id
@@ -88,7 +91,14 @@ class PgThreadRepository:
                 citations.append(Citation(memory_id=MemoryId(str(mid))))
             for eid in row.get("citation_event_ids") or []:
                 citations.append(Citation(event_id=EventId(str(eid))))
-            messages.append(Message(role=row["role"], content=row["content"] or "", citations=citations))
+            messages.append(
+                Message(
+                    role=row["role"],
+                    content=row["content"] or "",
+                    citations=citations,
+                    attachments=list(row.get("attachments") or []),
+                )
+            )
         return messages
 
     def summary_for(self, persona_id: PersonaId) -> str:
