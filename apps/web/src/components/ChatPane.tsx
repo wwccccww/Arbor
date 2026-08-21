@@ -64,7 +64,7 @@ export function ChatPane({
         <label>
           附件
           <input
-            key={file ? `${file.name}-${file.size}` : 'empty'}
+            key={fileKey}
             type="file"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
