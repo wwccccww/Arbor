@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { createClient } from '../api/client'
 import { DEMO_OWNER } from '../session'
+import type { ChatMessage } from '../api/types'
 import { ChatPane } from './ChatPane'
 
 describe('ChatPane', () => {
@@ -129,5 +131,60 @@ describe('ChatPane', () => {
     const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(url).toBe('/v1/threads/0a000000-0000-4000-a000-000000000030/export')
     expect((init as RequestInit).method).toBe('POST')
+  })
+
+  it('pages older messages with offset', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      const second = url.includes('offset=1')
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: second ? 'm1' : 'm0',
+              role: 'user',
+              content: second ? '第二页' : '第一页',
+              citations: [],
+            },
+          ],
+          total: 2,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const pageSize = 1
+
+    function Harness() {
+      const [messages, setMessages] = useState<ChatMessage[]>([
+        { id: 'm0', role: 'user', text: '第一页', citations: [] },
+      ])
+      const [offset, setOffset] = useState(0)
+      return (
+        <ChatPane
+          messages={messages}
+          offset={offset}
+          total={2}
+          pageSize={pageSize}
+          onSend={vi.fn()}
+          onJump={vi.fn()}
+          onPage={(next) => {
+            setOffset(next)
+            void client
+              .listMessages('0a000000-0000-4000-a000-000000000030', { limit: pageSize, offset: next })
+              .then((page) => setMessages(page.items))
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    expect(screen.getByText('1–1 / 2')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '下一页' }))
+    expect(await screen.findByText('第二页')).toBeInTheDocument()
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/threads/0a000000-0000-4000-a000-000000000030/messages?limit=1&offset=1',
+    )
   })
 })

@@ -37,6 +37,9 @@ export function Workbench({
   const [persona, setPersona] = useState<Persona | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messageOffset, setMessageOffset] = useState(0)
+  const [messageTotal, setMessageTotal] = useState(0)
+  const messagePageSize = 50
   const [nodes, setNodes] = useState<EventNode[]>([])
   const [treeForbidden, setTreeForbidden] = useState(false)
   const [memories, setMemories] = useState<MemoryItem[]>([])
@@ -89,7 +92,11 @@ export function Workbench({
         const thread = threads[0] ?? (await client.createThread(personaId))
         if (cancelled) return
         setThreadId(thread.id)
-        setMessages(await client.listMessages(thread.id))
+        const page = await client.listMessages(thread.id, { limit: messagePageSize, offset: 0 })
+        if (cancelled) return
+        setMessages(page.items)
+        setMessageTotal(page.total)
+        setMessageOffset(0)
       } catch (err) {
         if (!cancelled) setError((err as Error).message)
       }
@@ -114,6 +121,19 @@ export function Workbench({
 
   function jump(eventId?: string) {
     void openCard(eventId)
+  }
+
+  async function pageMessages(offset: number) {
+    if (!threadId) return
+    setError(null)
+    try {
+      const page = await client.listMessages(threadId, { limit: messagePageSize, offset })
+      setMessages(page.items)
+      setMessageTotal(page.total)
+      setMessageOffset(offset)
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
   async function send(text: string, file?: File) {
@@ -328,10 +348,14 @@ export function Workbench({
             messages={messages}
             sending={sending}
             exporting={exporting}
+            offset={messageOffset}
+            total={messageTotal}
+            pageSize={messagePageSize}
             onSend={(text, file) => void send(text, file)}
             onJump={jump}
             onOpenAttachment={(filename) => void openAttachment(filename)}
             onExport={() => void exportThread()}
+            onPage={(next) => void pageMessages(next)}
           />
         }
         right={

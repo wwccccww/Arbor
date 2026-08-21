@@ -12,6 +12,7 @@ import type {
   InboxList,
   MemberList,
   MemoryList,
+  MessagePage,
   Persona,
   PersonaDraft,
   PersonaGrant,
@@ -148,8 +149,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       return (await request(`/personas/${personaId}/threads`, { method: 'POST' })) as Thread
     },
 
-    async listMessages(threadId: string): Promise<ChatMessage[]> {
-      const body = (await request(`/threads/${threadId}/messages`)) as {
+    async listMessages(
+      threadId: string,
+      opts: { limit?: number; offset?: number } = {},
+    ): Promise<MessagePage> {
+      const limit = opts.limit ?? 50
+      const offset = opts.offset ?? 0
+      const body = (await request(`/threads/${threadId}/messages?limit=${limit}&offset=${offset}`)) as {
         items: {
           id: string
           role: string
@@ -158,14 +164,18 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
           citations?: unknown
           attachments?: ChatAttachment[]
         }[]
+        total?: number
       }
-      return body.items.map((item) => ({
-        id: item.id,
-        role: item.role,
-        text: item.content ?? item.text ?? '',
-        citations: asCitations(item.citations),
-        attachments: item.attachments ?? [],
-      }))
+      return {
+        items: body.items.map((item) => ({
+          id: item.id,
+          role: item.role,
+          text: item.content ?? item.text ?? '',
+          citations: asCitations(item.citations),
+          attachments: item.attachments ?? [],
+        })),
+        total: body.total ?? body.items.length,
+      }
     },
 
     async sendMessage(threadId: string, text: string, file?: File): Promise<ChatMessage> {

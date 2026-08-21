@@ -6,18 +6,26 @@ export function ChatPane({
   messages,
   sending,
   exporting,
+  offset = 0,
+  total,
+  pageSize = 50,
   onSend,
   onJump,
   onOpenAttachment,
   onExport,
+  onPage,
 }: {
   messages: ChatMessage[]
   sending?: boolean
   exporting?: boolean
+  offset?: number
+  total?: number
+  pageSize?: number
   onSend: (text: string, file?: File) => void
   onJump: (eventId?: string) => void
   onOpenAttachment?: (filename: string) => void
   onExport?: () => void
+  onPage?: (offset: number) => void
 }) {
   const [draft, setDraft] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -39,6 +47,23 @@ export function ChatPane({
         <div className="chat-toolbar">
           <button type="button" disabled={Boolean(exporting)} onClick={onExport}>
             导出会话
+          </button>
+        </div>
+      ) : null}
+      {onPage && typeof total === 'number' && total > pageSize ? (
+        <div className="chat-pager">
+          <button type="button" disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - pageSize))}>
+            上一页
+          </button>
+          <span>
+            {offset + 1}–{offset + messages.length} / {total}
+          </span>
+          <button
+            type="button"
+            disabled={offset + messages.length >= total}
+            onClick={() => onPage(offset + pageSize)}
+          >
+            下一页
           </button>
         </div>
       ) : null}
