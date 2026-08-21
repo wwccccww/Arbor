@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, InboxItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
 import { GrantsPane } from '../components/GrantsPane'
 import { ImportPane } from '../components/ImportPane'
 import { InboxPane } from '../components/InboxPane'
+import { MemoryListPane } from '../components/MemoryListPane'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 
@@ -38,6 +39,10 @@ export function Workbench({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [nodes, setNodes] = useState<EventNode[]>([])
   const [treeForbidden, setTreeForbidden] = useState(false)
+  const [memories, setMemories] = useState<MemoryItem[]>([])
+  const [memoriesForbidden, setMemoriesForbidden] = useState(false)
+  const [memoryType, setMemoryType] = useState('')
+  const [memoryTotal, setMemoryTotal] = useState(0)
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [inboxForbidden, setInboxForbidden] = useState(false)
   const [inboxBusy, setInboxBusy] = useState<string | undefined>()
@@ -56,16 +61,20 @@ export function Workbench({
     let cancelled = false
     async function load() {
       try {
-        const [loadedPersona, threads, tree, pending] = await Promise.all([
+        const [loadedPersona, threads, tree, pending, listedMemories] = await Promise.all([
           client.getPersona(personaId),
           client.listThreads(personaId),
           client.getEventTree(personaId, 'tree'),
           client.listInbox(personaId),
+          client.listMemories(personaId),
         ])
         if (cancelled) return
         setPersona(loadedPersona)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
+        setMemoriesForbidden(Boolean(listedMemories.forbidden))
+        setMemories(listedMemories.items)
+        setMemoryTotal(listedMemories.total)
         setInboxForbidden(Boolean(pending.forbidden))
         setInbox(pending.items)
         if (Array.isArray(loadedPersona.grants)) {
@@ -176,6 +185,10 @@ export function Workbench({
     try {
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
+      const listed = await client.listMemories(personaId, { type: memoryType || undefined })
+      setMemoriesForbidden(Boolean(listed.forbidden))
+      setMemories(listed.items)
+      setMemoryTotal(listed.total)
       if (opts.markKeyEvent) {
         const tree = await client.getEventTree(personaId, treeView)
         setTreeForbidden(Boolean(tree.forbidden))
@@ -198,6 +211,18 @@ export function Workbench({
       setError((err as Error).message)
     } finally {
       setInboxBusy(undefined)
+    }
+  }
+
+  async function changeMemoryType(type: string) {
+    setMemoryType(type)
+    try {
+      const listed = await client.listMemories(personaId, { type: type || undefined })
+      setMemoriesForbidden(Boolean(listed.forbidden))
+      setMemories(listed.items)
+      setMemoryTotal(listed.total)
+    } catch (err) {
+      setError((err as Error).message)
     }
   }
 
@@ -320,6 +345,14 @@ export function Workbench({
               onChangeView={(view) => void changeView(view)}
             />
             {treeForbidden ? null : <EventCardPane card={card} />}
+            <MemoryListPane
+              items={memories}
+              total={memoryTotal}
+              forbidden={memoriesForbidden}
+              type={memoryType}
+              onChangeType={(next) => void changeMemoryType(next)}
+              onSelect={(eventId) => void openCard(eventId)}
+            />
           </>
         }
       />

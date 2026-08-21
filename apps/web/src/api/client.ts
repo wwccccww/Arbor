@@ -10,6 +10,7 @@ import type {
   InboxItem,
   InboxList,
   MemberList,
+  MemoryList,
   Persona,
   PersonaDraft,
   PersonaGrant,
@@ -219,6 +220,20 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         method: 'POST',
         body,
       })) as { job_id: string; status: string; inbox_created: number }
+    },
+
+    async listMemories(personaId: string, opts: { type?: string } = {}): Promise<MemoryList> {
+      const query = opts.type ? `?type=${encodeURIComponent(opts.type)}` : ''
+      try {
+        const body = (await request(`/personas/${personaId}/memories${query}`)) as MemoryList
+        return { items: body.items ?? [], total: body.total ?? 0 }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { items: [], total: 0, forbidden: true }
+        }
+        throw err
+      }
     },
 
     async getEventTree(personaId: string, view: 'tree' | 'timeline' = 'tree'): Promise<EventTree> {
