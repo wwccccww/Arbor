@@ -22,6 +22,18 @@ export type PersonaPatch = {
   taboos?: string[]
 }
 
+export type PersonaDraft = {
+  skin: 'companion' | 'employee'
+  display_name: string
+  one_liner?: string
+}
+
+export type Tenant = {
+  id: string
+  name?: string
+  role?: string
+}
+
 export type TenantMember = {
   user: { id: string; email: string }
   role: string

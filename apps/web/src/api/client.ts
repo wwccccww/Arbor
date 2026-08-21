@@ -10,8 +10,10 @@ import type {
   InboxList,
   MemberList,
   Persona,
+  PersonaDraft,
   PersonaGrant,
   PersonaPatch,
+  Tenant,
   Thread,
 } from './types'
 
@@ -58,6 +60,22 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
     async listPersonas(): Promise<Persona[]> {
       const body = (await request('/personas')) as { items: Persona[] }
       return body.items
+    },
+
+    async listTenants(): Promise<Tenant[]> {
+      const body = (await request('/tenants')) as { items: Tenant[] }
+      return body.items ?? []
+    },
+
+    async createPersona(draft: PersonaDraft): Promise<Persona> {
+      return (await request('/personas', {
+        method: 'POST',
+        body: JSON.stringify({
+          skin: draft.skin,
+          display_name: draft.display_name,
+          one_liner: draft.one_liner ?? '',
+        }),
+      })) as Persona
     },
 
     async getPersona(personaId: string): Promise<Persona> {
