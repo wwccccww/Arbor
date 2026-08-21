@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from './api/client'
 import { DEMO_OWNER } from './session'
+import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
 import { Workbench } from './pages/Workbench'
 import type { Persona, PersonaDraft, TenantMember } from './api/types'
 
-function useHashRoute(): { page: 'home' | 'checkup' | 'workbench'; personaId?: string } {
+function useHashRoute(): { page: 'home' | 'checkup' | 'audit' | 'workbench'; personaId?: string } {
   const [hash, setHash] = useState(window.location.hash)
   useEffect(() => {
     const onChange = () => setHash(window.location.hash)
@@ -14,6 +15,7 @@ function useHashRoute(): { page: 'home' | 'checkup' | 'workbench'; personaId?: s
     return () => window.removeEventListener('hashchange', onChange)
   }, [])
   if (hash.startsWith('#/checkup')) return { page: 'checkup' }
+  if (hash.startsWith('#/audit')) return { page: 'audit' }
   const personaId = hash.match(/^#\/personas\/([^/]+)/)?.[1]
   if (personaId) return { page: 'workbench', personaId }
   return { page: 'home' }
@@ -108,6 +110,17 @@ export default function App() {
     )
   }
 
+  if (route.page === 'audit') {
+    return (
+      <AuditLogs
+        client={client}
+        onBack={() => {
+          window.location.hash = '#/'
+        }}
+      />
+    )
+  }
+
   return (
     <Home
       personas={personas}
@@ -121,6 +134,9 @@ export default function App() {
       }}
       onCheckup={() => {
         window.location.hash = '#/checkup'
+      }}
+      onAudit={() => {
+        window.location.hash = '#/audit'
       }}
       onCreate={(draft) => void createPersona(draft)}
       onInvite={(email, role) => void inviteMember(email, role)}

@@ -41,6 +41,26 @@ h3 {
   padding: 0 0 1rem;
 }
 
+.audit-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.audit-list li {
+  border: 1px solid #d8d0c4;
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: #fffaf2;
+}
+
+.audit-list p {
+  margin: 0.25rem 0 0;
+}
+
 .create-persona {
   margin: 0 0 1.5rem;
   padding: 1rem;

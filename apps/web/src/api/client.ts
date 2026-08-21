@@ -1,6 +1,7 @@
 import type { Session } from '../session'
 import type {
   ApiError,
+  AuditList,
   ChatAttachment,
   ChatMessage,
   Citation,
@@ -269,6 +270,20 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         const status = (err as ApiError).status
         if (status === 403 || status === 404) {
           return { id: eventId, memories: [], attachments: [], forbidden: true }
+        }
+        throw err
+      }
+    },
+
+    async listAuditLogs(opts: { action?: string } = {}): Promise<AuditList> {
+      const query = opts.action ? `?action=${encodeURIComponent(opts.action)}` : ''
+      try {
+        const body = (await request(`/audit-logs${query}`)) as AuditList
+        return { items: body.items ?? [] }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { items: [], forbidden: true }
         }
         throw err
       }
