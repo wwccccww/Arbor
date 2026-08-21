@@ -51,6 +51,7 @@ export function Workbench({
   const [memoryStatus, setMemoryStatus] = useState('active')
   const [memoryTotal, setMemoryTotal] = useState(0)
   const [memoryOffset, setMemoryOffset] = useState(0)
+  const [memoryByEvent, setMemoryByEvent] = useState(false)
   const memoryPageSize = 50
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [inboxForbidden, setInboxForbidden] = useState(false)
@@ -123,6 +124,9 @@ export function Workbench({
     document.getElementById(`event-${eventId}`)?.scrollIntoView({ block: 'nearest' })
     try {
       setCard(await client.getEventCard(eventId))
+      if (memoryByEvent) {
+        await loadMemories(memoryType, memoryStatus, 0, eventId)
+      }
     } catch (err) {
       setError((err as Error).message)
     }
@@ -235,10 +239,11 @@ export function Workbench({
     }
   }
 
-  async function loadMemories(type: string, status: string, offset = 0) {
+  async function loadMemories(type: string, status: string, offset = 0, eventId?: string) {
     const listed = await client.listMemories(personaId, {
       type: type || undefined,
       status: status !== 'active' ? status : undefined,
+      event_id: eventId,
       limit: memoryPageSize,
       offset,
     })
@@ -254,7 +259,7 @@ export function Workbench({
     try {
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
-      await loadMemories(memoryType, memoryStatus, memoryOffset)
+      await loadMemories(memoryType, memoryStatus, memoryOffset, memoryByEvent ? highlightedId : undefined)
       if (opts.markKeyEvent) {
         const tree = await client.getEventTree(personaId, treeView, keyOnly)
         setTreeForbidden(Boolean(tree.forbidden))
@@ -283,7 +288,7 @@ export function Workbench({
   async function changeMemoryType(type: string) {
     setMemoryType(type)
     try {
-      await loadMemories(type, memoryStatus, 0)
+      await loadMemories(type, memoryStatus, 0, memoryByEvent ? highlightedId : undefined)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -292,7 +297,16 @@ export function Workbench({
   async function changeMemoryStatus(status: string) {
     setMemoryStatus(status)
     try {
-      await loadMemories(memoryType, status, 0)
+      await loadMemories(memoryType, status, 0, memoryByEvent ? highlightedId : undefined)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function changeMemoryByEvent(next: boolean) {
+    setMemoryByEvent(next)
+    try {
+      await loadMemories(memoryType, memoryStatus, 0, next ? highlightedId : undefined)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -300,7 +314,7 @@ export function Workbench({
 
   async function pageMemories(offset: number) {
     try {
-      await loadMemories(memoryType, memoryStatus, offset)
+      await loadMemories(memoryType, memoryStatus, offset, memoryByEvent ? highlightedId : undefined)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -458,8 +472,11 @@ export function Workbench({
               status={memoryStatus}
               offset={memoryOffset}
               pageSize={memoryPageSize}
+              eventId={highlightedId}
+              filterByEvent={memoryByEvent}
               onChangeType={(next) => void changeMemoryType(next)}
               onChangeStatus={(next) => void changeMemoryStatus(next)}
+              onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
               onPage={(next) => void pageMemories(next)}
               onSelect={(eventId) => void openCard(eventId)}
             />

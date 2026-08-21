@@ -23,8 +23,11 @@ export function MemoryListPane({
   status = 'active',
   offset = 0,
   pageSize = 50,
+  eventId,
+  filterByEvent = false,
   onChangeType,
   onChangeStatus,
+  onToggleEventFilter,
   onPage,
   onSelect,
 }: {
@@ -35,8 +38,11 @@ export function MemoryListPane({
   status?: string
   offset?: number
   pageSize?: number
+  eventId?: string
+  filterByEvent?: boolean
   onChangeType?: (type: string) => void
   onChangeStatus?: (status: string) => void
+  onToggleEventFilter?: (next: boolean) => void
   onPage?: (offset: number) => void
   onSelect?: (eventId: string) => void
 }) {
@@ -74,6 +80,17 @@ export function MemoryListPane({
               </option>
             ))}
           </select>
+        </label>
+      ) : null}
+      {onToggleEventFilter ? (
+        <label>
+          仅当前事件
+          <input
+            type="checkbox"
+            checked={filterByEvent}
+            disabled={!eventId}
+            onChange={(event) => onToggleEventFilter(event.target.checked)}
+          />
         </label>
       ) : null}
       {typeof total === 'number' ? <p>{total} 条</p> : null}

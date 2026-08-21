@@ -282,11 +282,12 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
 
     async listMemories(
       personaId: string,
-      opts: { type?: string; status?: string; limit?: number; offset?: number } = {},
+      opts: { type?: string; status?: string; event_id?: string; limit?: number; offset?: number } = {},
     ): Promise<MemoryList> {
       const params = new URLSearchParams()
       if (opts.type) params.set('type', opts.type)
       if (opts.status) params.set('status', opts.status)
+      if (opts.event_id) params.set('event_id', opts.event_id)
       if (opts.limit != null) params.set('limit', String(opts.limit))
       if (opts.offset) params.set('offset', String(opts.offset))
       const query = params.size ? `?${params.toString()}` : ''
