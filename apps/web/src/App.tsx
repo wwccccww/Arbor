@@ -87,6 +87,21 @@ export default function App() {
     }
   }
 
+  async function changeMemberRole(userId: string, role: string) {
+    setInviting(true)
+    setError(undefined)
+    try {
+      const updated = await client.patchMember(userId, role)
+      setMembers((current) =>
+        current.map((member) => (member.user.id === userId ? { ...member, role: updated.role } : member)),
+      )
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setInviting(false)
+    }
+  }
+
   if (route.page === 'workbench' && route.personaId) {
     return (
       <Workbench
@@ -140,6 +155,7 @@ export default function App() {
       }}
       onCreate={(draft) => void createPersona(draft)}
       onInvite={(email, role) => void inviteMember(email, role)}
+      onChangeRole={(userId, role) => void changeMemberRole(userId, role)}
     />
   )
 }

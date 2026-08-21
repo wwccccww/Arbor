@@ -114,6 +114,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       })) as TenantMember
     },
 
+    async patchMember(userId: string, role: string): Promise<{ user: { id: string }; role: string }> {
+      return (await request(`/tenants/${session.tenantId}/members/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      })) as { user: { id: string }; role: string }
+    },
+
     async replaceGrants(personaId: string, grants: PersonaGrant[]): Promise<{ ok: boolean; grants: PersonaGrant[] }> {
       return (await request(`/personas/${personaId}/grants`, {
         method: 'PUT',

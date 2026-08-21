@@ -82,6 +82,13 @@ h3 {
   margin: 0 0 0.75rem;
 }
 
+.member-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
 .checkup-actions {
   display: flex;
   gap: 0.75rem;
