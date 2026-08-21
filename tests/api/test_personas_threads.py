@@ -96,6 +96,12 @@ def test_member_cannot_create_persona_or_read_zhou():
     assert created.status_code == 403
     hidden = client.get(f"/v1/personas/{ZHOU}", headers=_headers("token-member"))
     assert hidden.status_code in {403, 404}
+    patched = client.patch(
+        f"/v1/personas/{LINXIA}",
+        headers=_headers("token-member"),
+        json={"one_liner": "不该改"},
+    )
+    assert patched.status_code in {403, 404}
 
 
 def test_existing_thread_history_endpoint():

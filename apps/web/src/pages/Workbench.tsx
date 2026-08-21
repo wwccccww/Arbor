@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, InboxItem, Persona, PersonaGrant, TenantMember } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, InboxItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
@@ -44,6 +44,7 @@ export function Workbench({
   const [members, setMembers] = useState<TenantMember[]>([])
   const [grantsForbidden, setGrantsForbidden] = useState(true)
   const [grantsBusy, setGrantsBusy] = useState(false)
+  const [profileBusy, setProfileBusy] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [card, setCard] = useState<EventCard | null>(null)
   const [sending, setSending] = useState(false)
@@ -173,6 +174,18 @@ export function Workbench({
     }
   }
 
+  async function saveProfile(patch: PersonaPatch) {
+    setProfileBusy(true)
+    setError(null)
+    try {
+      setPersona(await client.patchPersona(personaId, patch))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setProfileBusy(false)
+    }
+  }
+
   async function saveGrants(grants: PersonaGrant[]) {
     setGrantsBusy(true)
     setError(null)
@@ -217,7 +230,12 @@ export function Workbench({
         left={
           persona ? (
             <>
-              <ProfilePane persona={persona} />
+              <ProfilePane
+                persona={persona}
+                editable={Array.isArray(persona.grants)}
+                busy={profileBusy}
+                onSave={(patch) => void saveProfile(patch)}
+              />
               <GrantsPane
                 members={members}
                 grants={persona.grants ?? []}
