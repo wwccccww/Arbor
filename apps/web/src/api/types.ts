@@ -37,6 +37,10 @@ export type Tenant = {
   role?: string
 }
 
+export type Me = {
+  user: { id: string; email: string }
+}
+
 export type TenantMember = {
   user: { id: string; email: string }
   role: string

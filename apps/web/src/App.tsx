@@ -35,14 +35,20 @@ export default function App() {
   const [creating, setCreating] = useState(false)
   const [members, setMembers] = useState<TenantMember[]>([])
   const [inviting, setInviting] = useState(false)
+  const [email, setEmail] = useState<string | undefined>()
   const [error, setError] = useState<string | undefined>()
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
-        const [items, tenants] = await Promise.all([client.listPersonas(), client.listTenants()])
+        const [me, items, tenants] = await Promise.all([
+          client.getMe(),
+          client.listPersonas(),
+          client.listTenants(),
+        ])
         if (cancelled) return
+        setEmail(me.user.email)
         setPersonas(items)
         setTenants(tenants)
         const current = tenants.find((tenant) => tenant.id === session.tenantId)
@@ -174,6 +180,7 @@ export default function App() {
   return (
     <Home
       personas={personas}
+      email={email}
       error={error}
       canCreate={canCreate}
       creating={creating}
