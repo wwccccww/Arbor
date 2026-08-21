@@ -81,7 +81,7 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         method: 'PUT',
         body: JSON.stringify({ grants }),
       })) as { ok: boolean; grants: PersonaGrant[] }
-    },,
+    },
 
     async listThreads(personaId: string): Promise<Thread[]> {
       const body = (await request(`/personas/${personaId}/threads`)) as { items: Thread[] }
