@@ -11,6 +11,7 @@ import type {
   MemberList,
   Persona,
   PersonaGrant,
+  PersonaPatch,
   Thread,
 } from './types'
 
@@ -61,6 +62,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
 
     async getPersona(personaId: string): Promise<Persona> {
       return (await request(`/personas/${personaId}`)) as Persona
+    },
+
+    async patchPersona(personaId: string, patch: PersonaPatch): Promise<Persona> {
+      return (await request(`/personas/${personaId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      })) as Persona
     },
 
     async listMembers(): Promise<MemberList> {

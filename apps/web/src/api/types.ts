@@ -16,6 +16,12 @@ export type Persona = {
   grants?: PersonaGrant[]
 }
 
+export type PersonaPatch = {
+  display_name?: string
+  one_liner?: string
+  taboos?: string[]
+}
+
 export type TenantMember = {
   user: { id: string; email: string }
   role: string
