@@ -49,6 +49,20 @@ describe('createClient', () => {
     )
   })
 
+  it('asks the event tree API for all events when key_only is off', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ nodes: [], edges: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    await client.getEventTree('linxia', 'tree', false)
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/events/tree?view=tree&key_only=false',
+    )
+  })
+
   it('confirm and dismiss post to inbox routes', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
