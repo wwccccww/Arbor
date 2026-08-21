@@ -9,6 +9,7 @@ export function Home({
   tenants,
   currentTenantId,
   canDeleteTenant,
+  email,
   error,
   canCreate,
   creating,
@@ -28,6 +29,7 @@ export function Home({
   tenants?: Tenant[]
   currentTenantId?: string
   canDeleteTenant?: boolean
+  email?: string
   error?: string
   canCreate?: boolean
   creating?: boolean
@@ -46,6 +48,7 @@ export function Home({
     <section className="home">
       <header className="home-bar">
         <h1>工作空间</h1>
+        {email ? <span>{email}</span> : null}
         <button type="button" onClick={onCheckup}>
           记忆体检
         </button>

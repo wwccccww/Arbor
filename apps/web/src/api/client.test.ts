@@ -21,6 +21,22 @@ describe('createClient', () => {
     expect(headers.get('X-Tenant-Id')).toBe(DEMO_OWNER.tenantId)
   })
 
+  it('loads the current user from /me', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          user: { id: '0a000000-0000-4000-a000-000000000002', email: 'demo-a@arbor.eval' },
+          tenants: [],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const me = await client.getMe()
+    expect(me.user.email).toBe('demo-a@arbor.eval')
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('/v1/me')
+  })
+
   it('treats a missing event tree as empty rather than inventing nodes', async () => {
     const fetchImpl = vi.fn(
       async () =>

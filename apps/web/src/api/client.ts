@@ -11,6 +11,7 @@ import type {
   InboxItem,
   InboxList,
   ImportJob,
+  Me,
   MemberList,
   MemoryList,
   MessagePage,
@@ -64,6 +65,10 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
   }
 
   return {
+    async getMe(): Promise<Me> {
+      return (await request('/me')) as Me
+    },
+
     async listPersonas(): Promise<Persona[]> {
       const body = (await request('/personas')) as { items: Persona[] }
       return body.items
