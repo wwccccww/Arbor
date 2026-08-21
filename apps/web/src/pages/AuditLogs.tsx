@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { AuditLog } from '../api/types'
+import type { AuditLog, Persona } from '../api/types'
 
 const ACTIONS = [
   { id: '', label: '全部' },
@@ -23,7 +23,9 @@ export function AuditLogs({
   onBack: () => void
 }) {
   const [items, setItems] = useState<AuditLog[]>([])
+  const [personas, setPersonas] = useState<Persona[]>([])
   const [action, setAction] = useState('')
+  const [personaId, setPersonaId] = useState('')
   const [forbidden, setForbidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,10 +33,17 @@ export function AuditLogs({
     let cancelled = false
     async function load() {
       try {
-        const listed = await client.listAuditLogs({ action: action || undefined })
+        const listed = await client.listAuditLogs({
+          action: action || undefined,
+          persona_id: personaId || undefined,
+        })
         if (cancelled) return
         setForbidden(Boolean(listed.forbidden))
         setItems(listed.items)
+        if (!listed.forbidden) {
+          const people = await client.listPersonas()
+          if (!cancelled) setPersonas(people)
+        }
       } catch (err) {
         if (!cancelled) setError((err as Error).message)
       }
@@ -43,7 +52,7 @@ export function AuditLogs({
     return () => {
       cancelled = true
     }
-  }, [client, action])
+  }, [client, action, personaId])
 
   return (
     <section className="checkup">
@@ -64,6 +73,17 @@ export function AuditLogs({
               {ACTIONS.map((item) => (
                 <option key={item.id || 'all'} value={item.id}>
                   {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            人设
+            <select value={personaId} onChange={(event) => setPersonaId(event.target.value)}>
+              <option value="">全部</option>
+              {personas.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.display_name}
                 </option>
               ))}
             </select>
