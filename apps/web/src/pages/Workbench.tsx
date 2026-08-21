@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventNode, InboxItem, Persona } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, InboxItem, Persona } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
+import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
 import { ImportPane } from '../components/ImportPane'
 import { InboxPane } from '../components/InboxPane'
@@ -39,6 +40,7 @@ export function Workbench({
   const [inboxForbidden, setInboxForbidden] = useState(false)
   const [inboxBusy, setInboxBusy] = useState<string | undefined>()
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
+  const [card, setCard] = useState<EventCard | null>(null)
   const [sending, setSending] = useState(false)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,11 +75,20 @@ export function Workbench({
     }
   }, [client, personaId])
 
-  function jump(eventId?: string) {
+  async function openCard(eventId?: string) {
     if (!eventId) return
     setHighlightedId(eventId)
     if (narrow) setTreeOpen(true)
     document.getElementById(`event-${eventId}`)?.scrollIntoView({ block: 'nearest' })
+    try {
+      setCard(await client.getEventCard(eventId))
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  function jump(eventId?: string) {
+    void openCard(eventId)
   }
 
   async function send(text: string) {
@@ -190,12 +201,15 @@ export function Workbench({
           <ChatPane messages={messages} sending={sending} onSend={(text) => void send(text)} onJump={jump} />
         }
         right={
-          <EventTreePane
-            nodes={nodes}
-            forbidden={treeForbidden}
-            highlightedId={highlightedId}
-            onSelect={setHighlightedId}
-          />
+          <>
+            <EventTreePane
+              nodes={nodes}
+              forbidden={treeForbidden}
+              highlightedId={highlightedId}
+              onSelect={(eventId) => void openCard(eventId)}
+            />
+            {treeForbidden ? null : <EventCardPane card={card} />}
+          </>
         }
       />
     </div>

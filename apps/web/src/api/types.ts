@@ -43,6 +43,17 @@ export type EventTree = {
   forbidden?: boolean
 }
 
+export type EventCard = {
+  id: string
+  title?: string
+  happened_at?: string
+  type?: string
+  summary?: string
+  memories: { id: string; text: string }[]
+  attachments: { id: string; type: string; text: string }[]
+  forbidden?: boolean
+}
+
 export type ApiError = Error & { status: number; code?: string }
 
 export type InboxItem = {
