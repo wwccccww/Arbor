@@ -106,19 +106,20 @@ export function Workbench({
     void openCard(eventId)
   }
 
-  async function send(text: string) {
+  async function send(text: string, file?: File) {
     if (!threadId) return
     const userMessage: ChatMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
       text,
       citations: [],
+      attachments: file ? [{ filename: file.name }] : [],
     }
     setMessages((current) => [...current, userMessage])
     setSending(true)
     setError(null)
     try {
-      const reply = await client.sendMessage(threadId, text)
+      const reply = await client.sendMessage(threadId, text, file)
       setMessages((current) => [...current, reply])
       if (reply.inbox_created) {
         const pending = await client.listInbox(personaId)
@@ -129,6 +130,22 @@ export function Workbench({
       setError((err as Error).message)
     } finally {
       setSending(false)
+    }
+  }
+
+  async function openAttachment(filename: string) {
+    if (!threadId) return
+    setError(null)
+    try {
+      const blob = await client.downloadAttachment(threadId, filename)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError((err as Error).message)
     }
   }
 
@@ -261,7 +278,13 @@ export function Workbench({
           )
         }
         center={
-          <ChatPane messages={messages} sending={sending} onSend={(text) => void send(text)} onJump={jump} />
+          <ChatPane
+            messages={messages}
+            sending={sending}
+            onSend={(text, file) => void send(text, file)}
+            onJump={jump}
+            onOpenAttachment={(filename) => void openAttachment(filename)}
+          />
         }
         right={
           <>

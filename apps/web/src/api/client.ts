@@ -1,6 +1,7 @@
 import type { Session } from '../session'
 import type {
   ApiError,
+  ChatAttachment,
   ChatMessage,
   Citation,
   EvalRun,
@@ -120,28 +121,61 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
 
     async listMessages(threadId: string): Promise<ChatMessage[]> {
       const body = (await request(`/threads/${threadId}/messages`)) as {
-        items: { id: string; role: string; content?: string; text?: string; citations?: unknown }[]
+        items: {
+          id: string
+          role: string
+          content?: string
+          text?: string
+          citations?: unknown
+          attachments?: ChatAttachment[]
+        }[]
       }
       return body.items.map((item) => ({
         id: item.id,
         role: item.role,
         text: item.content ?? item.text ?? '',
         citations: asCitations(item.citations),
+        attachments: item.attachments ?? [],
       }))
     },
 
-    async sendMessage(threadId: string, text: string): Promise<ChatMessage> {
-      const body = (await request(`/threads/${threadId}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ text, attachments: [] }),
-      })) as { message_id: string; role: string; text: string; citations?: unknown; inbox_created?: number }
+    async sendMessage(threadId: string, text: string, file?: File): Promise<ChatMessage> {
+      const init: RequestInit = file
+        ? (() => {
+            const body = new FormData()
+            body.append('text', text)
+            body.append('file', file)
+            return { method: 'POST', body }
+          })()
+        : {
+            method: 'POST',
+            body: JSON.stringify({ text, attachments: [] }),
+          }
+      const body = (await request(`/threads/${threadId}/messages`, init)) as {
+        message_id: string
+        role: string
+        text: string
+        citations?: unknown
+        inbox_created?: number
+        attachments?: ChatAttachment[]
+      }
       return {
         id: body.message_id,
         role: body.role,
         text: body.text,
         citations: asCitations(body.citations),
         inbox_created: body.inbox_created ?? 0,
+        attachments: body.attachments ?? [],
       }
+    },
+
+    async downloadAttachment(threadId: string, filename: string): Promise<Blob> {
+      const headers = new Headers()
+      headers.set('Authorization', `Bearer ${session.token}`)
+      headers.set('X-Tenant-Id', session.tenantId)
+      const res = await fetchImpl(`/v1/threads/${threadId}/attachments/${encodeURIComponent(filename)}`, { headers })
+      if (!res.ok) throw await parseError(res)
+      return await res.blob()
     },
 
     async listInbox(personaId: string): Promise<InboxList> {

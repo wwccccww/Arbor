@@ -55,11 +55,16 @@ export type Citation = {
   preview?: string
 }
 
+export type ChatAttachment = {
+  filename: string
+}
+
 export type ChatMessage = {
   id: string
   role: string
   text: string
   citations: Citation[]
+  attachments?: ChatAttachment[]
   inbox_created?: number
 }
 
