@@ -132,6 +132,26 @@ describe('createClient', () => {
     )
   })
 
+  it('loads an import job by id', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          id: 'job-1',
+          status: 'completed',
+          filename: 'notes.txt',
+          persona_id: 'linxia',
+          inbox_created: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const job = await client.getImport('job-1')
+    expect(job.filename).toBe('notes.txt')
+    expect(job.inbox_created).toBe(1)
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('/v1/imports/job-1')
+  })
+
   it('starts eval runs in retrieval mode only', async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(JSON.stringify({ id: 'run-1' }), {

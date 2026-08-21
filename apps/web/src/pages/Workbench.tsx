@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
@@ -59,6 +59,7 @@ export function Workbench({
   const [sending, setSending] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [importJob, setImportJob] = useState<ImportJob | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -300,7 +301,9 @@ export function Workbench({
     setImporting(true)
     setError(null)
     try {
-      await client.importFile(personaId, file, hint)
+      const created = await client.importFile(personaId, file, hint)
+      const job = await client.getImport(created.job_id)
+      setImportJob(job)
       const pending = await client.listInbox(personaId)
       setInboxForbidden(Boolean(pending.forbidden))
       setInbox(pending.items)
@@ -343,6 +346,7 @@ export function Workbench({
               <ImportPane
                 forbidden={inboxForbidden}
                 busy={importing}
+                job={importJob}
                 onImport={(file, hint) => void importFile(file, hint)}
               />
               <InboxPane

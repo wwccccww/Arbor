@@ -10,6 +10,7 @@ import type {
   EventTree,
   InboxItem,
   InboxList,
+  ImportJob,
   MemberList,
   MemoryList,
   MessagePage,
@@ -257,6 +258,26 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         method: 'POST',
         body,
       })) as { job_id: string; status: string; inbox_created: number }
+    },
+
+    async getImport(jobId: string): Promise<ImportJob> {
+      try {
+        const body = (await request(`/imports/${jobId}`)) as ImportJob
+        return {
+          id: body.id,
+          status: body.status,
+          filename: body.filename,
+          persona_id: body.persona_id,
+          inbox_created: body.inbox_created ?? 0,
+          error: body.error,
+        }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { id: jobId, status: 'unknown', forbidden: true }
+        }
+        throw err
+      }
     },
 
     async listMemories(personaId: string, opts: { type?: string; status?: string } = {}): Promise<MemoryList> {

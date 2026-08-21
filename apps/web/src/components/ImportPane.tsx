@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import type { ImportJob } from '../api/types'
 
 export function ImportPane({
   forbidden,
   busy,
+  job,
   onImport,
 }: {
   forbidden?: boolean
   busy?: boolean
+  job?: ImportJob | null
   onImport: (file: File, hint?: string) => void
 }) {
   const [file, setFile] = useState<File | null>(null)
@@ -40,6 +43,12 @@ export function ImportPane({
           导入
         </button>
       </form>
+      {job && !job.forbidden ? (
+        <p>
+          {job.filename ?? '导入'} · {job.status}
+          {typeof job.inbox_created === 'number' ? ` · ${job.inbox_created} 条进收件箱` : ''}
+        </p>
+      ) : null}
     </section>
   )
 }

@@ -125,6 +125,16 @@ export type InboxList = {
   forbidden?: boolean
 }
 
+export type ImportJob = {
+  id: string
+  status: string
+  filename?: string
+  persona_id?: string
+  inbox_created?: number
+  error?: string | null
+  forbidden?: boolean
+}
+
 export type MemoryItem = {
   id: string
   text: string
