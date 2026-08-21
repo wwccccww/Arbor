@@ -31,6 +31,7 @@ export function Workbench({
 }) {
   const narrow = useNarrow()
   const [treeOpen, setTreeOpen] = useState(false)
+  const [treeView, setTreeView] = useState<'tree' | 'timeline'>('tree')
   const [persona, setPersona] = useState<Persona | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -52,7 +53,7 @@ export function Workbench({
         const [loadedPersona, threads, tree, pending] = await Promise.all([
           client.getPersona(personaId),
           client.listThreads(personaId),
-          client.getEventTree(personaId),
+          client.getEventTree(personaId, 'tree'),
           client.listInbox(personaId),
         ])
         if (cancelled) return
@@ -124,7 +125,7 @@ export function Workbench({
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
       if (opts.markKeyEvent) {
-        const tree = await client.getEventTree(personaId)
+        const tree = await client.getEventTree(personaId, treeView)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
       }
@@ -145,6 +146,17 @@ export function Workbench({
       setError((err as Error).message)
     } finally {
       setInboxBusy(undefined)
+    }
+  }
+
+  async function changeView(view: 'tree' | 'timeline') {
+    setTreeView(view)
+    try {
+      const tree = await client.getEventTree(personaId, view)
+      setTreeForbidden(Boolean(tree.forbidden))
+      setNodes(tree.nodes)
+    } catch (err) {
+      setError((err as Error).message)
     }
   }
 
@@ -205,8 +217,10 @@ export function Workbench({
             <EventTreePane
               nodes={nodes}
               forbidden={treeForbidden}
+              view={treeView}
               highlightedId={highlightedId}
               onSelect={(eventId) => void openCard(eventId)}
+              onChangeView={(view) => void changeView(view)}
             />
             {treeForbidden ? null : <EventCardPane card={card} />}
           </>
