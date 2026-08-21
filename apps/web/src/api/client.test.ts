@@ -146,6 +146,24 @@ describe('createClient', () => {
     )
   })
 
+  it('lists memories with limit and offset', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: 'mem-2', text: '旧的猫咪名', type: 'fact' }],
+          total: 3,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const page = await client.listMemories('linxia', { limit: 1, offset: 2 })
+    expect(page.total).toBe(3)
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?limit=1&offset=2',
+    )
+  })
+
   it('loads an import job by id', async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(

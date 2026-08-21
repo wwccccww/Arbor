@@ -21,8 +21,11 @@ export function MemoryListPane({
   forbidden,
   type = '',
   status = 'active',
+  offset = 0,
+  pageSize = 50,
   onChangeType,
   onChangeStatus,
+  onPage,
   onSelect,
 }: {
   items: MemoryItem[]
@@ -30,8 +33,11 @@ export function MemoryListPane({
   forbidden?: boolean
   type?: string
   status?: string
+  offset?: number
+  pageSize?: number
   onChangeType?: (type: string) => void
   onChangeStatus?: (status: string) => void
+  onPage?: (offset: number) => void
   onSelect?: (eventId: string) => void
 }) {
   if (forbidden) {
@@ -71,6 +77,23 @@ export function MemoryListPane({
         </label>
       ) : null}
       {typeof total === 'number' ? <p>{total} 条</p> : null}
+      {onPage && typeof total === 'number' && total > pageSize ? (
+        <div className="memory-pager">
+          <button type="button" disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - pageSize))}>
+            上一页
+          </button>
+          <span>
+            {offset + 1}–{offset + items.length} / {total}
+          </span>
+          <button
+            type="button"
+            disabled={offset + items.length >= total}
+            onClick={() => onPage(offset + pageSize)}
+          >
+            下一页
+          </button>
+        </div>
+      ) : null}
       {items.length === 0 ? (
         <p>暂无记忆</p>
       ) : (
