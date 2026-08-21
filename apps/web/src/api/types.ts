@@ -1,3 +1,10 @@
+export type Capability = 'chat' | 'read_memory' | 'write_memory' | 'admin'
+
+export type PersonaGrant = {
+  user_id: string
+  capabilities: Capability[]
+}
+
 export type Persona = {
   id: string
   skin?: string
@@ -6,6 +13,17 @@ export type Persona = {
   taboos?: string[]
   relationships?: { name: string; kind: string }[]
   personality?: { traits?: string[] }
+  grants?: PersonaGrant[]
+}
+
+export type TenantMember = {
+  user: { id: string; email: string }
+  role: string
+}
+
+export type MemberList = {
+  items: TenantMember[]
+  forbidden?: boolean
 }
 
 export type Thread = {

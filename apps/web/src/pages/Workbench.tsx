@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, InboxItem, Persona } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, InboxItem, Persona, PersonaGrant, TenantMember } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
+import { GrantsPane } from '../components/GrantsPane'
 import { ImportPane } from '../components/ImportPane'
 import { InboxPane } from '../components/InboxPane'
 import { ProfilePane } from '../components/ProfilePane'
@@ -40,6 +41,9 @@ export function Workbench({
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [inboxForbidden, setInboxForbidden] = useState(false)
   const [inboxBusy, setInboxBusy] = useState<string | undefined>()
+  const [members, setMembers] = useState<TenantMember[]>([])
+  const [grantsForbidden, setGrantsForbidden] = useState(true)
+  const [grantsBusy, setGrantsBusy] = useState(false)
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [card, setCard] = useState<EventCard | null>(null)
   const [sending, setSending] = useState(false)
@@ -62,6 +66,15 @@ export function Workbench({
         setNodes(tree.nodes)
         setInboxForbidden(Boolean(pending.forbidden))
         setInbox(pending.items)
+        if (Array.isArray(loadedPersona.grants)) {
+          const listed = await client.listMembers()
+          if (cancelled) return
+          setGrantsForbidden(Boolean(listed.forbidden))
+          setMembers(listed.items)
+        } else {
+          setGrantsForbidden(true)
+          setMembers([])
+        }
         const thread = threads[0] ?? (await client.createThread(personaId))
         if (cancelled) return
         setThreadId(thread.id)
@@ -160,6 +173,19 @@ export function Workbench({
     }
   }
 
+  async function saveGrants(grants: PersonaGrant[]) {
+    setGrantsBusy(true)
+    setError(null)
+    try {
+      const updated = await client.replaceGrants(personaId, grants)
+      setPersona((current) => (current ? { ...current, grants: updated.grants } : current))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setGrantsBusy(false)
+    }
+  }
+
   async function importFile(file: File, hint?: string) {
     setImporting(true)
     setError(null)
@@ -192,6 +218,13 @@ export function Workbench({
           persona ? (
             <>
               <ProfilePane persona={persona} />
+              <GrantsPane
+                members={members}
+                grants={persona.grants ?? []}
+                forbidden={grantsForbidden}
+                busy={grantsBusy}
+                onSave={(next) => void saveGrants(next)}
+              />
               <ImportPane
                 forbidden={inboxForbidden}
                 busy={importing}

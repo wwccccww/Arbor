@@ -111,6 +111,11 @@ components:
           items:
             type: object
             additionalProperties: true
+        grants:
+          type: array
+          description: 仅人设 admin 可见；无 admin 时省略该键。
+          items:
+            $ref: "#/components/schemas/Grant"
     Grant:
       type: object
       required: [user_id, capabilities]
