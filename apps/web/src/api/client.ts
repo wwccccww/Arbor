@@ -72,6 +72,17 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       return body.items ?? []
     },
 
+    async createTenant(name: string): Promise<Tenant> {
+      return (await request('/tenants', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      })) as Tenant
+    },
+
+    async deleteTenant(tenantId: string): Promise<void> {
+      await request(`/tenants/${tenantId}`, { method: 'DELETE' })
+    },
+
     async createPersona(draft: PersonaDraft): Promise<Persona> {
       return (await request('/personas', {
         method: 'POST',

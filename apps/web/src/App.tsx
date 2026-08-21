@@ -5,7 +5,7 @@ import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
 import { Workbench } from './pages/Workbench'
-import type { Persona, PersonaDraft, TenantMember } from './api/types'
+import type { Persona, PersonaDraft, Tenant, TenantMember } from './api/types'
 
 function useHashRoute(): { page: 'home' | 'checkup' | 'audit' | 'workbench'; personaId?: string } {
   const [hash, setHash] = useState(window.location.hash)
@@ -26,9 +26,11 @@ function canCreatePersonas(role?: string) {
 }
 
 export default function App() {
-  const client = useMemo(() => createClient(DEMO_OWNER), [])
+  const [session, setSession] = useState(DEMO_OWNER)
+  const client = useMemo(() => createClient(session), [session])
   const route = useHashRoute()
   const [personas, setPersonas] = useState<Persona[]>([])
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [canCreate, setCanCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [members, setMembers] = useState<TenantMember[]>([])
@@ -42,13 +44,16 @@ export default function App() {
         const [items, tenants] = await Promise.all([client.listPersonas(), client.listTenants()])
         if (cancelled) return
         setPersonas(items)
-        const current = tenants.find((tenant) => tenant.id === DEMO_OWNER.tenantId)
+        setTenants(tenants)
+        const current = tenants.find((tenant) => tenant.id === session.tenantId)
         const allowed = canCreatePersonas(current?.role)
         setCanCreate(allowed)
         if (allowed) {
           const listed = await client.listMembers()
           if (cancelled) return
           setMembers(listed.forbidden ? [] : listed.items)
+        } else {
+          setMembers([])
         }
       } catch (err) {
         if (!cancelled) setError((err as Error).message)
@@ -58,7 +63,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [client])
+  }, [client, session.tenantId])
 
   async function createPersona(draft: PersonaDraft) {
     setCreating(true)
@@ -67,6 +72,36 @@ export default function App() {
       const created = await client.createPersona(draft)
       setPersonas((current) => [...current, created])
       window.location.hash = `#/personas/${created.id}`
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function createTenant(name: string) {
+    setCreating(true)
+    setError(undefined)
+    try {
+      const created = await client.createTenant(name)
+      setTenants((current) => [...current, created])
+      setSession((current) => ({ ...current, tenantId: created.id }))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function deleteTenant() {
+    setCreating(true)
+    setError(undefined)
+    try {
+      await client.deleteTenant(session.tenantId)
+      const remaining = tenants.filter((tenant) => tenant.id !== session.tenantId)
+      setTenants(remaining)
+      const fallback = remaining[0]?.id ?? DEMO_OWNER.tenantId
+      setSession((current) => ({ ...current, tenantId: fallback }))
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -143,6 +178,12 @@ export default function App() {
       canCreate={canCreate}
       creating={creating}
       members={members}
+      tenants={tenants}
+      currentTenantId={session.tenantId}
+      canDeleteTenant={
+        Boolean(tenants.find((tenant) => tenant.id === session.tenantId)?.role === 'owner') &&
+        personas.length === 0
+      }
       inviting={inviting}
       onOpen={(id) => {
         window.location.hash = `#/personas/${id}`
@@ -156,6 +197,12 @@ export default function App() {
       onCreate={(draft) => void createPersona(draft)}
       onInvite={(email, role) => void inviteMember(email, role)}
       onChangeRole={(userId, role) => void changeMemberRole(userId, role)}
+      onSwitchTenant={(tenantId) => {
+        window.location.hash = '#/'
+        setSession((current) => ({ ...current, tenantId }))
+      }}
+      onCreateTenant={(name) => void createTenant(name)}
+      onDeleteTenant={() => void deleteTenant()}
     />
   )
 }
