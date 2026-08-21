@@ -26,6 +26,8 @@ export function AuditLogs({
   const [personas, setPersonas] = useState<Persona[]>([])
   const [action, setAction] = useState('')
   const [personaId, setPersonaId] = useState('')
+  const [since, setSince] = useState('')
+  const [until, setUntil] = useState('')
   const [forbidden, setForbidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,6 +38,8 @@ export function AuditLogs({
         const listed = await client.listAuditLogs({
           action: action || undefined,
           persona_id: personaId || undefined,
+          since: since ? `${since}T00:00:00` : undefined,
+          until: until ? `${until}T23:59:59` : undefined,
         })
         if (cancelled) return
         setForbidden(Boolean(listed.forbidden))
@@ -52,7 +56,7 @@ export function AuditLogs({
     return () => {
       cancelled = true
     }
-  }, [client, action, personaId])
+  }, [client, action, personaId, since, until])
 
   return (
     <section className="checkup">
@@ -87,6 +91,14 @@ export function AuditLogs({
                 </option>
               ))}
             </select>
+          </label>
+          <label>
+            起始
+            <input type="date" value={since} onChange={(event) => setSince(event.target.value)} />
+          </label>
+          <label>
+            截止
+            <input type="date" value={until} onChange={(event) => setUntil(event.target.value)} />
           </label>
           {items.length === 0 ? (
             <p>暂无记录</p>

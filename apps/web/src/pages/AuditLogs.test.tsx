@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { createClient } from '../api/client'
@@ -66,5 +66,35 @@ describe('AuditLogs', () => {
     expect(screen.queryByText('persona.update')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('动作')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('人设')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('起始')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('截止')).not.toBeInTheDocument()
+  })
+
+  it('filters by since and until', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/personas')) {
+        return jsonOk({ items: [] })
+      }
+      const ranged = url.includes('since=') && url.includes('until=')
+      return jsonOk({
+        items: ranged
+          ? [{ id: 'log-1', action: 'persona.update', resource_type: 'persona', resource_id: 'p1', payload: { fields: ['one_liner'] } }]
+          : [
+              { id: 'log-1', action: 'persona.update', resource_type: 'persona', resource_id: 'p1', payload: { fields: ['one_liner'] } },
+              { id: 'log-2', action: 'thread.export', resource_type: 'thread', resource_id: 't1', payload: { message_count: 2 } },
+            ],
+      })
+    }) as unknown as typeof fetch
+
+    render(<AuditLogs client={createClient(DEMO_OWNER, fetchImpl)} onBack={vi.fn()} />)
+    expect(await screen.findByText('thread.export')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('起始'), { target: { value: '2026-08-20' } })
+    fireEvent.change(screen.getByLabelText('截止'), { target: { value: '2026-08-20' } })
+    expect(await screen.findByText('{"fields":["one_liner"]}')).toBeInTheDocument()
+    expect(screen.queryByText('thread.export')).not.toBeInTheDocument()
+    const urls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.map((call) => String(call[0]))
+    expect(urls.some((url) => url.includes('since=2026-08-20T00%3A00%3A00') && url.includes('until=2026-08-20T23%3A59%3A59'))).toBe(true)
   })
 })
