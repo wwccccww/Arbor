@@ -1,21 +1,31 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { Persona } from '../api/types'
+import type { Persona, PersonaPatch } from '../api/types'
 
-export type ProfilePatch = {
-  display_name: string
-  one_liner: string
-  taboos: string[]
+function linesText(items?: string[]) {
+  return (items ?? []).join('\n')
 }
 
-function taboosText(taboos?: string[]) {
-  return (taboos ?? []).join('\n')
-}
-
-function parseTaboos(raw: string) {
+function parseLines(raw: string) {
   return raw
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+function relationshipsText(items?: { name: string; kind: string }[]) {
+  return (items ?? []).map((item) => `${item.name} · ${item.kind}`).join('\n')
+}
+
+function parseRelationships(raw: string) {
+  return raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, ...rest] = line.split('·').map((part) => part.trim())
+      return { name, kind: rest.join(' · ') }
+    })
+    .filter((item) => item.name)
 }
 
 export function ProfilePane({
@@ -27,16 +37,22 @@ export function ProfilePane({
   persona: Persona
   editable?: boolean
   busy?: boolean
-  onSave?: (patch: ProfilePatch) => void
+  onSave?: (patch: PersonaPatch) => void
 }) {
+  const [skin, setSkin] = useState(persona.skin === 'employee' ? 'employee' : 'companion')
   const [displayName, setDisplayName] = useState(persona.display_name)
   const [oneLiner, setOneLiner] = useState(persona.one_liner ?? '')
-  const [taboos, setTaboos] = useState(taboosText(persona.taboos))
+  const [taboos, setTaboos] = useState(linesText(persona.taboos))
+  const [traits, setTraits] = useState(linesText(persona.personality?.traits))
+  const [relationships, setRelationships] = useState(relationshipsText(persona.relationships))
 
   useEffect(() => {
+    setSkin(persona.skin === 'employee' ? 'employee' : 'companion')
     setDisplayName(persona.display_name)
     setOneLiner(persona.one_liner ?? '')
-    setTaboos(taboosText(persona.taboos))
+    setTaboos(linesText(persona.taboos))
+    setTraits(linesText(persona.personality?.traits))
+    setRelationships(relationshipsText(persona.relationships))
   }, [persona])
 
   function submit(event: FormEvent) {
@@ -44,9 +60,12 @@ export function ProfilePane({
     const name = displayName.trim()
     if (!name || busy || !onSave) return
     onSave({
+      skin,
       display_name: name,
       one_liner: oneLiner,
-      taboos: parseTaboos(taboos),
+      taboos: parseLines(taboos),
+      personality: { traits: parseLines(traits) },
+      relationships: parseRelationships(relationships),
     })
   }
 
@@ -56,6 +75,17 @@ export function ProfilePane({
       <h2>{persona.display_name}</h2>
       {editable ? (
         <form onSubmit={submit}>
+          <label>
+            类型
+            <select
+              value={skin}
+              disabled={Boolean(busy)}
+              onChange={(event) => setSkin(event.target.value as 'companion' | 'employee')}
+            >
+              <option value="companion">陪伴</option>
+              <option value="employee">数字员工</option>
+            </select>
+          </label>
           <label>
             显示名
             <input
@@ -74,12 +104,30 @@ export function ProfilePane({
             />
           </label>
           <label>
+            性格
+            <textarea
+              value={traits}
+              rows={3}
+              disabled={Boolean(busy)}
+              onChange={(event) => setTraits(event.target.value)}
+            />
+          </label>
+          <label>
             禁忌
             <textarea
               value={taboos}
               rows={3}
               disabled={Boolean(busy)}
               onChange={(event) => setTaboos(event.target.value)}
+            />
+          </label>
+          <label>
+            关系
+            <textarea
+              value={relationships}
+              rows={3}
+              disabled={Boolean(busy)}
+              onChange={(event) => setRelationships(event.target.value)}
             />
           </label>
           <button type="submit" disabled={Boolean(busy) || !displayName.trim()}>
@@ -89,6 +137,16 @@ export function ProfilePane({
       ) : (
         <>
           {persona.one_liner ? <p>{persona.one_liner}</p> : null}
+          {persona.personality?.traits?.length ? (
+            <div>
+              <h3>性格</h3>
+              <ul>
+                {persona.personality.traits.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {persona.taboos ? (
             <div>
               <h3>禁忌</h3>
@@ -99,20 +157,20 @@ export function ProfilePane({
               </ul>
             </div>
           ) : null}
+          {persona.relationships ? (
+            <div>
+              <h3>关系</h3>
+              <ul>
+                {persona.relationships.map((item) => (
+                  <li key={`${item.name}-${item.kind}`}>
+                    {item.name} · {item.kind}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </>
       )}
-      {persona.relationships ? (
-        <div>
-          <h3>关系</h3>
-          <ul>
-            {persona.relationships.map((item) => (
-              <li key={`${item.name}-${item.kind}`}>
-                {item.name} · {item.kind}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </section>
   )
 }
