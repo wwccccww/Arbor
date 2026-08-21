@@ -174,6 +174,13 @@ def _workspace_admin(user: dict) -> bool:
     return user["role"] in {"owner", "admin"}
 
 
+def _grant_json(grant) -> dict:
+    return {
+        "user_id": grant.user_id.value,
+        "capabilities": [cap.value for cap in grant.capabilities],
+    }
+
+
 def _persona_json(persona, caps: list[Capability]) -> dict:
     body = {
         "id": persona.id.value,
@@ -185,6 +192,8 @@ def _persona_json(persona, caps: list[Capability]) -> dict:
         body["taboos"] = list(persona.profile.taboos)
         body["relationships"] = list(persona.profile.relationships)
         body["personality"] = persona.profile.personality
+    if Capability.ADMIN in caps:
+        body["grants"] = [_grant_json(grant) for grant in persona.grants]
     return body
 
 
@@ -812,13 +821,7 @@ def create_app(
         )
         return {
             "ok": True,
-            "grants": [
-                {
-                    "user_id": grant.user_id.value,
-                    "capabilities": [cap.value for cap in grant.capabilities],
-                }
-                for grant in updated.grants
-            ],
+            "grants": [_grant_json(grant) for grant in updated.grants],
         }
 
     @app.get("/v1/personas/{persona_id}/threads")

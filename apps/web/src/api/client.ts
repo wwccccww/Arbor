@@ -1,5 +1,18 @@
 import type { Session } from '../session'
-import type { ApiError, ChatMessage, Citation, EvalRun, EventCard, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
+import type {
+  ApiError,
+  ChatMessage,
+  Citation,
+  EvalRun,
+  EventCard,
+  EventTree,
+  InboxItem,
+  InboxList,
+  MemberList,
+  Persona,
+  PersonaGrant,
+  Thread,
+} from './types'
 
 function asCitations(raw: unknown): Citation[] {
   if (!Array.isArray(raw)) return []
@@ -49,6 +62,26 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
     async getPersona(personaId: string): Promise<Persona> {
       return (await request(`/personas/${personaId}`)) as Persona
     },
+
+    async listMembers(): Promise<MemberList> {
+      try {
+        const body = (await request(`/tenants/${session.tenantId}/members`)) as MemberList
+        return { items: body.items ?? [] }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { items: [], forbidden: true }
+        }
+        throw err
+      }
+    },
+
+    async replaceGrants(personaId: string, grants: PersonaGrant[]): Promise<{ ok: boolean; grants: PersonaGrant[] }> {
+      return (await request(`/personas/${personaId}/grants`, {
+        method: 'PUT',
+        body: JSON.stringify({ grants }),
+      })) as { ok: boolean; grants: PersonaGrant[] }
+    },,
 
     async listThreads(personaId: string): Promise<Thread[]> {
       const body = (await request(`/personas/${personaId}/threads`)) as { items: Thread[] }

@@ -118,7 +118,7 @@ Owner/Admin。
 
 ### `GET /v1/personas/{persona_id}`
 
-无 `read_memory` 时返回最小档案（display_name、one_liner），不返回 taboos/relationships 细节。
+无 `read_memory` 时返回最小档案（display_name、one_liner），不返回 taboos/relationships 细节。有人设 `admin` 时额外返回 `grants`（与 PUT 同形：`user_id` + `capabilities`）；无 admin 时不带该键。
 
 ### `PATCH /v1/personas/{persona_id}`
 

@@ -38,6 +38,20 @@ def test_persona_hides_taboos_without_read_memory():
     assert member.json()["display_name"] == "林夏"
 
 
+def test_persona_grants_visible_only_to_admin():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    owner = client.get(f"/v1/personas/{LINXIA}", headers=_headers())
+    assert owner.status_code == 200
+    grants = owner.json()["grants"]
+    assert any(
+        item["user_id"] == "0a000000-0000-4000-a000-000000000003" and "chat" in item["capabilities"]
+        for item in grants
+    )
+    member = client.get(f"/v1/personas/{LINXIA}", headers=_headers("token-member"))
+    assert member.status_code == 200
+    assert "grants" not in member.json()
+
+
 def test_create_patch_persona_and_thread_history():
     client = TestClient(create_app(), raise_server_exceptions=False)
     created = client.post(
