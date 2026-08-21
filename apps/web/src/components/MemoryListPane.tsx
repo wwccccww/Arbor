@@ -9,19 +9,29 @@ const MEMORY_TYPES = [
   { id: 'transcript', label: '转写' },
 ]
 
+const MEMORY_STATUSES = [
+  { id: 'active', label: '现行' },
+  { id: 'superseded', label: '已替代' },
+  { id: 'deleted', label: '已删除' },
+]
+
 export function MemoryListPane({
   items,
   total,
   forbidden,
   type = '',
+  status = 'active',
   onChangeType,
+  onChangeStatus,
   onSelect,
 }: {
   items: MemoryItem[]
   total?: number
   forbidden?: boolean
   type?: string
+  status?: string
   onChangeType?: (type: string) => void
+  onChangeStatus?: (status: string) => void
   onSelect?: (eventId: string) => void
 }) {
   if (forbidden) {
@@ -48,6 +58,18 @@ export function MemoryListPane({
           </select>
         </label>
       ) : null}
+      {onChangeStatus ? (
+        <label>
+          状态
+          <select value={status} onChange={(event) => onChangeStatus(event.target.value)}>
+            {MEMORY_STATUSES.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {typeof total === 'number' ? <p>{total} 条</p> : null}
       {items.length === 0 ? (
         <p>暂无记忆</p>
@@ -57,12 +79,18 @@ export function MemoryListPane({
             <li key={item.id}>
               {item.event_id ? (
                 <button type="button" onClick={() => onSelect?.(item.event_id!)}>
-                  <span className="eyebrow">{item.type}</span>
+                  <span className="eyebrow">
+                    {item.type}
+                    {item.status && item.status !== 'active' ? ` · ${item.status}` : ''}
+                  </span>
                   {item.text}
                 </button>
               ) : (
                 <>
-                  <span className="eyebrow">{item.type}</span>
+                  <span className="eyebrow">
+                    {item.type}
+                    {item.status && item.status !== 'active' ? ` · ${item.status}` : ''}
+                  </span>
                   <p>{item.text}</p>
                 </>
               )}

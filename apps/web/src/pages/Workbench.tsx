@@ -45,6 +45,7 @@ export function Workbench({
   const [memories, setMemories] = useState<MemoryItem[]>([])
   const [memoriesForbidden, setMemoriesForbidden] = useState(false)
   const [memoryType, setMemoryType] = useState('')
+  const [memoryStatus, setMemoryStatus] = useState('active')
   const [memoryTotal, setMemoryTotal] = useState(0)
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [inboxForbidden, setInboxForbidden] = useState(false)
@@ -199,16 +200,23 @@ export function Workbench({
     }
   }
 
+  async function loadMemories(type: string, status: string) {
+    const listed = await client.listMemories(personaId, {
+      type: type || undefined,
+      status: status !== 'active' ? status : undefined,
+    })
+    setMemoriesForbidden(Boolean(listed.forbidden))
+    setMemories(listed.items)
+    setMemoryTotal(listed.total)
+  }
+
   async function confirmItem(inboxId: string, opts: { markKeyEvent: boolean }) {
     setInboxBusy(inboxId)
     setError(null)
     try {
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
-      const listed = await client.listMemories(personaId, { type: memoryType || undefined })
-      setMemoriesForbidden(Boolean(listed.forbidden))
-      setMemories(listed.items)
-      setMemoryTotal(listed.total)
+      await loadMemories(memoryType, memoryStatus)
       if (opts.markKeyEvent) {
         const tree = await client.getEventTree(personaId, treeView)
         setTreeForbidden(Boolean(tree.forbidden))
@@ -237,10 +245,16 @@ export function Workbench({
   async function changeMemoryType(type: string) {
     setMemoryType(type)
     try {
-      const listed = await client.listMemories(personaId, { type: type || undefined })
-      setMemoriesForbidden(Boolean(listed.forbidden))
-      setMemories(listed.items)
-      setMemoryTotal(listed.total)
+      await loadMemories(type, memoryStatus)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function changeMemoryStatus(status: string) {
+    setMemoryStatus(status)
+    try {
+      await loadMemories(memoryType, status)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -374,7 +388,9 @@ export function Workbench({
               total={memoryTotal}
               forbidden={memoriesForbidden}
               type={memoryType}
+              status={memoryStatus}
               onChangeType={(next) => void changeMemoryType(next)}
+              onChangeStatus={(next) => void changeMemoryStatus(next)}
               onSelect={(eventId) => void openCard(eventId)}
             />
           </>
