@@ -1,11 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import type { ChatMessage } from '../api/types'
+import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
 
 export function ChatPane({
   messages,
   sending,
   exporting,
+  creatingThread,
+  threads,
+  threadId,
   offset = 0,
   total,
   pageSize = 50,
@@ -14,10 +17,15 @@ export function ChatPane({
   onOpenAttachment,
   onExport,
   onPage,
+  onSwitchThread,
+  onNewThread,
 }: {
   messages: ChatMessage[]
   sending?: boolean
   exporting?: boolean
+  creatingThread?: boolean
+  threads?: Thread[]
+  threadId?: string
   offset?: number
   total?: number
   pageSize?: number
@@ -26,6 +34,8 @@ export function ChatPane({
   onOpenAttachment?: (filename: string) => void
   onExport?: () => void
   onPage?: (offset: number) => void
+  onSwitchThread?: (threadId: string) => void
+  onNewThread?: () => void
 }) {
   const [draft, setDraft] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -43,11 +53,30 @@ export function ChatPane({
 
   return (
     <section className="chat">
-      {onExport ? (
+      {onExport || onSwitchThread || onNewThread ? (
         <div className="chat-toolbar">
-          <button type="button" disabled={Boolean(exporting)} onClick={onExport}>
-            导出会话
-          </button>
+          {threads && threadId && onSwitchThread ? (
+            <label>
+              会话
+              <select value={threadId} onChange={(event) => onSwitchThread(event.target.value)}>
+                {threads.map((thread, index) => (
+                  <option key={thread.id} value={thread.id}>
+                    会话 {index + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {onNewThread ? (
+            <button type="button" disabled={Boolean(creatingThread)} onClick={onNewThread}>
+              新会话
+            </button>
+          ) : null}
+          {onExport ? (
+            <button type="button" disabled={Boolean(exporting)} onClick={onExport}>
+              导出会话
+            </button>
+          ) : null}
         </div>
       ) : null}
       {onPage && typeof total === 'number' && total > pageSize ? (

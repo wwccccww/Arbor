@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember, Thread } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
@@ -37,6 +37,8 @@ export function Workbench({
   const [keyOnly, setKeyOnly] = useState(true)
   const [persona, setPersona] = useState<Persona | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
+  const [threads, setThreads] = useState<Thread[]>([])
+  const [creatingThread, setCreatingThread] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [messageOffset, setMessageOffset] = useState(0)
   const [messageTotal, setMessageTotal] = useState(0)
@@ -97,6 +99,7 @@ export function Workbench({
         }
         const thread = threads[0] ?? (await client.createThread(personaId))
         if (cancelled) return
+        setThreads(threads.length ? threads : [thread])
         setThreadId(thread.id)
         const page = await client.listMessages(thread.id, { limit: messagePageSize, offset: 0 })
         if (cancelled) return
@@ -139,6 +142,33 @@ export function Workbench({
       setMessageOffset(offset)
     } catch (err) {
       setError((err as Error).message)
+    }
+  }
+
+  async function switchThread(id: string) {
+    setError(null)
+    try {
+      const page = await client.listMessages(id, { limit: messagePageSize, offset: 0 })
+      setThreadId(id)
+      setMessages(page.items)
+      setMessageTotal(page.total)
+      setMessageOffset(0)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function newThread() {
+    setCreatingThread(true)
+    setError(null)
+    try {
+      const created = await client.createThread(personaId)
+      setThreads((current) => [...current, created])
+      await switchThread(created.id)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setCreatingThread(false)
     }
   }
 
@@ -392,6 +422,9 @@ export function Workbench({
             messages={messages}
             sending={sending}
             exporting={exporting}
+            creatingThread={creatingThread}
+            threads={threads}
+            threadId={threadId ?? undefined}
             offset={messageOffset}
             total={messageTotal}
             pageSize={messagePageSize}
@@ -400,6 +433,8 @@ export function Workbench({
             onOpenAttachment={(filename) => void openAttachment(filename)}
             onExport={() => void exportThread()}
             onPage={(next) => void pageMessages(next)}
+            onSwitchThread={(id) => void switchThread(id)}
+            onNewThread={() => void newThread()}
           />
         }
         right={
