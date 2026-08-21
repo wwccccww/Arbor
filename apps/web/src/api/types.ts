@@ -151,3 +151,19 @@ export type EvalRun = {
   metrics: EvalMetrics
   p0_tenant_leak_zero?: boolean
 }
+
+export type AuditLog = {
+  id: string
+  actor_user_id?: string
+  action: string
+  resource_type?: string
+  resource_id?: string
+  persona_id?: string | null
+  payload?: Record<string, unknown>
+  created_at?: string
+}
+
+export type AuditList = {
+  items: AuditLog[]
+  forbidden?: boolean
+}

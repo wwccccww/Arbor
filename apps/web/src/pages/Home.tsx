@@ -11,6 +11,7 @@ export function Home({
   inviting,
   onOpen,
   onCheckup,
+  onAudit,
   onCreate,
   onInvite,
 }: {
@@ -22,6 +23,7 @@ export function Home({
   inviting?: boolean
   onOpen: (personaId: string) => void
   onCheckup: () => void
+  onAudit?: () => void
   onCreate?: (draft: PersonaDraft) => void
   onInvite?: (email: string, role: string) => void
 }) {
@@ -32,6 +34,11 @@ export function Home({
         <button type="button" onClick={onCheckup}>
           记忆体检
         </button>
+        {onAudit ? (
+          <button type="button" onClick={onAudit}>
+            审计日志
+          </button>
+        ) : null}
       </header>
       {error ? <p role="alert">{error}</p> : null}
       {canCreate && onCreate ? (
