@@ -30,7 +30,7 @@ export function CreatePersonaPane({
   return (
     <section className="create-persona">
       <h2>创建人设</h2>
-      <p>会进当前工作空间，确认后才能写记忆。</p>
+      <p>新建后进入工作台。需要工作空间管理员。</p>
       <form onSubmit={submit}>
         <label>
           类型
