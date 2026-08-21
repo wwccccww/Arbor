@@ -123,9 +123,9 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       })) as { job_id: string; status: string; inbox_created: number }
     },
 
-    async getEventTree(personaId: string): Promise<EventTree> {
+    async getEventTree(personaId: string, view: 'tree' | 'timeline' = 'tree'): Promise<EventTree> {
       try {
-        const body = (await request(`/personas/${personaId}/events/tree`)) as EventTree
+        const body = (await request(`/personas/${personaId}/events/tree?view=${view}`)) as EventTree
         return { nodes: body.nodes ?? [], edges: body.edges ?? [] }
       } catch (err) {
         const status = (err as ApiError).status

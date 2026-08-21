@@ -35,6 +35,20 @@ describe('createClient', () => {
     expect(tree.forbidden).toBe(true)
   })
 
+  it('asks the event tree API for a timeline view', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ nodes: [], edges: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    await client.getEventTree('linxia', 'timeline')
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/events/tree?view=timeline',
+    )
+  })
+
   it('confirm and dismiss post to inbox routes', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
