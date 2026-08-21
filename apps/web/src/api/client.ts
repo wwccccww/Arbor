@@ -1,5 +1,5 @@
 import type { Session } from '../session'
-import type { ApiError, ChatMessage, Citation, EvalRun, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
+import type { ApiError, ChatMessage, Citation, EvalRun, EventCard, EventTree, InboxItem, InboxList, Persona, Thread } from './types'
 
 function asCitations(raw: unknown): Citation[] {
   if (!Array.isArray(raw)) return []
@@ -131,6 +131,23 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         const status = (err as ApiError).status
         if (status === 403 || status === 404) {
           return { nodes: [], edges: [], forbidden: true }
+        }
+        throw err
+      }
+    },
+
+    async getEventCard(eventId: string): Promise<EventCard> {
+      try {
+        const body = (await request(`/events/${eventId}`)) as EventCard
+        return {
+          ...body,
+          memories: body.memories ?? [],
+          attachments: body.attachments ?? [],
+        }
+      } catch (err) {
+        const status = (err as ApiError).status
+        if (status === 403 || status === 404) {
+          return { id: eventId, memories: [], attachments: [], forbidden: true }
         }
         throw err
       }

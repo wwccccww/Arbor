@@ -97,4 +97,31 @@ describe('createClient', () => {
       mode: 'retrieval',
     })
   })
+
+  it('loads an event card and hides missing ones', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/events/evt-1')) {
+        return new Response(
+          JSON.stringify({
+            id: 'evt-1',
+            title: '面店争吵',
+            memories: [{ id: 'mem-1', text: '吵过' }],
+            attachments: [],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'not found' } }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const card = await client.getEventCard('evt-1')
+    expect(card.title).toBe('面店争吵')
+    expect(card.memories).toHaveLength(1)
+    const hidden = await client.getEventCard('missing')
+    expect(hidden.forbidden).toBe(true)
+    expect(hidden.memories).toEqual([])
+  })
 })
