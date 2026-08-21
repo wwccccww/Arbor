@@ -164,6 +164,23 @@ describe('createClient', () => {
     )
   })
 
+  it('lists memories for one event', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: 'cap-1', text: '合影：雨天的店门口', type: 'image_caption', event_id: 'evt-meet' }],
+          total: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    await client.listMemories('linxia', { event_id: 'evt-meet' })
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?event_id=evt-meet',
+    )
+  })
+
   it('loads an import job by id', async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(

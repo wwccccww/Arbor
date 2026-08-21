@@ -20,6 +20,7 @@ describe('MemoryListPane', () => {
     expect(screen.queryByLabelText('类型')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('状态')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('仅当前事件')).not.toBeInTheDocument()
   })
 
   it('filters by type and opens the related event', async () => {
@@ -154,6 +155,49 @@ describe('MemoryListPane', () => {
     expect(await screen.findByText('旧的猫咪名')).toBeInTheDocument()
     expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
       '/v1/personas/linxia/memories?limit=1&offset=1',
+    )
+  })
+
+  it('filters memories by the current event', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const byEvent = String(input).includes('event_id=evt-meet')
+      return new Response(
+        JSON.stringify({
+          items: byEvent
+            ? [{ id: 'cap-1', text: '合影：雨天的店门口', type: 'image_caption', event_id: 'evt-meet' }]
+            : [{ id: 'fact-1', text: '林夏讨厌香菜', type: 'fact' }],
+          total: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+
+    function Harness() {
+      const [items, setItems] = useState<MemoryItem[]>([{ id: 'fact-1', text: '林夏讨厌香菜', type: 'fact' }])
+      const [filterByEvent, setFilterByEvent] = useState(false)
+      return (
+        <MemoryListPane
+          items={items}
+          total={items.length}
+          eventId="evt-meet"
+          filterByEvent={filterByEvent}
+          onToggleEventFilter={(next) => {
+            setFilterByEvent(next)
+            void client
+              .listMemories('linxia', { event_id: next ? 'evt-meet' : undefined })
+              .then((page) => setItems(page.items))
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    await user.click(screen.getByLabelText('仅当前事件'))
+    expect(await screen.findByText('合影：雨天的店门口')).toBeInTheDocument()
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?event_id=evt-meet',
     )
   })
 })
