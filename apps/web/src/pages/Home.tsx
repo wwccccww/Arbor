@@ -1,22 +1,29 @@
-import type { Persona, PersonaDraft } from '../api/types'
+import type { Persona, PersonaDraft, TenantMember } from '../api/types'
 import { CreatePersonaPane } from '../components/CreatePersonaPane'
+import { InviteMemberPane } from '../components/InviteMemberPane'
 
 export function Home({
   personas,
+  members,
   error,
   canCreate,
   creating,
+  inviting,
   onOpen,
   onCheckup,
   onCreate,
+  onInvite,
 }: {
   personas: Persona[]
+  members?: TenantMember[]
   error?: string
   canCreate?: boolean
   creating?: boolean
+  inviting?: boolean
   onOpen: (personaId: string) => void
   onCheckup: () => void
   onCreate?: (draft: PersonaDraft) => void
+  onInvite?: (email: string, role: string) => void
 }) {
   return (
     <section className="home">
@@ -29,6 +36,9 @@ export function Home({
       {error ? <p role="alert">{error}</p> : null}
       {canCreate && onCreate ? (
         <CreatePersonaPane busy={creating} onCreate={onCreate} />
+      ) : null}
+      {canCreate && onInvite ? (
+        <InviteMemberPane members={members ?? []} busy={inviting} onInvite={onInvite} />
       ) : null}
       <ul className="persona-grid">
         {personas.map((persona) => (
