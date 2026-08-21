@@ -247,6 +247,35 @@ h3 {
   margin: 0.75rem 0 0.35rem;
 }
 
+.memory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.memory-list li {
+  border: 1px solid #d8d0c4;
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: #fff;
+}
+
+.memory-list button {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.memory-list p {
+  margin: 0;
+}
+
 .tree-toggle {
   margin-bottom: 0.75rem;
 }

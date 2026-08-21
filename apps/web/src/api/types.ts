@@ -120,6 +120,20 @@ export type InboxList = {
   forbidden?: boolean
 }
 
+export type MemoryItem = {
+  id: string
+  text: string
+  type?: string
+  status?: string
+  event_id?: string | null
+}
+
+export type MemoryList = {
+  items: MemoryItem[]
+  total: number
+  forbidden?: boolean
+}
+
 export type EvalMetrics = {
   identity_consistency?: number
   recall_at_5?: number
