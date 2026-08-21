@@ -68,6 +68,11 @@ export type ChatMessage = {
   inbox_created?: number
 }
 
+export type MessagePage = {
+  items: ChatMessage[]
+  total: number
+}
+
 export type ThreadExport = {
   id: string
   persona_id: string

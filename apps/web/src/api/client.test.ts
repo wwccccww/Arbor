@@ -95,6 +95,25 @@ describe('createClient', () => {
     expect(((init as RequestInit).body as FormData).get('hint')).toBe('fact')
   })
 
+  it('lists messages with limit, offset, and total', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: 'm1', role: 'user', content: '还在吗', citations: [] }],
+          total: 3,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const page = await client.listMessages('0a000000-0000-4000-a000-000000000030', { limit: 1, offset: 2 })
+    expect(page.items[0]?.text).toBe('还在吗')
+    expect(page.total).toBe(3)
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/threads/0a000000-0000-4000-a000-000000000030/messages?limit=1&offset=2',
+    )
+  })
+
   it('starts eval runs in retrieval mode only', async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(JSON.stringify({ id: 'run-1' }), {
