@@ -36,7 +36,7 @@ export function ChatPane({
           <li key={message.id} data-role={message.role}>
             <p>{message.text}</p>
             {message.attachments?.length ? (
-              <ul aria-label="附件">
+              <ul aria-label="聊天附件">
                 {message.attachments.map((item) => (
                   <li key={item.filename}>
                     <button type="button" onClick={() => onOpenAttachment?.(item.filename)}>
@@ -62,7 +62,7 @@ export function ChatPane({
           />
         </label>
         <label>
-          附件
+          选择附件
           <input
             key={fileKey}
             type="file"

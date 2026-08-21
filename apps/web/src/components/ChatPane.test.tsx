@@ -78,7 +78,7 @@ describe('ChatPane', () => {
       />,
     )
 
-    await user.upload(screen.getByLabelText('附件'), file)
+    await user.upload(screen.getByLabelText('选择附件'), file)
     await user.type(screen.getByLabelText('发送消息'), '看看这个')
     await user.click(screen.getByRole('button', { name: '发送' }))
 

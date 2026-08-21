@@ -190,7 +190,7 @@ h3 {
   cursor: pointer;
 }
 
-.transcript [aria-label='附件'] {
+.transcript [aria-label='聊天附件'] {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
@@ -199,7 +199,7 @@ h3 {
   list-style: none;
 }
 
-.transcript [aria-label='附件'] button {
+.transcript [aria-label='聊天附件'] button {
   border: 1px solid #8aa0b9;
   background: #eef3f7;
   border-radius: 999px;
