@@ -46,4 +46,36 @@ describe('InviteMemberPane', () => {
       role: 'member',
     })
   })
+
+  it('patches a member role', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ user: { id: '0a000000-0000-4000-a000-000000000003' }, role: 'admin' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const memberId = '0a000000-0000-4000-a000-000000000003'
+
+    render(
+      <InviteMemberPane
+        members={[
+          { user: { id: 'owner', email: 'demo-a@arbor.eval' }, role: 'owner' },
+          { user: { id: memberId, email: 'member-a@arbor.eval' }, role: 'member' },
+        ]}
+        onInvite={vi.fn()}
+        onChangeRole={(userId, role) => {
+          void client.patchMember(userId, role)
+        }}
+      />,
+    )
+
+    expect(screen.queryByLabelText('demo-a@arbor.eval 角色')).not.toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('member-a@arbor.eval 角色'), 'admin')
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe(`/v1/tenants/0a000000-0000-4000-a000-000000000001/members/${memberId}`)
+    expect((init as RequestInit).method).toBe('PATCH')
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({ role: 'admin' })
+  })
 })

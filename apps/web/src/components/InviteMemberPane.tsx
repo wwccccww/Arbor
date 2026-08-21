@@ -6,11 +6,13 @@ export function InviteMemberPane({
   forbidden,
   busy,
   onInvite,
+  onChangeRole,
 }: {
   members: TenantMember[]
   forbidden?: boolean
   busy?: boolean
   onInvite: (email: string, role: string) => void
+  onChangeRole?: (userId: string, role: string) => void
 }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState('member')
@@ -34,7 +36,22 @@ export function InviteMemberPane({
         <ul className="member-list">
           {members.map((member) => (
             <li key={member.user.id}>
-              {member.user.email} · {member.role}
+              <span>
+                {member.user.email} · {member.role}
+              </span>
+              {member.role === 'owner' || !onChangeRole ? null : (
+                <label>
+                  {member.user.email} 角色
+                  <select
+                    value={member.role}
+                    disabled={Boolean(busy)}
+                    onChange={(event) => onChangeRole(member.user.id, event.target.value)}
+                  >
+                    <option value="member">成员</option>
+                    <option value="admin">管理员</option>
+                  </select>
+                </label>
+              )}
             </li>
           ))}
         </ul>

@@ -14,6 +14,7 @@ export function Home({
   onAudit,
   onCreate,
   onInvite,
+  onChangeRole,
 }: {
   personas: Persona[]
   members?: TenantMember[]
@@ -26,6 +27,7 @@ export function Home({
   onAudit?: () => void
   onCreate?: (draft: PersonaDraft) => void
   onInvite?: (email: string, role: string) => void
+  onChangeRole?: (userId: string, role: string) => void
 }) {
   return (
     <section className="home">
@@ -45,7 +47,12 @@ export function Home({
         <CreatePersonaPane busy={creating} onCreate={onCreate} />
       ) : null}
       {canCreate && onInvite ? (
-        <InviteMemberPane members={members ?? []} busy={inviting} onInvite={onInvite} />
+        <InviteMemberPane
+          members={members ?? []}
+          busy={inviting}
+          onInvite={onInvite}
+          onChangeRole={onChangeRole}
+        />
       ) : null}
       <ul className="persona-grid">
         {personas.map((persona) => (
