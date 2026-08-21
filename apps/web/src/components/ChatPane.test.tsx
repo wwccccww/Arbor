@@ -99,4 +99,35 @@ describe('ChatPane', () => {
     )
     expect(downloadCall).toBeTruthy()
   })
+
+  it('exports the thread as JSON', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          id: '0a000000-0000-4000-a000-000000000030',
+          persona_id: '0a000000-0000-4000-a000-000000000010',
+          messages: [{ role: 'user', content: '还在吗', citations: [], attachments: [] }],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+
+    render(
+      <ChatPane
+        messages={[]}
+        onSend={vi.fn()}
+        onJump={vi.fn()}
+        onExport={() => {
+          void client.exportThread('0a000000-0000-4000-a000-000000000030')
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '导出会话' }))
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('/v1/threads/0a000000-0000-4000-a000-000000000030/export')
+    expect((init as RequestInit).method).toBe('POST')
+  })
 })

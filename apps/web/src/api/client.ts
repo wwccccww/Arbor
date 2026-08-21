@@ -16,6 +16,7 @@ import type {
   PersonaPatch,
   Tenant,
   Thread,
+  ThreadExport,
 } from './types'
 
 function asCitations(raw: unknown): Citation[] {
@@ -176,6 +177,10 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       const res = await fetchImpl(`/v1/threads/${threadId}/attachments/${encodeURIComponent(filename)}`, { headers })
       if (!res.ok) throw await parseError(res)
       return await res.blob()
+    },
+
+    async exportThread(threadId: string): Promise<ThreadExport> {
+      return (await request(`/threads/${threadId}/export`, { method: 'POST' })) as ThreadExport
     },
 
     async listInbox(personaId: string): Promise<InboxList> {

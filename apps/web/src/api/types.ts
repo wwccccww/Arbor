@@ -68,6 +68,17 @@ export type ChatMessage = {
   inbox_created?: number
 }
 
+export type ThreadExport = {
+  id: string
+  persona_id: string
+  messages: {
+    role: string
+    content: string
+    citations?: string[]
+    attachments?: ChatAttachment[]
+  }[]
+}
+
 export type EventNode = {
   id: string
   title: string

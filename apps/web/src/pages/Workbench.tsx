@@ -48,6 +48,7 @@ export function Workbench({
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [card, setCard] = useState<EventCard | null>(null)
   const [sending, setSending] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -146,6 +147,26 @@ export function Workbench({
       URL.revokeObjectURL(url)
     } catch (err) {
       setError((err as Error).message)
+    }
+  }
+
+  async function exportThread() {
+    if (!threadId) return
+    setExporting(true)
+    setError(null)
+    try {
+      const data = await client.exportThread(threadId)
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `thread-${threadId}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -281,9 +302,11 @@ export function Workbench({
           <ChatPane
             messages={messages}
             sending={sending}
+            exporting={exporting}
             onSend={(text, file) => void send(text, file)}
             onJump={jump}
             onOpenAttachment={(filename) => void openAttachment(filename)}
+            onExport={() => void exportThread()}
           />
         }
         right={
