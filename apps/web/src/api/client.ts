@@ -338,8 +338,11 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       }
     },
 
-    async listAuditLogs(opts: { action?: string } = {}): Promise<AuditList> {
-      const query = opts.action ? `?action=${encodeURIComponent(opts.action)}` : ''
+    async listAuditLogs(opts: { action?: string; persona_id?: string } = {}): Promise<AuditList> {
+      const params = new URLSearchParams()
+      if (opts.action) params.set('action', opts.action)
+      if (opts.persona_id) params.set('persona_id', opts.persona_id)
+      const query = params.size ? `?${params.toString()}` : ''
       try {
         const body = (await request(`/audit-logs${query}`)) as AuditList
         return { items: body.items ?? [] }

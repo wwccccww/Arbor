@@ -5,23 +5,35 @@ import { createClient } from '../api/client'
 import { DEMO_OWNER } from '../session'
 import { AuditLogs } from './AuditLogs'
 
+const LINXIA = '0a000000-0000-4000-a000-000000000010'
+
+function jsonOk(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 describe('AuditLogs', () => {
-  it('lists sanitized audit rows and filters by action', async () => {
+  it('lists sanitized audit rows and filters by action and persona', async () => {
     const user = userEvent.setup()
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
-      const filtered = url.includes('action=thread.export')
-      return new Response(
-        JSON.stringify({
-          items: filtered
+      if (url.endsWith('/personas')) {
+        return jsonOk({ items: [{ id: LINXIA, display_name: '林夏' }] })
+      }
+      const byPersona = url.includes(`persona_id=${LINXIA}`)
+      const byAction = url.includes('action=thread.export')
+      return jsonOk({
+        items: byPersona
+          ? [{ id: 'log-1', action: 'persona.update', resource_type: 'persona', resource_id: 'p1', persona_id: LINXIA, payload: { fields: ['one_liner'] } }]
+          : byAction
             ? [{ id: 'log-2', action: 'thread.export', resource_type: 'thread', resource_id: 't1', payload: { message_count: 2 } }]
             : [
                 { id: 'log-1', action: 'persona.update', resource_type: 'persona', resource_id: 'p1', payload: { fields: ['one_liner'] } },
                 { id: 'log-2', action: 'thread.export', resource_type: 'thread', resource_id: 't1', payload: { message_count: 2 } },
               ],
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      )
+      })
     }) as unknown as typeof fetch
 
     render(<AuditLogs client={createClient(DEMO_OWNER, fetchImpl)} onBack={vi.fn()} />)
@@ -32,9 +44,14 @@ describe('AuditLogs', () => {
     await user.selectOptions(screen.getByLabelText('动作'), 'thread.export')
     expect(await screen.findByText('{"message_count":2}')).toBeInTheDocument()
     expect(screen.queryByText('persona.update')).not.toBeInTheDocument()
+
+    expect(await screen.findByRole('option', { name: '林夏' })).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('人设'), LINXIA)
+    expect(await screen.findByText('persona.update')).toBeInTheDocument()
     const urls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.map((call) => String(call[0]))
     expect(urls).toContain('/v1/audit-logs')
     expect(urls).toContain('/v1/audit-logs?action=thread.export')
+    expect(urls).toContain(`/v1/audit-logs?action=thread.export&persona_id=${LINXIA}`)
   })
 
   it('hides payloads without workspace admin', async () => {
@@ -48,5 +65,6 @@ describe('AuditLogs', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('没有审计权限')
     expect(screen.queryByText('persona.update')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('动作')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('人设')).not.toBeInTheDocument()
   })
 })
