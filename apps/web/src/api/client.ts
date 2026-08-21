@@ -297,9 +297,15 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       }
     },
 
-    async getEventTree(personaId: string, view: 'tree' | 'timeline' = 'tree'): Promise<EventTree> {
+    async getEventTree(
+      personaId: string,
+      view: 'tree' | 'timeline' = 'tree',
+      keyOnly = true,
+    ): Promise<EventTree> {
+      const params = new URLSearchParams({ view })
+      if (!keyOnly) params.set('key_only', 'false')
       try {
-        const body = (await request(`/personas/${personaId}/events/tree?view=${view}`)) as EventTree
+        const body = (await request(`/personas/${personaId}/events/tree?${params.toString()}`)) as EventTree
         return { nodes: body.nodes ?? [], edges: body.edges ?? [] }
       } catch (err) {
         const status = (err as ApiError).status

@@ -34,6 +34,7 @@ export function Workbench({
   const narrow = useNarrow()
   const [treeOpen, setTreeOpen] = useState(false)
   const [treeView, setTreeView] = useState<'tree' | 'timeline'>('tree')
+  const [keyOnly, setKeyOnly] = useState(true)
   const [persona, setPersona] = useState<Persona | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -219,7 +220,7 @@ export function Workbench({
       setInbox((current) => current.filter((item) => item.id !== inboxId))
       await loadMemories(memoryType, memoryStatus)
       if (opts.markKeyEvent) {
-        const tree = await client.getEventTree(personaId, treeView)
+        const tree = await client.getEventTree(personaId, treeView, keyOnly)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
       }
@@ -264,7 +265,18 @@ export function Workbench({
   async function changeView(view: 'tree' | 'timeline') {
     setTreeView(view)
     try {
-      const tree = await client.getEventTree(personaId, view)
+      const tree = await client.getEventTree(personaId, view, keyOnly)
+      setTreeForbidden(Boolean(tree.forbidden))
+      setNodes(tree.nodes)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function changeKeyOnly(next: boolean) {
+    setKeyOnly(next)
+    try {
+      const tree = await client.getEventTree(personaId, treeView, next)
       setTreeForbidden(Boolean(tree.forbidden))
       setNodes(tree.nodes)
     } catch (err) {
@@ -382,9 +394,11 @@ export function Workbench({
               nodes={nodes}
               forbidden={treeForbidden}
               view={treeView}
+              keyOnly={keyOnly}
               highlightedId={highlightedId}
               onSelect={(eventId) => void openCard(eventId)}
               onChangeView={(view) => void changeView(view)}
+              onChangeKeyOnly={(next) => void changeKeyOnly(next)}
             />
             {treeForbidden ? null : <EventCardPane card={card} />}
             <MemoryListPane

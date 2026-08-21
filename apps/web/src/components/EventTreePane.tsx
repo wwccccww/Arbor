@@ -6,16 +6,20 @@ export function EventTreePane({
   nodes,
   forbidden,
   view = 'tree',
+  keyOnly = true,
   highlightedId,
   onSelect,
   onChangeView,
+  onChangeKeyOnly,
 }: {
   nodes: EventNode[]
   forbidden?: boolean
   view?: EventView
+  keyOnly?: boolean
   highlightedId?: string
   onSelect?: (eventId: string) => void
   onChangeView?: (view: EventView) => void
+  onChangeKeyOnly?: (keyOnly: boolean) => void
 }) {
   if (forbidden) {
     return <p>没有记忆权限，事件树为空。</p>
@@ -32,6 +36,16 @@ export function EventTreePane({
           </button>
         </div>
       ) : null}
+      {onChangeKeyOnly ? (
+        <label>
+          仅关键事件
+          <input
+            type="checkbox"
+            checked={keyOnly}
+            onChange={(event) => onChangeKeyOnly(event.target.checked)}
+          />
+        </label>
+      ) : null}
       {nodes.length ? (
         <ol className="event-tree" data-view={view}>
           {nodes.map((node) => (
@@ -44,7 +58,7 @@ export function EventTreePane({
           ))}
         </ol>
       ) : (
-        <p>暂无关键事件</p>
+        <p>{keyOnly ? '暂无关键事件' : '暂无事件'}</p>
       )}
     </section>
   )
