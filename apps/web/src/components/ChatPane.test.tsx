@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { createClient } from '../api/client'
 import { DEMO_OWNER } from '../session'
-import type { ChatMessage } from '../api/types'
+import type { ChatMessage, Thread } from '../api/types'
 import { ChatPane } from './ChatPane'
 
 describe('ChatPane', () => {
@@ -186,5 +186,100 @@ describe('ChatPane', () => {
     expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
       '/v1/threads/0a000000-0000-4000-a000-000000000030/messages?limit=1&offset=1',
     )
+  })
+
+  it('loads messages for the selected thread', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/threads/t-2/messages')) {
+        return new Response(
+          JSON.stringify({
+            items: [{ id: 'm2', role: 'user', content: '第二段', citations: [] }],
+            total: 1,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'not found' } }), { status: 404 })
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+
+    function Harness() {
+      const [threadId, setThreadId] = useState('t-1')
+      const [messages, setMessages] = useState<ChatMessage[]>([
+        { id: 'm1', role: 'user', text: '第一段', citations: [] },
+      ])
+      return (
+        <ChatPane
+          messages={messages}
+          threads={[
+            { id: 't-1', persona_id: 'p1' },
+            { id: 't-2', persona_id: 'p1' },
+          ]}
+          threadId={threadId}
+          onSend={vi.fn()}
+          onJump={vi.fn()}
+          onSwitchThread={(id) => {
+            setThreadId(id)
+            void client.listMessages(id).then((page) => setMessages(page.items))
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    expect(screen.getByText('第一段')).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('会话'), 't-2')
+    expect(await screen.findByText('第二段')).toBeInTheDocument()
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/threads/t-2/messages?limit=50&offset=0',
+    )
+  })
+
+  it('creates a new thread', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return new Response(JSON.stringify({ id: 't-3', persona_id: 'p1' }), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({ items: [], total: 0 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+
+    function Harness() {
+      const [threadId, setThreadId] = useState('t-1')
+      const [threads, setThreads] = useState<Thread[]>([{ id: 't-1', persona_id: 'p1' }])
+      return (
+        <ChatPane
+          messages={[]}
+          threads={threads}
+          threadId={threadId}
+          onSend={vi.fn()}
+          onJump={vi.fn()}
+          onSwitchThread={setThreadId}
+          onNewThread={() => {
+            void client.createThread('p1').then((created) => {
+              setThreads((current) => [...current, created])
+              setThreadId(created.id)
+            })
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    await user.click(screen.getByRole('button', { name: '新会话' }))
+    expect(await screen.findByRole('option', { name: '会话 2' })).toBeInTheDocument()
+    const postCall = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => (call[1] as RequestInit | undefined)?.method === 'POST',
+    )
+    expect(postCall?.[0]).toBe('/v1/personas/p1/threads')
   })
 })
