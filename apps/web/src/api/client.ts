@@ -338,10 +338,12 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       }
     },
 
-    async listAuditLogs(opts: { action?: string; persona_id?: string } = {}): Promise<AuditList> {
+    async listAuditLogs(opts: { action?: string; persona_id?: string; since?: string; until?: string } = {}): Promise<AuditList> {
       const params = new URLSearchParams()
       if (opts.action) params.set('action', opts.action)
       if (opts.persona_id) params.set('persona_id', opts.persona_id)
+      if (opts.since) params.set('since', opts.since)
+      if (opts.until) params.set('until', opts.until)
       const query = params.size ? `?${params.toString()}` : ''
       try {
         const body = (await request(`/audit-logs${query}`)) as AuditList
