@@ -4,7 +4,7 @@ import { DEMO_OWNER } from './session'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
 import { Workbench } from './pages/Workbench'
-import type { Persona, PersonaDraft } from './api/types'
+import type { Persona, PersonaDraft, TenantMember } from './api/types'
 
 function useHashRoute(): { page: 'home' | 'checkup' | 'workbench'; personaId?: string } {
   const [hash, setHash] = useState(window.location.hash)
@@ -29,6 +29,8 @@ export default function App() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [canCreate, setCanCreate] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [members, setMembers] = useState<TenantMember[]>([])
+  const [inviting, setInviting] = useState(false)
   const [error, setError] = useState<string | undefined>()
 
   useEffect(() => {
@@ -39,7 +41,13 @@ export default function App() {
         if (cancelled) return
         setPersonas(items)
         const current = tenants.find((tenant) => tenant.id === DEMO_OWNER.tenantId)
-        setCanCreate(canCreatePersonas(current?.role))
+        const allowed = canCreatePersonas(current?.role)
+        setCanCreate(allowed)
+        if (allowed) {
+          const listed = await client.listMembers()
+          if (cancelled) return
+          setMembers(listed.forbidden ? [] : listed.items)
+        }
       } catch (err) {
         if (!cancelled) setError((err as Error).message)
       }
@@ -61,6 +69,19 @@ export default function App() {
       setError((err as Error).message)
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function inviteMember(email: string, role: string) {
+    setInviting(true)
+    setError(undefined)
+    try {
+      const added = await client.addMember(email, role)
+      setMembers((current) => [...current, added])
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setInviting(false)
     }
   }
 
@@ -93,6 +114,8 @@ export default function App() {
       error={error}
       canCreate={canCreate}
       creating={creating}
+      members={members}
+      inviting={inviting}
       onOpen={(id) => {
         window.location.hash = `#/personas/${id}`
       }}
@@ -100,6 +123,7 @@ export default function App() {
         window.location.hash = '#/checkup'
       }}
       onCreate={(draft) => void createPersona(draft)}
+      onInvite={(email, role) => void inviteMember(email, role)}
     />
   )
 }

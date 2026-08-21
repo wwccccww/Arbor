@@ -16,6 +16,7 @@ import type {
   PersonaGrant,
   PersonaPatch,
   Tenant,
+  TenantMember,
   Thread,
   ThreadExport,
 } from './types'
@@ -103,6 +104,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         }
         throw err
       }
+    },
+
+    async addMember(email: string, role = 'member'): Promise<TenantMember> {
+      return (await request(`/tenants/${session.tenantId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({ email, role }),
+      })) as TenantMember
     },
 
     async replaceGrants(personaId: string, grants: PersonaGrant[]): Promise<{ ok: boolean; grants: PersonaGrant[] }> {
