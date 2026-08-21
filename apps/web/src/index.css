@@ -147,6 +147,11 @@ h3 {
   height: 100%;
 }
 
+.chat-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .transcript {
   list-style: none;
   padding: 0;

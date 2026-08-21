@@ -5,15 +5,19 @@ import { CitationList } from './CitationList'
 export function ChatPane({
   messages,
   sending,
+  exporting,
   onSend,
   onJump,
   onOpenAttachment,
+  onExport,
 }: {
   messages: ChatMessage[]
   sending?: boolean
+  exporting?: boolean
   onSend: (text: string, file?: File) => void
   onJump: (eventId?: string) => void
   onOpenAttachment?: (filename: string) => void
+  onExport?: () => void
 }) {
   const [draft, setDraft] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -31,6 +35,13 @@ export function ChatPane({
 
   return (
     <section className="chat">
+      {onExport ? (
+        <div className="chat-toolbar">
+          <button type="button" disabled={Boolean(exporting)} onClick={onExport}>
+            导出会话
+          </button>
+        </div>
+      ) : null}
       <ol className="transcript">
         {messages.map((message) => (
           <li key={message.id} data-role={message.role}>
