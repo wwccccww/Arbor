@@ -20,6 +20,9 @@ export type PersonaPatch = {
   display_name?: string
   one_liner?: string
   taboos?: string[]
+  personality?: { traits?: string[] }
+  relationships?: { name: string; kind: string }[]
+  skin?: 'companion' | 'employee'
 }
 
 export type PersonaDraft = {
