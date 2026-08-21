@@ -259,8 +259,11 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       })) as { job_id: string; status: string; inbox_created: number }
     },
 
-    async listMemories(personaId: string, opts: { type?: string } = {}): Promise<MemoryList> {
-      const query = opts.type ? `?type=${encodeURIComponent(opts.type)}` : ''
+    async listMemories(personaId: string, opts: { type?: string; status?: string } = {}): Promise<MemoryList> {
+      const params = new URLSearchParams()
+      if (opts.type) params.set('type', opts.type)
+      if (opts.status) params.set('status', opts.status)
+      const query = params.size ? `?${params.toString()}` : ''
       try {
         const body = (await request(`/personas/${personaId}/memories${query}`)) as MemoryList
         return { items: body.items ?? [], total: body.total ?? 0 }

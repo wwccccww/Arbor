@@ -18,6 +18,7 @@ describe('MemoryListPane', () => {
     expect(screen.getByText('没有记忆权限，列表为空。')).toBeInTheDocument()
     expect(screen.queryByText('林夏讨厌香菜')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('类型')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('状态')).not.toBeInTheDocument()
   })
 
   it('filters by type and opens the related event', async () => {
@@ -65,5 +66,50 @@ describe('MemoryListPane', () => {
     )
     await user.click(screen.getByRole('button', { name: /合影：雨天的店门口/ }))
     expect(onSelect).toHaveBeenCalledWith('evt-meet')
+  })
+
+  it('filters by superseded status', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const superseded = String(input).includes('status=superseded')
+      return new Response(
+        JSON.stringify({
+          items: superseded
+            ? [{ id: 'old-1', text: '旧的猫咪名', type: 'fact', status: 'superseded' }]
+            : [{ id: 'fact-1', text: '林夏讨厌香菜', type: 'fact', status: 'active' }],
+          total: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+
+    function Harness() {
+      const [items, setItems] = useState<MemoryItem[]>([
+        { id: 'fact-1', text: '林夏讨厌香菜', type: 'fact', status: 'active' },
+      ])
+      const [status, setStatus] = useState('active')
+      return (
+        <MemoryListPane
+          items={items}
+          total={items.length}
+          status={status}
+          onChangeStatus={(next) => {
+            setStatus(next)
+            void client.listMemories('linxia', { status: next !== 'active' ? next : undefined }).then((page) => {
+              setItems(page.items)
+            })
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    await user.selectOptions(screen.getByLabelText('状态'), 'superseded')
+    expect(await screen.findByText('旧的猫咪名')).toBeInTheDocument()
+    expect(screen.getByText(/fact · superseded/)).toBeInTheDocument()
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?status=superseded',
+    )
   })
 })

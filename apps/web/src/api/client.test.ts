@@ -114,6 +114,24 @@ describe('createClient', () => {
     )
   })
 
+  it('lists memories with a superseded status filter', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          items: [{ id: 'old-1', text: '旧的猫咪名', type: 'fact', status: 'superseded' }],
+          total: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const page = await client.listMemories('linxia', { status: 'superseded' })
+    expect(page.items[0]?.status).toBe('superseded')
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?status=superseded',
+    )
+  })
+
   it('starts eval runs in retrieval mode only', async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(JSON.stringify({ id: 'run-1' }), {
