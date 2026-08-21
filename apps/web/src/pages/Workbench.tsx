@@ -48,6 +48,8 @@ export function Workbench({
   const [memoryType, setMemoryType] = useState('')
   const [memoryStatus, setMemoryStatus] = useState('active')
   const [memoryTotal, setMemoryTotal] = useState(0)
+  const [memoryOffset, setMemoryOffset] = useState(0)
+  const memoryPageSize = 50
   const [inbox, setInbox] = useState<InboxItem[]>([])
   const [inboxForbidden, setInboxForbidden] = useState(false)
   const [inboxBusy, setInboxBusy] = useState<string | undefined>()
@@ -72,7 +74,7 @@ export function Workbench({
           client.listThreads(personaId),
           client.getEventTree(personaId, 'tree'),
           client.listInbox(personaId),
-          client.listMemories(personaId),
+          client.listMemories(personaId, { limit: memoryPageSize, offset: 0 }),
         ])
         if (cancelled) return
         setPersona(loadedPersona)
@@ -81,6 +83,7 @@ export function Workbench({
         setMemoriesForbidden(Boolean(listedMemories.forbidden))
         setMemories(listedMemories.items)
         setMemoryTotal(listedMemories.total)
+        setMemoryOffset(0)
         setInboxForbidden(Boolean(pending.forbidden))
         setInbox(pending.items)
         if (Array.isArray(loadedPersona.grants)) {
@@ -202,14 +205,17 @@ export function Workbench({
     }
   }
 
-  async function loadMemories(type: string, status: string) {
+  async function loadMemories(type: string, status: string, offset = 0) {
     const listed = await client.listMemories(personaId, {
       type: type || undefined,
       status: status !== 'active' ? status : undefined,
+      limit: memoryPageSize,
+      offset,
     })
     setMemoriesForbidden(Boolean(listed.forbidden))
     setMemories(listed.items)
     setMemoryTotal(listed.total)
+    setMemoryOffset(offset)
   }
 
   async function confirmItem(inboxId: string, opts: { markKeyEvent: boolean }) {
@@ -218,7 +224,7 @@ export function Workbench({
     try {
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
-      await loadMemories(memoryType, memoryStatus)
+      await loadMemories(memoryType, memoryStatus, memoryOffset)
       if (opts.markKeyEvent) {
         const tree = await client.getEventTree(personaId, treeView, keyOnly)
         setTreeForbidden(Boolean(tree.forbidden))
@@ -247,7 +253,7 @@ export function Workbench({
   async function changeMemoryType(type: string) {
     setMemoryType(type)
     try {
-      await loadMemories(type, memoryStatus)
+      await loadMemories(type, memoryStatus, 0)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -256,7 +262,15 @@ export function Workbench({
   async function changeMemoryStatus(status: string) {
     setMemoryStatus(status)
     try {
-      await loadMemories(memoryType, status)
+      await loadMemories(memoryType, status, 0)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  async function pageMemories(offset: number) {
+    try {
+      await loadMemories(memoryType, memoryStatus, offset)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -407,8 +421,11 @@ export function Workbench({
               forbidden={memoriesForbidden}
               type={memoryType}
               status={memoryStatus}
+              offset={memoryOffset}
+              pageSize={memoryPageSize}
               onChangeType={(next) => void changeMemoryType(next)}
               onChangeStatus={(next) => void changeMemoryStatus(next)}
+              onPage={(next) => void pageMemories(next)}
               onSelect={(eventId) => void openCard(eventId)}
             />
           </>

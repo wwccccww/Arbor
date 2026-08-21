@@ -19,6 +19,7 @@ describe('MemoryListPane', () => {
     expect(screen.queryByText('林夏讨厌香菜')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('类型')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('状态')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '下一页' })).not.toBeInTheDocument()
   })
 
   it('filters by type and opens the related event', async () => {
@@ -110,6 +111,49 @@ describe('MemoryListPane', () => {
     expect(screen.getByText(/fact · superseded/)).toBeInTheDocument()
     expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
       '/v1/personas/linxia/memories?status=superseded',
+    )
+  })
+
+  it('pages memories with offset', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const second = String(input).includes('offset=1')
+      return new Response(
+        JSON.stringify({
+          items: second
+            ? [{ id: 'mem-2', text: '旧的猫咪名', type: 'fact' }]
+            : [{ id: 'mem-1', text: '林夏讨厌香菜', type: 'fact' }],
+          total: 2,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const pageSize = 1
+
+    function Harness() {
+      const [items, setItems] = useState<MemoryItem[]>([{ id: 'mem-1', text: '林夏讨厌香菜', type: 'fact' }])
+      const [offset, setOffset] = useState(0)
+      return (
+        <MemoryListPane
+          items={items}
+          total={2}
+          offset={offset}
+          pageSize={pageSize}
+          onPage={(next) => {
+            setOffset(next)
+            void client.listMemories('linxia', { limit: pageSize, offset: next }).then((page) => setItems(page.items))
+          }}
+        />
+      )
+    }
+
+    render(<Harness />)
+    expect(screen.getByText('1–1 / 2')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '下一页' }))
+    expect(await screen.findByText('旧的猫咪名')).toBeInTheDocument()
+    expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe(
+      '/v1/personas/linxia/memories?limit=1&offset=1',
     )
   })
 })
