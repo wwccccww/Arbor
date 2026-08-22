@@ -52,11 +52,25 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | 嵌入 | bge-m3 |
 | 语音 / 文档 | Whisper、Docling 或 pypdf |
 
+## 本地运行
+
+在浏览器体验工作台（首页、三栏、体检、审计）：
+
+```bash
+pip install -e ".[api]" uvicorn
+python3 -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+
+cd apps/web && npm install && npm run dev
+```
+
+打开 http://localhost:5173 。演示令牌 `token-a`，无需 Postgres 或登录。详见 [docs/local-dev.md](docs/local-dev.md)。
+
 ## 文档索引
 
 | 文档 | 内容 |
 |---|---|
 | [docs/README.md](docs/README.md) | 文档导航与阅读顺序 |
+| [docs/local-dev.md](docs/local-dev.md) | 本地安装、启动、演示身份 |
 | [docs/product-design.md](docs/product-design.md) | 产品形态、页面、权限、非目标 |
 | [docs/architecture.md](docs/architecture.md) | 六边形架构、分层、依赖规则 |
 | [docs/domain-model.md](docs/domain-model.md) | 限界上下文、聚合、领域事件 |
