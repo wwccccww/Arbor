@@ -43,6 +43,17 @@ def test_me_runtime_reports_deepseek(monkeypatch):
     assert r.json()["runtime"] == {"llm": "deepseek", "store": "memory"}
 
 
+def test_create_app_from_env_falls_back_when_postgres_down(monkeypatch):
+    monkeypatch.setattr("arbor.env.chat_api_key", lambda: "")
+    monkeypatch.setattr(
+        "arbor.env.database_url",
+        lambda: "postgresql://arbor:arbor@127.0.0.1:59999/arbor",
+    )
+    app = create_app_from_env()
+    assert app.state.runtime["store"] == "memory"
+    assert isinstance(app.state.send.llm, ScriptedLLM)
+
+
 def test_chat_maps_deepseek_unavailable():
     class BoomLLM:
         def complete(self, **_kwargs):

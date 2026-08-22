@@ -1207,6 +1207,8 @@ def create_app(
 
 
 def create_app_from_env() -> FastAPI:
+    import logging
+
     from arbor.env import chat_api_key, database_url as env_database_url
 
     llm = None
@@ -1214,4 +1216,15 @@ def create_app_from_env() -> FastAPI:
     if chat_api_key():
         llm = DeepSeekChatLLM()
         reasoner = DeepSeekReasoner()
-    return create_app(database_url=env_database_url() or None, llm=llm, reasoner=reasoner)
+    url = env_database_url() or None
+    if url:
+        from arbor.adapters.outbound.postgres.connection import reachable
+
+        if not reachable(url):
+            logging.getLogger("arbor.api").warning(
+                "DATABASE_URL is set but Postgres is unreachable; using in-memory store. "
+                "Comment out DATABASE_URL in .env, or start "
+                "docker compose -f infra/compose/postgres.yml up -d"
+            )
+            url = None
+    return create_app(database_url=url, llm=llm, reasoner=reasoner)
