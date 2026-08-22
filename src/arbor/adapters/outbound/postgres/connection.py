@@ -8,8 +8,23 @@ from psycopg.rows import dict_row
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 
-def connect(url: str) -> psycopg.Connection:
-    return psycopg.connect(url, autocommit=True, row_factory=dict_row, cursor_factory=psycopg.ClientCursor)
+def connect(url: str, *, connect_timeout: int = 3) -> psycopg.Connection:
+    return psycopg.connect(
+        url,
+        autocommit=True,
+        row_factory=dict_row,
+        cursor_factory=psycopg.ClientCursor,
+        connect_timeout=connect_timeout,
+    )
+
+
+def reachable(url: str) -> bool:
+    try:
+        conn = connect(url)
+        conn.close()
+    except Exception:
+        return False
+    return True
 
 
 def apply_schema_sql(conn: psycopg.Connection) -> None:
