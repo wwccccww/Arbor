@@ -8,7 +8,7 @@ import { TenantPane } from './TenantPane'
 describe('TenantPane', () => {
   it('creates a workspace then deletes the empty current one', async () => {
     const user = userEvent.setup()
-    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       if (init?.method === 'POST') {
         return new Response(JSON.stringify({ id: 'new-tenant', name: '私人空间', role: 'owner' }), {
           status: 201,
