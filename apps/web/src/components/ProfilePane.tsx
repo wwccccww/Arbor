@@ -39,7 +39,9 @@ export function ProfilePane({
   busy?: boolean
   onSave?: (patch: PersonaPatch) => void
 }) {
-  const [skin, setSkin] = useState(persona.skin === 'employee' ? 'employee' : 'companion')
+  const [skin, setSkin] = useState<'companion' | 'employee'>(
+    persona.skin === 'employee' ? 'employee' : 'companion',
+  )
   const [displayName, setDisplayName] = useState(persona.display_name)
   const [oneLiner, setOneLiner] = useState(persona.one_liner ?? '')
   const [taboos, setTaboos] = useState(linesText(persona.taboos))
