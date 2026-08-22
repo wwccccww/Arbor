@@ -192,6 +192,7 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 | `uvicorn: command not found` | 使用 `python -m uvicorn ...` |
 | `python3` 找不到 | Windows 上改用 `python` |
 | 首页 **Bad Gateway** | 只开了 5173、没开 8000。改用 `scripts/run.ps1` 打开 **http://127.0.0.1:8000**，或把 API 终端拉起来再刷新 |
+| `run.ps1` 报「意外的标记」或中文乱码 | 旧脚本编码不兼容 PowerShell 5。`git pull` 后再跑；脚本已改为 UTF-8 BOM |
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
 | 端口被占用 | 换端口时需同时改 API 启动参数与 `vite.config.ts` 中的 proxy 目标 |
 
