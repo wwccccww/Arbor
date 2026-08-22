@@ -41,6 +41,14 @@ h3 {
   padding: 0 0 1rem;
 }
 
+.runtime-status {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  background: #efe6d6;
+  max-width: 42rem;
+}
+
 .audit-list {
   list-style: none;
   padding: 0;

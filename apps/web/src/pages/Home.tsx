@@ -1,4 +1,4 @@
-import type { Persona, PersonaDraft, Tenant, TenantMember } from '../api/types'
+import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from '../api/types'
 import { CreatePersonaPane } from '../components/CreatePersonaPane'
 import { InviteMemberPane } from '../components/InviteMemberPane'
 import { TenantPane } from '../components/TenantPane'
@@ -10,6 +10,7 @@ export function Home({
   currentTenantId,
   canDeleteTenant,
   email,
+  runtime,
   error,
   canCreate,
   creating,
@@ -30,6 +31,7 @@ export function Home({
   currentTenantId?: string
   canDeleteTenant?: boolean
   email?: string
+  runtime?: RuntimeInfo
   error?: string
   canCreate?: boolean
   creating?: boolean
@@ -58,6 +60,15 @@ export function Home({
           </button>
         ) : null}
       </header>
+      {runtime ? (
+        <p className="runtime-status">
+          {runtime.llm === 'deepseek'
+            ? 'DeepSeek 对话已接通'
+            : '当前是脚本回复。在仓库根目录 .env 写入 DEEPSEEK_API_KEY 后重启，即可真实对话'}
+          {' · '}
+          {runtime.store === 'postgres' ? 'Postgres 持久化' : '内存库（关掉 API 会丢数据）'}
+        </p>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
       {tenants && currentTenantId && onSwitchTenant && onCreateTenant ? (
         <TenantPane

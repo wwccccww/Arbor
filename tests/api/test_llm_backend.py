@@ -28,6 +28,21 @@ def test_create_app_from_env_uses_deepseek_when_key_present(monkeypatch):
     assert isinstance(app.state.send.reasoner, DeepSeekReasoner)
 
 
+def test_me_runtime_defaults_to_scripted_memory():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    r = client.get("/v1/me", headers={"Authorization": "Bearer token-a"})
+    assert r.status_code == 200
+    assert r.json()["runtime"] == {"llm": "scripted", "store": "memory"}
+
+
+def test_me_runtime_reports_deepseek(monkeypatch):
+    monkeypatch.setattr("arbor.env.chat_api_key", lambda: "sk-test")
+    monkeypatch.setattr("arbor.env.database_url", lambda: "")
+    client = TestClient(create_app_from_env(), raise_server_exceptions=False)
+    r = client.get("/v1/me", headers={"Authorization": "Bearer token-a"})
+    assert r.json()["runtime"] == {"llm": "deepseek", "store": "memory"}
+
+
 def test_chat_maps_deepseek_unavailable():
     class BoomLLM:
         def complete(self, **_kwargs):

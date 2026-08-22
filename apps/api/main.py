@@ -4,7 +4,8 @@ import os
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
@@ -57,6 +58,7 @@ from arbor.domain.identity.tenant import Membership, Role
 from arbor.domain.identity.user import User
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
+from arbor.paths import repo_root
 
 from .rate_limit import (
     DEFAULT_RATE_LIMIT_PER_WINDOW,
@@ -88,6 +90,35 @@ DEFAULT_MAX_UPLOAD_BYTES = 32 * 1024 * 1024
 def _reject_oversize(data: bytes, limit: int) -> None:
     if len(data) > limit:
         raise DomainError("VALIDATION_ERROR", "file too large")
+
+
+def _runtime_info(*, llm: object, database_url: str | None) -> dict[str, str]:
+    return {
+        "llm": "deepseek" if isinstance(llm, DeepSeekChatLLM) else "scripted",
+        "store": "postgres" if database_url else "memory",
+    }
+
+
+def _mount_web_ui(app: FastAPI) -> None:
+    dist = repo_root() / "apps" / "web" / "dist"
+    index = dist / "index.html"
+    if not index.is_file():
+        return
+
+    @app.get("/")
+    def web_index():
+        return FileResponse(index)
+
+    favicon = dist / "favicon.svg"
+    if favicon.is_file():
+
+        @app.get("/favicon.svg")
+        def web_favicon():
+            return FileResponse(favicon)
+
+    assets = dist / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(assets)), name="web-assets")
 
 
 class MessageIn(BaseModel):
@@ -399,6 +430,7 @@ def create_app(
     app.state.import_jobs = import_jobs
     app.state.eval_runs = eval_runs
     app.state.storage = storage
+    app.state.runtime = _runtime_info(llm=send.llm, database_url=database_url)
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -437,6 +469,7 @@ def create_app(
         return {
             "user": {"id": user["user_id"], "email": user["email"]},
             "tenants": [_tenant_json(item, actor) for item in list_tenants(user_id=actor)],
+            "runtime": app.state.runtime,
         }
 
     @app.get("/v1/tenants")
@@ -1169,6 +1202,7 @@ def create_app(
             "memories": [{"id": item.id.value, "text": item.text} for item in card["memories"]],
         }
 
+    _mount_web_ui(app)
     return app
 
 
