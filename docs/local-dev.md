@@ -1,59 +1,76 @@
 # 本地运行
 
-在浏览器里体验当前工作台（首页、三栏工作台、体检、审计），需要同时启动 API 与前端开发服务器。
+推荐用**一条命令**同时拉起 API 和工作台，浏览器打开 **http://127.0.0.1:8000**。不要只开前端（`localhost:5173`），否则会出现 **Bad Gateway**。
 
-Windows PowerShell 5.x **不支持** `&&`。下面每一步都给出 bash / PowerShell 两套命令；请按你的终端复制对应代码块。
+## 真实可用（推荐）
+
+前置：Python 3.11+、Node.js 18+。Windows 用 `python`；macOS/Linux 用 `python3`。
+
+1. 到 [DeepSeek 开放平台](https://platform.deepseek.com) 创建 API Key。
+2. 仓库根目录复制环境文件并填入密钥（不要提交 `.env`）：
+
+```powershell
+copy .env.example .env
+notepad .env
+```
+
+```bash
+cp .env.example .env
+```
+
+`.env` 中至少：
+
+```text
+DEEPSEEK_API_KEY=sk-你的密钥
+```
+
+3. **一条命令启动**（构建前端后，由 API 在 8000 端口一起提供页面和 `/v1`）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run.ps1
+```
+
+```bash
+chmod +x scripts/run.sh
+./scripts/run.sh
+```
+
+4. 浏览器打开 **http://127.0.0.1:8000**。
+
+首页黄条应显示 **「DeepSeek 对话已接通」**。点开林夏即可真实对话、导入资料、确认记忆。未填密钥时黄条为「脚本回复」，页面仍能点，但对话不是模型生成的。
+
+关掉这个窗口即停止服务。默认用内存库，关进程后数据丢失。要持久化，先起 Postgres，再在 `.env` 取消注释 `DATABASE_URL`：
+
+```powershell
+docker compose -f infra/compose/postgres.yml up -d
+```
+
+然后重新运行 `scripts/run.ps1`。
 
 ## 前置条件
 
 | 依赖 | 版本 | 用途 |
 |---|---|---|
 | Python | 3.11+ | FastAPI 入站适配器 |
-| Node.js | 18+ | Vite + React 工作台 |
+| Node.js | 18+ | 构建工作台 |
 
-Windows 上 Python 启动器通常是 `python`，macOS/Linux 多为 `python3`。下文用 `python`；若提示找不到命令，改成 `python3`。
+**演示最小集不需要：** PostgreSQL、登录页。嵌入仍为内置 `fixture_embed`（无独立 embedding API），不影响对话与工作台操作。
 
-**演示最小集不需要：**
+## 开发模式（两个终端）
 
-- PostgreSQL / Redis — 默认内存库，启动时自动 seed 演示世界（林夏、小周等）
-- 登录 — 前端写死演示令牌，无登录页
-- `DEEPSEEK_API_KEY` — 未配置时使用内置 ScriptedLLM / ScriptedReasoner
+改前端时可用 Vite 热更新。Windows PowerShell 5.x **不支持** `&&`，请分行执行。
 
-## 安装
-
-在仓库根目录：
-
-```bash
-pip install -e ".[api]" uvicorn
-```
-
-```powershell
-pip install -e ".[api]" uvicorn
-```
-
-前端依赖（单独一行，避免 PowerShell 解析 `&&`）：
-
-```bash
-cd apps/web
-npm install
-```
-
-```powershell
-cd apps/web
-npm install
-```
-
-## 启动
-
-需要两个终端，均从仓库根目录开始。
+两个终端都从仓库根目录开始。
 
 **终端 1 — API（端口 8000）**
 
 ```bash
+python -m pip install -e ".[api]"
 python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 ```
 
 ```powershell
+python -m pip install -e ".[api]"
 python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 ```
 
@@ -63,17 +80,17 @@ python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 
 ```bash
 cd apps/web
+npm install
 npm run dev
 ```
 
 ```powershell
 cd apps/web
+npm install
 npm run dev
 ```
 
-浏览器打开 **http://localhost:5173**。
-
-开发模式下 Vite 将 `/v1` 代理到 `http://127.0.0.1:8000`（见 `apps/web/vite.config.ts`），无需额外配置 CORS。
+浏览器打开 **http://localhost:5173**。Vite 将 `/v1` 代理到 `http://127.0.0.1:8000`。
 
 ## 演示身份
 
@@ -174,6 +191,7 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 | `ModuleNotFoundError: fastapi` | 执行 `pip install -e ".[api]" uvicorn` |
 | `uvicorn: command not found` | 使用 `python -m uvicorn ...` |
 | `python3` 找不到 | Windows 上改用 `python` |
+| 首页 **Bad Gateway** | 只开了 5173、没开 8000。改用 `scripts/run.ps1` 打开 **http://127.0.0.1:8000**，或把 API 终端拉起来再刷新 |
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
 | 端口被占用 | 换端口时需同时改 API 启动参数与 `vite.config.ts` 中的 proxy 目标 |
 

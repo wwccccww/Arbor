@@ -61,7 +61,17 @@
 
 ### `GET /v1/me`
 
-当前用户与加入的 tenants。
+当前用户、加入的 tenants，以及运行时：
+
+```json
+{
+  "user": { "id": "…", "email": "demo-a@arbor.eval" },
+  "tenants": [{ "id": "…", "name": "演示租户A", "role": "owner" }],
+  "runtime": { "llm": "deepseek", "store": "memory" }
+}
+```
+
+`runtime.llm` 为 `deepseek` 或 `scripted`；`runtime.store` 为 `postgres` 或 `memory`。
 
 ## 3. 工作空间
 

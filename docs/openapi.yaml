@@ -374,6 +374,15 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Tenant"
+                  runtime:
+                    type: object
+                    properties:
+                      llm:
+                        type: string
+                        enum: [deepseek, scripted]
+                      store:
+                        type: string
+                        enum: [postgres, memory]
 
   /tenants:
     get:

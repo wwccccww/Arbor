@@ -6,15 +6,15 @@
 
 ## 快速启动
 
-**前置：** Python 3.11+、Node.js 18+；在仓库根目录执行 `pip install -e ".[api]" uvicorn`。
+真实可用：仓库根目录填好 `.env` 的 `DEEPSEEK_API_KEY` 后执行 `scripts/run.ps1`（Windows）或 `scripts/run.sh`，打开 **http://127.0.0.1:8000**。
 
-Windows PowerShell 5.x 不支持 `&&`，请分行执行。
+开发热更新仍可用两个终端（PowerShell 请分行，不要写 `&&`）：
 
-```bash
-# 终端 1 — 仓库根目录
+```powershell
 python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+```
 
-# 终端 2
+```powershell
 cd apps/web
 npm install
 npm run dev

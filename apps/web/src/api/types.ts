@@ -37,8 +37,15 @@ export type Tenant = {
   role?: string
 }
 
+export type RuntimeInfo = {
+  llm: string
+  store: string
+}
+
 export type Me = {
   user: { id: string; email: string }
+  tenants?: Tenant[]
+  runtime?: RuntimeInfo
 }
 
 export type TenantMember = {

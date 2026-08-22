@@ -5,7 +5,7 @@ import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
 import { Workbench } from './pages/Workbench'
-import type { Persona, PersonaDraft, Tenant, TenantMember } from './api/types'
+import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from './api/types'
 
 function useHashRoute(): { page: 'home' | 'checkup' | 'audit' | 'workbench'; personaId?: string } {
   const [hash, setHash] = useState(window.location.hash)
@@ -36,6 +36,7 @@ export default function App() {
   const [members, setMembers] = useState<TenantMember[]>([])
   const [inviting, setInviting] = useState(false)
   const [email, setEmail] = useState<string | undefined>()
+  const [runtime, setRuntime] = useState<RuntimeInfo | undefined>()
   const [error, setError] = useState<string | undefined>()
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function App() {
         ])
         if (cancelled) return
         setEmail(me.user.email)
+        setRuntime(me.runtime)
         setPersonas(items)
         setTenants(tenants)
         const current = tenants.find((tenant) => tenant.id === session.tenantId)
@@ -181,6 +183,7 @@ export default function App() {
     <Home
       personas={personas}
       email={email}
+      runtime={runtime}
       error={error}
       canCreate={canCreate}
       creating={creating}
