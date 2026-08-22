@@ -54,13 +54,29 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 
 ## 本地运行
 
-在浏览器体验工作台（首页、三栏、体检、审计）：
+在浏览器体验工作台（首页、三栏、体检、审计）。需要两个终端。
+
+Windows PowerShell 5.x 不支持 `&&`，请分行执行，或改用 `;`。
+
+**终端 1 — API**
 
 ```bash
 pip install -e ".[api]" uvicorn
-python3 -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+```
 
-cd apps/web && npm install && npm run dev
+**终端 2 — 前端**
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+```powershell
+cd apps/web
+npm install
+npm run dev
 ```
 
 打开 http://localhost:5173 。演示令牌 `token-a`，无需 Postgres 或登录。详见 [docs/local-dev.md](docs/local-dev.md)。

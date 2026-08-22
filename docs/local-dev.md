@@ -2,12 +2,16 @@
 
 在浏览器里体验当前工作台（首页、三栏工作台、体检、审计），需要同时启动 API 与前端开发服务器。
 
+Windows PowerShell 5.x **不支持** `&&`。下面每一步都给出 bash / PowerShell 两套命令；请按你的终端复制对应代码块。
+
 ## 前置条件
 
 | 依赖 | 版本 | 用途 |
 |---|---|---|
 | Python | 3.11+ | FastAPI 入站适配器 |
 | Node.js | 18+ | Vite + React 工作台 |
+
+Windows 上 Python 启动器通常是 `python`，macOS/Linux 多为 `python3`。下文用 `python`；若提示找不到命令，改成 `python3`。
 
 **演示最小集不需要：**
 
@@ -23,9 +27,18 @@
 pip install -e ".[api]" uvicorn
 ```
 
-前端依赖：
+```powershell
+pip install -e ".[api]" uvicorn
+```
+
+前端依赖（单独一行，避免 PowerShell 解析 `&&`）：
 
 ```bash
+cd apps/web
+npm install
+```
+
+```powershell
 cd apps/web
 npm install
 ```
@@ -37,7 +50,11 @@ npm install
 **终端 1 — API（端口 8000）**
 
 ```bash
-python3 -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+```
+
+```powershell
+python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 ```
 
 看到 `Uvicorn running on http://127.0.0.1:8000` 即表示 API 就绪。
@@ -45,6 +62,11 @@ python3 -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 **终端 2 — 前端（端口 5173）**
 
 ```bash
+cd apps/web
+npm run dev
+```
+
+```powershell
 cd apps/web
 npm run dev
 ```
@@ -93,9 +115,18 @@ export DEEPSEEK_API_KEY=sk-...
 export DATABASE_URL=postgresql://...
 ```
 
+```powershell
+$env:DEEPSEEK_API_KEY = "sk-..."
+$env:DATABASE_URL = "postgresql://..."
+```
+
 Postgres 本地栈见 `infra/compose/postgres.yml`：
 
 ```bash
+docker compose -f infra/compose/postgres.yml up -d
+```
+
+```powershell
 docker compose -f infra/compose/postgres.yml up -d
 ```
 
@@ -104,10 +135,17 @@ docker compose -f infra/compose/postgres.yml up -d
 ## 验证
 
 ```bash
-# 前端单测（56 项）
-cd apps/web && npm test
+cd apps/web
+npm test
 
-# 后端 API 测
+pytest tests/api -q
+```
+
+```powershell
+cd apps/web
+npm test
+
+cd ../..
 pytest tests/api -q
 ```
 
@@ -119,15 +157,23 @@ curl -s http://127.0.0.1:8000/v1/me \
   -H "X-Tenant-Id: 0a000000-0000-4000-a000-000000000001"
 ```
 
+```powershell
+curl.exe -s http://127.0.0.1:8000/v1/me `
+  -H "Authorization: Bearer token-a" `
+  -H "X-Tenant-Id: 0a000000-0000-4000-a000-000000000001"
+```
+
 应返回 `demo-a@arbor.eval` 与租户列表。
 
 ## 常见问题
 
 | 现象 | 处理 |
 |---|---|
+| `标记“&&”不是此版本中的有效语句分隔符` | Windows PowerShell 5.x 不支持 `&&`。改成分行执行，或用 `;`（例如 `cd apps/web; npm install; npm run dev`） |
 | 首页空白或网络错误 | 确认 API 终端仍在 8000 端口运行 |
 | `ModuleNotFoundError: fastapi` | 执行 `pip install -e ".[api]" uvicorn` |
-| `uvicorn: command not found` | 使用 `python3 -m uvicorn ...` |
+| `uvicorn: command not found` | 使用 `python -m uvicorn ...` |
+| `python3` 找不到 | Windows 上改用 `python` |
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
 | 端口被占用 | 换端口时需同时改 API 启动参数与 `vite.config.ts` 中的 proxy 目标 |
 

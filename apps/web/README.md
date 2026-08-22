@@ -8,9 +8,11 @@
 
 **前置：** Python 3.11+、Node.js 18+；在仓库根目录执行 `pip install -e ".[api]" uvicorn`。
 
+Windows PowerShell 5.x 不支持 `&&`，请分行执行。
+
 ```bash
 # 终端 1 — 仓库根目录
-python3 -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
+python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 
 # 终端 2
 cd apps/web
