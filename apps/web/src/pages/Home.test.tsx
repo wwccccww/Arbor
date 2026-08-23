@@ -81,4 +81,25 @@ describe('Home', () => {
     )
     expect(screen.getByText(/嵌入 bge-m3/)).toBeInTheDocument()
   })
+
+  it('shows memory and thread stats on persona cards', () => {
+    render(
+      <Home
+        personas={[
+          {
+            id: 'p1',
+            skin: 'companion',
+            display_name: '林夏',
+            one_liner: '住在杭州的陪伴助手',
+            stats: { memory_count: 12, thread_count: 3 },
+          },
+        ]}
+        onOpen={vi.fn()}
+        onCheckup={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/12 条记忆/)).toBeInTheDocument()
+    expect(screen.getByText(/3 段会话/)).toBeInTheDocument()
+    expect(screen.getAllByText('陪伴').length).toBeGreaterThan(0)
+  })
 })

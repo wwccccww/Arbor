@@ -50,7 +50,7 @@ export function MemoryListPane({
     return (
       <section>
         <h3>记忆</h3>
-        <p>没有记忆权限，列表为空。</p>
+        <p className="empty-state">没有记忆权限，列表为空。</p>
       </section>
     )
   }
@@ -84,16 +84,16 @@ export function MemoryListPane({
       ) : null}
       {onToggleEventFilter ? (
         <label>
-          仅当前事件
           <input
             type="checkbox"
             checked={filterByEvent}
             disabled={!eventId}
             onChange={(event) => onToggleEventFilter(event.target.checked)}
           />
+          仅当前事件
         </label>
       ) : null}
-      {typeof total === 'number' ? <p>{total} 条</p> : null}
+      {typeof total === 'number' ? <p className="form-hint">{total} 条</p> : null}
       {onPage && typeof total === 'number' && total > pageSize ? (
         <div className="memory-pager">
           <button type="button" disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - pageSize))}>
@@ -112,30 +112,27 @@ export function MemoryListPane({
         </div>
       ) : null}
       {items.length === 0 ? (
-        <p>暂无记忆</p>
+        <p className="empty-state">暂无记忆</p>
       ) : (
         <ul className="memory-list">
-          {items.map((item) => (
-            <li key={item.id}>
-              {item.event_id ? (
-                <button type="button" onClick={() => onSelect?.(item.event_id!)}>
-                  <span className="eyebrow">
-                    {item.type}
-                    {item.status && item.status !== 'active' ? ` · ${item.status}` : ''}
-                  </span>
-                  {item.text}
-                </button>
-              ) : (
-                <>
-                  <span className="eyebrow">
-                    {item.type}
-                    {item.status && item.status !== 'active' ? ` · ${item.status}` : ''}
-                  </span>
+          {items.map((item) => {
+            const statusLabel = item.status && item.status !== 'active' ? ` · ${item.status}` : ''
+            const meta = `${item.type ?? ''}${statusLabel}`
+            return (
+              <li key={item.id}>
+                <div className="memory-list__tag">
+                  <span className="eyebrow">{meta}</span>
+                </div>
+                {item.event_id ? (
+                  <button type="button" onClick={() => onSelect?.(item.event_id!)}>
+                    {item.text}
+                  </button>
+                ) : (
                   <p>{item.text}</p>
-                </>
-              )}
-            </li>
-          ))}
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>

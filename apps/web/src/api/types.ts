@@ -14,6 +14,11 @@ export type Persona = {
   relationships?: { name: string; kind: string }[]
   personality?: { traits?: string[] }
   grants?: PersonaGrant[]
+  stats?: {
+    memory_count?: number
+    last_interaction?: string
+    thread_count?: number
+  }
 }
 
 export type PersonaPatch = {
@@ -178,6 +183,24 @@ export type EvalMetrics = {
   key_event_hit_rate?: number
 }
 
+export type EvalCase = {
+  id: string
+  query: string
+  skill?: string
+  expected_source?: string | null
+  expected_behavior?: string
+  expected_memory_count?: number
+  expected_event_id?: string | null
+  hit_ids: string[]
+  leak_ids: string[]
+  sources: Record<string, string>
+  recall: number
+  leaked: boolean
+  event_hit: boolean
+  profile_miss: boolean
+  passed: boolean
+}
+
 export type EvalRun = {
   id: string
   status?: string
@@ -186,6 +209,7 @@ export type EvalRun = {
   mode?: string
   metrics: EvalMetrics
   p0_tenant_leak_zero?: boolean
+  cases?: EvalCase[]
 }
 
 export type AuditLog = {

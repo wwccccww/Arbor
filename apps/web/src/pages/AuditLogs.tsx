@@ -60,61 +60,79 @@ export function AuditLogs({
 
   return (
     <section className="checkup">
-      <header className="workbench-bar">
-        <button type="button" onClick={onBack}>
-          返回
-        </button>
-        <h1>审计日志</h1>
+      <header className="topbar">
+        <div className="topbar__brand">
+          Arbor
+          <small>审计日志</small>
+        </div>
+        <div className="topbar__spacer" />
+        <nav className="topbar__nav">
+          <button type="button" className="btn--ghost" onClick={onBack}>
+            返回工作空间
+          </button>
+        </nav>
       </header>
-      <p>只显示脱敏后的操作记录，不含对话正文。</p>
-      {forbidden ? <p role="alert">没有审计权限</p> : null}
-      {error ? <p role="alert">{error}</p> : null}
-      {forbidden ? null : (
-        <>
-          <label>
-            动作
-            <select value={action} onChange={(event) => setAction(event.target.value)}>
-              {ACTIONS.map((item) => (
-                <option key={item.id || 'all'} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            人设
-            <select value={personaId} onChange={(event) => setPersonaId(event.target.value)}>
-              <option value="">全部</option>
-              {personas.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.display_name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            起始
-            <input type="date" value={since} onChange={(event) => setSince(event.target.value)} />
-          </label>
-          <label>
-            截止
-            <input type="date" value={until} onChange={(event) => setUntil(event.target.value)} />
-          </label>
-          {items.length === 0 ? (
-            <p>暂无记录</p>
-          ) : (
-            <ul className="audit-list">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <span className="eyebrow">{item.action}</span>
-                  <p>{item.resource_type} {item.resource_id}</p>
-                  {item.payload ? <p>{payloadText(item.payload)}</p> : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+
+      <main>
+        <div className="home-bar">
+          <h1>审计日志</h1>
+          <span className="badge">脱敏</span>
+        </div>
+        <p className="form-hint">只显示脱敏后的操作记录，不含对话正文。</p>
+
+        {forbidden ? <p role="alert">没有审计权限</p> : null}
+        {error ? <p role="alert">{error}</p> : null}
+        {forbidden ? null : (
+          <>
+            <div className="checkup-actions">
+              <label>
+                动作
+                <select value={action} onChange={(event) => setAction(event.target.value)}>
+                  {ACTIONS.map((item) => (
+                    <option key={item.id || 'all'} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                人设
+                <select value={personaId} onChange={(event) => setPersonaId(event.target.value)}>
+                  <option value="">全部</option>
+                  {personas.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.display_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                起始
+                <input type="date" value={since} onChange={(event) => setSince(event.target.value)} />
+              </label>
+              <label>
+                截止
+                <input type="date" value={until} onChange={(event) => setUntil(event.target.value)} />
+              </label>
+            </div>
+            {items.length === 0 ? (
+              <p className="empty-state">暂无记录</p>
+            ) : (
+              <ul className="audit-list">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <span className="eyebrow">{item.action}</span>
+                    <p>
+                      {item.resource_type} {item.resource_id}
+                    </p>
+                    {item.payload ? <p className="audit-payload">{payloadText(item.payload)}</p> : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </main>
     </section>
   )
 }

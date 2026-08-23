@@ -262,10 +262,6 @@ def _caps_for(persona, user: dict) -> list[Capability]:
     return []
 
 
-def _workspace_admin(user: dict) -> bool:
-    return user["role"] in {"owner", "admin"}
-
-
 def _grant_json(grant) -> dict:
     return {
         "user_id": grant.user_id.value,
@@ -540,6 +536,16 @@ def create_app(
             raise DomainError("UNAUTHENTICATED", "bad token")
         return user
 
+    def workspace_admin_for(user: dict, tenant_id: str) -> bool:
+        """Workspace-admin intent: allow tenant membership owners/admins, and keep
+        global token owners/admins as an escape hatch for cross-tenant visibility."""
+        if user["role"] in {"owner", "admin"}:
+            return True
+        tenant = tenants.get(TenantId(tenant_id))
+        if tenant is None:
+            return False
+        return tenant.can_admin_workspace(UserId(user["user_id"]))
+
     @app.post("/v1/auth/login")
     def login(payload: LoginIn):
         email = (payload.email or "").strip().lower()
@@ -668,7 +674,7 @@ def create_app(
         items = list_personas(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
         )
         return {
             "items": [_persona_json(persona, _caps_for(persona, user)) for persona in items]
@@ -686,7 +692,7 @@ def create_app(
         persona = create_persona(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             skin=payload.skin,
             display_name=payload.display_name,
             one_liner=payload.one_liner,
@@ -866,7 +872,7 @@ def create_app(
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
         result = start_eval(
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             strategy=payload.strategy,
             suite_version=payload.suite_version,
             mode=payload.mode,
@@ -884,7 +890,7 @@ def create_app(
         user = current_user(authorization)
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if not _workspace_admin(user):
+        if not workspace_admin_for(user, x_tenant_id):
             raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
         run = eval_runs.get(run_id)
         if run is None or run["tenant_id"] != x_tenant_id:
@@ -897,6 +903,7 @@ def create_app(
             "mode": run["mode"],
             "metrics": run["metrics"],
             "p0_tenant_leak_zero": run["p0_tenant_leak_zero"],
+            "cases": run.get("cases", []),
         }
 
     @app.get("/v1/audit-logs")
@@ -913,7 +920,7 @@ def create_app(
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
         items = list_audit_logs(
             tenant_id=TenantId(x_tenant_id),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             action=action,
             persona_id=PersonaId(persona_id) if persona_id else None,
             since=since,

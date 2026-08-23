@@ -387,10 +387,16 @@ export function Workbench({
   return (
     <div>
       <header className="workbench-bar">
-        <button type="button" onClick={onBack}>
+        <button type="button" className="btn--ghost" onClick={onBack}>
           返回
         </button>
-        <span>{persona?.display_name ?? '工作台'}</span>
+        <h1>{persona?.display_name ?? '工作台'}</h1>
+        {persona?.skin ? (
+          <span className={`badge badge--${persona.skin === 'employee' ? 'employee' : 'companion'}`}>
+            {persona.skin === 'employee' ? '数字员工' : '陪伴'}
+          </span>
+        ) : null}
+        <span className="crumb">{persona?.one_liner ?? ''}</span>
       </header>
       {error ? <p role="alert">{error}</p> : null}
       <WorkbenchLayout
@@ -405,6 +411,22 @@ export function Workbench({
                 editable={Array.isArray(persona.grants)}
                 busy={profileBusy}
                 onSave={(patch) => void saveProfile(patch)}
+              />
+              <MemoryListPane
+                items={memories}
+                total={memoryTotal}
+                forbidden={memoriesForbidden}
+                type={memoryType}
+                status={memoryStatus}
+                offset={memoryOffset}
+                pageSize={memoryPageSize}
+                eventId={highlightedId}
+                filterByEvent={memoryByEvent}
+                onChangeType={(next) => void changeMemoryType(next)}
+                onChangeStatus={(next) => void changeMemoryStatus(next)}
+                onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
+                onPage={(next) => void pageMemories(next)}
+                onSelect={(eventId) => void openCard(eventId)}
               />
               <GrantsPane
                 members={members}
@@ -464,22 +486,6 @@ export function Workbench({
               onChangeKeyOnly={(next) => void changeKeyOnly(next)}
             />
             {treeForbidden ? null : <EventCardPane card={card} />}
-            <MemoryListPane
-              items={memories}
-              total={memoryTotal}
-              forbidden={memoriesForbidden}
-              type={memoryType}
-              status={memoryStatus}
-              offset={memoryOffset}
-              pageSize={memoryPageSize}
-              eventId={highlightedId}
-              filterByEvent={memoryByEvent}
-              onChangeType={(next) => void changeMemoryType(next)}
-              onChangeStatus={(next) => void changeMemoryStatus(next)}
-              onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
-              onPage={(next) => void pageMemories(next)}
-              onSelect={(eventId) => void openCard(eventId)}
-            />
           </>
         }
       />

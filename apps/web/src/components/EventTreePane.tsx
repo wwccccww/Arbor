@@ -2,6 +2,14 @@ import type { EventNode } from '../api/types'
 
 export type EventView = 'tree' | 'timeline'
 
+const TYPE_LABELS: Record<string, string> = {
+  milestone: '里程碑',
+  promise: '承诺',
+  conflict: '冲突',
+  daily: '日常',
+  work: '工作',
+}
+
 export function EventTreePane({
   nodes,
   forbidden,
@@ -22,43 +30,53 @@ export function EventTreePane({
   onChangeKeyOnly?: (keyOnly: boolean) => void
 }) {
   if (forbidden) {
-    return <p>没有记忆权限，事件树为空。</p>
+    return <p className="empty-state">没有记忆权限，事件树为空。</p>
   }
   return (
     <section>
-      {onChangeView ? (
+      <section>
         <div className="view-toggle" role="group" aria-label="生命线视图">
-          <button type="button" aria-pressed={view === 'tree'} onClick={() => onChangeView('tree')}>
+          <button type="button" aria-pressed={view === 'tree'} onClick={() => onChangeView?.('tree')}>
             事件树
           </button>
-          <button type="button" aria-pressed={view === 'timeline'} onClick={() => onChangeView('timeline')}>
+          <button type="button" aria-pressed={view === 'timeline'} onClick={() => onChangeView?.('timeline')}>
             时间轴
           </button>
         </div>
-      ) : null}
-      {onChangeKeyOnly ? (
-        <label>
-          仅关键事件
-          <input
-            type="checkbox"
-            checked={keyOnly}
-            onChange={(event) => onChangeKeyOnly(event.target.checked)}
-          />
-        </label>
-      ) : null}
+        {onChangeKeyOnly ? (
+          <div className="event-filter-row">
+            <label>
+              <input
+                type="checkbox"
+                checked={keyOnly}
+                onChange={(event) => onChangeKeyOnly(event.target.checked)}
+              />
+              仅关键事件
+            </label>
+          </div>
+        ) : null}
+      </section>
       {nodes.length ? (
         <ol className="event-tree" data-view={view}>
           {nodes.map((node) => (
-            <li key={node.id} id={`event-${node.id}`} data-highlighted={highlightedId === node.id ? 'true' : 'false'}>
+            <li
+              key={node.id}
+              id={`event-${node.id}`}
+              data-type={node.type}
+              data-highlighted={highlightedId === node.id ? 'true' : 'false'}
+            >
               <button type="button" onClick={() => onSelect?.(node.id)}>
-                {view === 'timeline' && node.happened_at ? <span className="eyebrow">{node.happened_at}</span> : null}
-                {node.title}
+                <span className="node-title">{node.title}</span>
+                <span className="node-meta">
+                  {node.type ? `${TYPE_LABELS[node.type] ?? node.type}` : ''}
+                  {node.happened_at ? (node.type ? ' · ' : '') + node.happened_at : ''}
+                </span>
               </button>
             </li>
           ))}
         </ol>
       ) : (
-        <p>{keyOnly ? '暂无关键事件' : '暂无事件'}</p>
+        <p className="empty-state">{keyOnly ? '暂无关键事件' : '暂无事件'}</p>
       )}
     </section>
   )

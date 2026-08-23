@@ -50,70 +50,122 @@ export function Home({
 }) {
   return (
     <section className="home">
-      <header className="home-bar">
-        <h1>工作空间</h1>
-        {email ? <span>{email}</span> : null}
-        <button type="button" onClick={onCheckup}>
-          记忆体检
-        </button>
-        {onAudit ? (
-          <button type="button" onClick={onAudit}>
-            审计日志
+      <header className="topbar">
+        <div className="topbar__brand">
+          Arbor
+          <small>人格树工作台</small>
+        </div>
+        <div className="topbar__spacer" />
+        <nav className="topbar__nav">
+          <button type="button" className="btn--ghost" onClick={onCheckup}>
+            记忆体检
           </button>
-        ) : null}
-        {onLogout ? (
-          <button type="button" onClick={onLogout}>
-            登出
-          </button>
-        ) : null}
-      </header>
-      {runtime ? (
-        <p className="runtime-status">
-          {runtime.llm === 'deepseek'
-            ? 'DeepSeek 对话已接通'
-            : '当前是脚本回复。在仓库根目录 .env 写入 DEEPSEEK_API_KEY 后重启，即可真实对话'}
-          {' · '}
-          {runtime.embed && runtime.embed !== 'fixture'
-            ? `嵌入 ${runtime.embed}`
-            : '嵌入仍是哈希夹具。写入 EMBEDDING_API_KEY 后才是真实检索'}
-          {' · '}
-          {runtime.store === 'postgres' ? 'Postgres 持久化' : '内存库（关掉 API 会丢数据）'}
-        </p>
-      ) : null}
-      {error ? <p role="alert">{error}</p> : null}
-      {tenants && currentTenantId && onSwitchTenant && onCreateTenant ? (
-        <TenantPane
-          tenants={tenants}
-          currentId={currentTenantId}
-          canDelete={canDeleteTenant}
-          busy={creating}
-          onSwitch={onSwitchTenant}
-          onCreate={onCreateTenant}
-          onDelete={onDeleteTenant}
-        />
-      ) : null}
-      {canCreate && onCreate ? (
-        <CreatePersonaPane busy={creating} onCreate={onCreate} />
-      ) : null}
-      {canCreate && onInvite ? (
-        <InviteMemberPane
-          members={members ?? []}
-          busy={inviting}
-          onInvite={onInvite}
-          onChangeRole={onChangeRole}
-        />
-      ) : null}
-      <ul className="persona-grid">
-        {personas.map((persona) => (
-          <li key={persona.id}>
-            <button type="button" onClick={() => onOpen(persona.id)}>
-              <span className="eyebrow">{persona.skin === 'employee' ? '数字员工' : '陪伴'}</span>
-              <strong>{persona.display_name}</strong>
-              <span>{persona.one_liner}</span>
+          {onAudit ? (
+            <button type="button" className="btn--ghost" onClick={onAudit}>
+              审计日志
             </button>
-          </li>
-        ))}
-      </ul>
+          ) : null}
+          {email ? <span className="topbar__user">{email}</span> : null}
+          {onLogout ? (
+            <button type="button" className="btn--ghost" onClick={onLogout}>
+              登出
+            </button>
+          ) : null}
+        </nav>
+      </header>
+
+      <main>
+        <div className="home-bar">
+          <h1>工作空间</h1>
+          {canCreate && onCreate ? (
+            <span className="badge badge--companion">Owner / Admin</span>
+          ) : null}
+        </div>
+
+        {runtime ? (
+          <div className="runtime-status">
+            <span>
+              {runtime.llm === 'deepseek'
+                ? 'DeepSeek 对话已接通'
+                : '当前是脚本回复。在仓库根目录 .env 写入 DEEPSEEK_API_KEY 后重启，即可真实对话'}
+            </span>
+            <span aria-hidden>·</span>
+            <span>
+              {runtime.embed && runtime.embed !== 'fixture'
+                ? `嵌入 ${runtime.embed}`
+                : '嵌入仍是哈希夹具。写入 EMBEDDING_API_KEY 后才是真实检索'}
+            </span>
+            <span aria-hidden>·</span>
+            <span>{runtime.store === 'postgres' ? 'Postgres 持久化' : '内存库（关掉 API 会丢数据）'}</span>
+          </div>
+        ) : null}
+        {error ? <p role="alert">{error}</p> : null}
+
+        <div className="section-grid">
+          {tenants && currentTenantId && onSwitchTenant && onCreateTenant ? (
+            <div className="section-card">
+              <TenantPane
+                tenants={tenants}
+                currentId={currentTenantId}
+                canDelete={canDeleteTenant}
+                busy={creating}
+                onSwitch={onSwitchTenant}
+                onCreate={onCreateTenant}
+                onDelete={onDeleteTenant}
+              />
+            </div>
+          ) : null}
+          {canCreate && onCreate ? (
+            <div className="section-card">
+              <CreatePersonaPane busy={creating} onCreate={onCreate} />
+            </div>
+          ) : null}
+          {canCreate && onInvite ? (
+            <div className="section-card">
+              <InviteMemberPane
+                members={members ?? []}
+                busy={inviting}
+                onInvite={onInvite}
+                onChangeRole={onChangeRole}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <h2>人设</h2>
+        {personas.length === 0 ? (
+          <p className="empty-state">还没有人设。创建一个数字人或陪伴助手，或在左侧导入资料。</p>
+        ) : (
+          <ul className="persona-grid">
+            {personas.map((persona) => {
+              const skin = persona.skin === 'employee' ? 'employee' : 'companion'
+              const memoryCount = persona.stats?.memory_count ?? null
+              const threadCount = persona.stats?.thread_count ?? null
+              return (
+                <li key={persona.id}>
+                  <button type="button" onClick={() => onOpen(persona.id)}>
+                    <span className="persona-grid__head">
+                      <span className={`badge badge--${skin}`}>
+                        {skin === 'employee' ? '数字员工' : '陪伴'}
+                      </span>
+                      <span className="eyebrow">{skin === 'employee' ? '数字员工' : '陪伴'}</span>
+                    </span>
+                    <strong>{persona.display_name}</strong>
+                    <span className="persona-grid__one">{persona.one_liner || '还没写一句话介绍'}</span>
+                    <span className="persona-grid__meta">
+                      <span>
+                        {memoryCount != null ? `${memoryCount} 条记忆` : '— 记忆'}
+                        {threadCount != null ? (memoryCount != null ? ' · ' : ' · ') + `${threadCount} 段会话` : ''}
+                      </span>
+                      <span className="cta">打开 →</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </main>
     </section>
   )
 }

@@ -46,6 +46,31 @@ export default function App() {
     const api = client
     const tenantId = session.tenantId
     let cancelled = false
+
+    async function enrichPersonas(items: Persona[]) {
+      const enriched = await Promise.all(
+        items.map(async (persona) => {
+          try {
+            const [memories, threads] = await Promise.all([
+              api.listMemories(persona.id, { limit: 1, offset: 0 }),
+              api.listThreads(persona.id),
+            ])
+            if (memories.forbidden) return persona
+            return {
+              ...persona,
+              stats: {
+                memory_count: memories.total,
+                thread_count: threads.length,
+              },
+            }
+          } catch {
+            return persona
+          }
+        }),
+      )
+      if (!cancelled) setPersonas(enriched)
+    }
+
     async function load() {
       try {
         const [me, items, tenants] = await Promise.all([
@@ -68,6 +93,8 @@ export default function App() {
         } else {
           setMembers([])
         }
+        // Enrich persona cards with real stats (memory count + last interaction)
+        await enrichPersonas(items)
       } catch (err) {
         if (cancelled) return
         const status = (err as { status?: number }).status

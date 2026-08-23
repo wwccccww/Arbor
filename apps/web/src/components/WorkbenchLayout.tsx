@@ -21,7 +21,7 @@ export function WorkbenchLayout({
       <aside className="pane-left">{left}</aside>
       <main className="pane-center">
         {narrow ? (
-          <button type="button" className="tree-toggle" onClick={onToggleTree}>
+          <button type="button" className="btn--ghost tree-toggle" onClick={onToggleTree}>
             事件树
           </button>
         ) : null}
