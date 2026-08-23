@@ -56,6 +56,20 @@ describe('Home', () => {
     expect(screen.getByText(/Postgres 持久化/)).toBeInTheDocument()
   })
 
+  it('shows a logout button when a handler is provided', async () => {
+    const onLogout = vi.fn()
+    render(
+      <Home
+        personas={[]}
+        email="demo-a@arbor.eval"
+        onOpen={vi.fn()}
+        onCheckup={vi.fn()}
+        onLogout={onLogout}
+      />,
+    )
+    expect(screen.getByRole('button', { name: '登出' })).toBeInTheDocument()
+  })
+
   it('shows real embedding when runtime reports bge-m3', () => {
     render(
       <Home

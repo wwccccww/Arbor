@@ -261,3 +261,24 @@ describe('createClient', () => {
     expect(hidden.memories).toEqual([])
   })
 })
+
+describe('login', () => {
+  it('posts email and password without a bearer', async () => {
+    const { login } = await import('./client')
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          access_token: 'tok-1',
+          refresh_token: 'ref-1',
+          user: { id: 'u1', email: 'demo-a@arbor.eval' },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    ) as unknown as typeof fetch
+    const tokens = await login('demo-a@arbor.eval', 'arbor-owner', fetchImpl)
+    expect(tokens.access_token).toBe('tok-1')
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('/v1/auth/login')
+    expect((init as RequestInit).method).toBe('POST')
+  })
+})

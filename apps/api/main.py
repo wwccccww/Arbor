@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hmac
 import os
+import secrets
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
@@ -80,7 +82,47 @@ TOKENS = {
         "role": "member",
         "email": "member-a@arbor.eval",
     },
+    "token-b": {
+        "user_id": "0b000000-0000-4000-a000-000000000002",
+        "tenant_id": "0b000000-0000-4000-a000-000000000001",
+        "role": "owner",
+        "email": "demo-b@arbor.eval",
+    },
 }
+
+DEMO_PASSWORDS = {
+    "demo-a@arbor.eval": "arbor-owner",
+    "member-a@arbor.eval": "arbor-member",
+    "demo-b@arbor.eval": "arbor-owner",
+}
+
+TOKEN_BY_EMAIL = {item["email"]: token for token, item in TOKENS.items()}
+
+
+def _profile_for_email(email: str) -> dict | None:
+    token = TOKEN_BY_EMAIL.get((email or "").strip().lower())
+    if not token:
+        return None
+    return dict(TOKENS[token])
+
+
+def _password_ok(email: str, password: str) -> bool:
+    expected = DEMO_PASSWORDS.get((email or "").strip().lower())
+    if not expected:
+        return False
+    return hmac.compare_digest(expected, password or "")
+
+
+def _issue_session(tokens: dict, refresh_tokens: dict, profile: dict) -> dict:
+    access = f"tok_{secrets.token_urlsafe(16)}"
+    refresh = f"ref_{secrets.token_urlsafe(16)}"
+    tokens[access] = dict(profile)
+    refresh_tokens[refresh] = access
+    return {
+        "access_token": access,
+        "refresh_token": refresh,
+        "user": {"id": profile["user_id"], "email": profile["email"]},
+    }
 
 MEMBER_ID = UserId("0a000000-0000-4000-a000-000000000003")
 DEMO_TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
@@ -138,6 +180,19 @@ class GrantsIn(BaseModel):
 
 class ConfirmIn(BaseModel):
     mark_key_event: bool = False
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str
+
+
+class LogoutIn(BaseModel):
+    refresh_token: str = ""
 
 
 class PersonaIn(BaseModel):
@@ -448,6 +503,8 @@ def create_app(
     app.state.eval_runs = eval_runs
     app.state.storage = storage
     app.state.runtime = _runtime_info(llm=send.llm, database_url=database_url, embed=resolved_embed)
+    app.state.tokens = dict(TOKENS)
+    app.state.refresh_tokens = {}
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -478,10 +535,36 @@ def create_app(
         if not authorization or not authorization.lower().startswith("bearer "):
             raise DomainError("UNAUTHENTICATED", "missing bearer")
         token = authorization.split(" ", 1)[1]
-        user = TOKENS.get(token)
+        user = app.state.tokens.get(token)
         if not user:
             raise DomainError("UNAUTHENTICATED", "bad token")
         return user
+
+    @app.post("/v1/auth/login")
+    def login(payload: LoginIn):
+        email = (payload.email or "").strip().lower()
+        profile = _profile_for_email(email)
+        if profile is None or not _password_ok(email, payload.password):
+            raise DomainError("UNAUTHENTICATED", "bad credentials")
+        return _issue_session(app.state.tokens, app.state.refresh_tokens, profile)
+
+    @app.post("/v1/auth/refresh")
+    def refresh(payload: RefreshIn):
+        access = app.state.refresh_tokens.get(payload.refresh_token)
+        profile = app.state.tokens.get(access) if access else None
+        if not access or not profile:
+            raise DomainError("UNAUTHENTICATED", "bad refresh token")
+        app.state.refresh_tokens.pop(payload.refresh_token, None)
+        app.state.tokens.pop(access, None)
+        return _issue_session(app.state.tokens, app.state.refresh_tokens, profile)
+
+    @app.post("/v1/auth/logout")
+    def logout(payload: LogoutIn | None = None):
+        token = (payload.refresh_token if payload else "") or ""
+        access = app.state.refresh_tokens.pop(token, None)
+        if access:
+            app.state.tokens.pop(access, None)
+        return {"ok": True}
 
     @app.get("/v1/me")
     def me(authorization: str | None = Header(default=None)):

@@ -356,6 +356,23 @@ paths:
         "401":
           $ref: "#/components/responses/Error"
 
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: []
+      summary: 登出并作废 refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: 已登出
+
   /me:
     get:
       tags: [Auth]

@@ -102,15 +102,23 @@ npm run dev
 
 ## 演示身份
 
-前端默认使用 owner 身份，无需手动填写 Header：
+打开工作台先到登录页。预填：
+
+| 邮箱 | 密码 | 角色 |
+|---|---|---|
+| `demo-a@arbor.eval` | `arbor-owner` | 空间 owner |
+| `member-a@arbor.eval` | `arbor-member` | 仅对话 |
+| `demo-b@arbor.eval` | `arbor-owner` | 租户 B owner |
+
+登出在首页顶栏。会话存在浏览器 `localStorage`。
+
+接口仍接受静态令牌（测试用）：
 
 | 项 | 值 |
 |---|---|
 | Bearer 令牌 | `token-a` |
 | 租户 ID | `0a000000-0000-4000-a000-000000000001`（演示租户 A） |
 | 用户邮箱 | `demo-a@arbor.eval`（首页通过 `GET /v1/me` 显示） |
-
-后端还内置 `token-member`（仅 CHAT 权限），但前端目前没有切换令牌的 UI。
 
 常用演示人设：
 
