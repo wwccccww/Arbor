@@ -28,6 +28,7 @@ from arbor.adapters.outbound.inmemory import (
     FixedClock,
 )
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
+from arbor.adapters.outbound.embedding import EmbeddingUnavailable, embedding_client_from_env
 from arbor.application.audit.commands import RecordAudit
 from arbor.application.audit.queries import ListAuditLogs
 from arbor.application.conversation.send_message import SendMessage
@@ -92,10 +93,15 @@ def _reject_oversize(data: bytes, limit: int) -> None:
         raise DomainError("VALIDATION_ERROR", "file too large")
 
 
-def _runtime_info(*, llm: object, database_url: str | None) -> dict[str, str]:
+def _runtime_info(*, llm: object, database_url: str | None, embed: object) -> dict[str, str]:
+    if isinstance(embed, FixtureEmbeddingClient) or embed is None:
+        embed_label = "fixture"
+    else:
+        embed_label = getattr(embed, "label", "http")
     return {
         "llm": "deepseek" if isinstance(llm, DeepSeekChatLLM) else "scripted",
         "store": "postgres" if database_url else "memory",
+        "embed": embed_label,
     }
 
 
@@ -295,16 +301,18 @@ def create_app(
     database_url: str | None = None,
     llm=None,
     reasoner=None,
+    embed=None,
     max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
     rate_limit_per_window: int = DEFAULT_RATE_LIMIT_PER_WINDOW,
     rate_window_seconds: int = DEFAULT_RATE_WINDOW_SECONDS,
 ) -> FastAPI:
     session = None
     stores = None
+    resolved_embed = embed or FixtureEmbeddingClient()
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
-        session = PostgresSession.connect(database_url)
+        session = PostgresSession.connect(database_url, embed=resolved_embed)
         session.migrate()
         session.seed_demo_world_if_empty()
         personas = session.personas
@@ -313,7 +321,7 @@ def create_app(
         events = session.events
         inbox = session.inbox
         vectors = session.vectors
-        embed = session.embed
+        resolved_embed = session.embed
         audit_logs = session.audit_logs
         tenants = session.tenants
         users = session.users
@@ -333,7 +341,16 @@ def create_app(
         events = InMemoryEventGraphRepository(stores)
         inbox = InMemoryInboxRepository(stores)
         vectors = InMemoryVectorIndex(stores, memories)
-        embed = FixtureEmbeddingClient()
+        if not isinstance(resolved_embed, FixtureEmbeddingClient):
+            for item in stores.memories.values():
+                if item.is_searchable():
+                    vectors.upsert(
+                        item.tenant_id,
+                        item.persona_id,
+                        item.id,
+                        resolved_embed.embed(item.text),
+                        item.status,
+                    )
         audit_logs = InMemoryAuditLogRepository(stores)
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
@@ -349,7 +366,7 @@ def create_app(
         vectors=vectors,
         llm=llm or ScriptedLLM(extra_citation_memory_id=extra_citation),
         reasoner=reasoner or ScriptedReasoner(),
-        embed=embed,
+        embed=resolved_embed,
         ids=ids,
         auth=AuthorizationPolicy(),
     )
@@ -358,7 +375,7 @@ def create_app(
         memories=memories,
         inbox=inbox,
         vectors=vectors,
-        embed=embed,
+        embed=resolved_embed,
         ids=ids,
         auth=AuthorizationPolicy(),
         events=events,
@@ -430,7 +447,7 @@ def create_app(
     app.state.import_jobs = import_jobs
     app.state.eval_runs = eval_runs
     app.state.storage = storage
-    app.state.runtime = _runtime_info(llm=send.llm, database_url=database_url)
+    app.state.runtime = _runtime_info(llm=send.llm, database_url=database_url, embed=resolved_embed)
 
     @app.exception_handler(DomainError)
     async def domain_error(_, exc: DomainError):
@@ -452,6 +469,10 @@ def create_app(
     @app.exception_handler(DeepSeekUnavailable)
     async def deepseek_error(_, exc: DeepSeekUnavailable):
         return _error("UPSTREAM_UNAVAILABLE", "chat model unavailable", 503)
+
+    @app.exception_handler(EmbeddingUnavailable)
+    async def embedding_error(_, exc: EmbeddingUnavailable):
+        return _error("UPSTREAM_UNAVAILABLE", "embedding model unavailable", 503)
 
     def current_user(authorization: str | None):
         if not authorization or not authorization.lower().startswith("bearer "):
@@ -1227,4 +1248,9 @@ def create_app_from_env() -> FastAPI:
                 "docker compose -f infra/compose/postgres.yml up -d"
             )
             url = None
-    return create_app(database_url=url, llm=llm, reasoner=reasoner)
+    return create_app(
+        database_url=url,
+        llm=llm,
+        reasoner=reasoner,
+        embed=embedding_client_from_env(),
+    )

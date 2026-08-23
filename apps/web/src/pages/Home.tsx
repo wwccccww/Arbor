@@ -66,6 +66,10 @@ export function Home({
             ? 'DeepSeek 对话已接通'
             : '当前是脚本回复。在仓库根目录 .env 写入 DEEPSEEK_API_KEY 后重启，即可真实对话'}
           {' · '}
+          {runtime.embed && runtime.embed !== 'fixture'
+            ? `嵌入 ${runtime.embed}`
+            : '嵌入仍是哈希夹具。写入 EMBEDDING_API_KEY 后才是真实检索'}
+          {' · '}
           {runtime.store === 'postgres' ? 'Postgres 持久化' : '内存库（关掉 API 会丢数据）'}
         </p>
       ) : null}

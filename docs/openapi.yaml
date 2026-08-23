@@ -383,6 +383,9 @@ paths:
                       store:
                         type: string
                         enum: [postgres, memory]
+                      embed:
+                        type: string
+                        description: fixture 或 bge-m3 等嵌入后端
 
   /tenants:
     get:

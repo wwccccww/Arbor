@@ -67,11 +67,11 @@
 {
   "user": { "id": "…", "email": "demo-a@arbor.eval" },
   "tenants": [{ "id": "…", "name": "演示租户A", "role": "owner" }],
-  "runtime": { "llm": "deepseek", "store": "memory" }
+  "runtime": { "llm": "deepseek", "store": "memory", "embed": "bge-m3" }
 }
 ```
 
-`runtime.llm` 为 `deepseek` 或 `scripted`；`runtime.store` 为 `postgres` 或 `memory`。
+`runtime.llm` 为 `deepseek` 或 `scripted`；`runtime.store` 为 `postgres` 或 `memory`；`runtime.embed` 为 `fixture` 或 `bge-m3`（及其他 HTTP 嵌入模型名）。
 
 ## 3. 工作空间
 

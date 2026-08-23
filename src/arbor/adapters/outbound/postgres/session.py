@@ -18,10 +18,10 @@ from arbor.paths import repo_root
 
 
 class PostgresSession:
-    def __init__(self, conn, url: str) -> None:
+    def __init__(self, conn, url: str, embed=None) -> None:
         self.conn = conn
         self.url = url
-        self.embed = FixtureEmbeddingClient()
+        self.embed = embed or FixtureEmbeddingClient()
         self._bind()
 
     def _bind(self) -> None:
@@ -36,8 +36,8 @@ class PostgresSession:
         self.users = PgUserRepository(self.conn)
 
     @classmethod
-    def connect(cls, url: str) -> PostgresSession:
-        return cls(connect(url), url)
+    def connect(cls, url: str, embed=None) -> PostgresSession:
+        return cls(connect(url), url, embed=embed)
 
     def migrate(self) -> None:
         upgrade_head(self.url)

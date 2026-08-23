@@ -37,7 +37,15 @@ chmod +x scripts/run.sh
 
 4. 浏览器打开 **http://127.0.0.1:8000**。
 
-首页黄条应显示 **「DeepSeek 对话已接通」**。点开林夏即可真实对话、导入资料、确认记忆。未填密钥时黄条为「脚本回复」，页面仍能点，但对话不是模型生成的。
+首页黄条要同时满足才算「真实性能」：
+
+- **DeepSeek 对话已接通** — `.env` 的 `DEEPSEEK_API_KEY`
+- **嵌入 bge-m3** — `.env` 的 `EMBEDDING_API_KEY`（推荐 [SiliconFlow](https://cloud.siliconflow.cn)，默认模型 `BAAI/bge-m3`）
+- 可选 **Postgres 持久化** — 取消注释 `DATABASE_URL` 并先起 docker compose
+
+只填 DeepSeek、不填嵌入密钥时，对话是真的，但检索仍是 64 维哈希，记不住语义相近的话。
+
+未填密钥时黄条为「脚本回复」/「哈希夹具」，页面仍能点，但不是真实模型。
 
 关掉这个窗口即停止服务。默认用内存库，关进程后数据丢失。要持久化，先起 Postgres，再在 `.env` 取消注释 `DATABASE_URL`：
 
@@ -194,6 +202,7 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 | 首页 **Bad Gateway** | 只开了 5173、没开 8000。改用 `scripts/run.ps1` 打开 **http://127.0.0.1:8000**，或把 API 终端拉起来再刷新 |
 | `run.ps1` 报「意外的标记」或中文乱码 | 旧脚本编码不兼容 PowerShell 5。`git pull` 后再跑；脚本已改为 UTF-8 BOM |
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
+| 问「讨厌什么」答不上来 / 检索很差 | 未设置 `EMBEDDING_API_KEY`，检索仍是哈希。到 https://cloud.siliconflow.cn 创建密钥写入 `.env` |
 | `connection timeout expired` / 连不上 Postgres | `.env` 里有 `DATABASE_URL` 但本机没起数据库。用记事本打开 `.env`，把 `DATABASE_URL=` 那一行删掉或前面加 `#`。不要 Postgres 也能跑（内存库）。要持久化再执行 `docker compose -f infra/compose/postgres.yml up -d` |
 | 端口被占用 | 换端口时需同时改 API 启动参数与 `vite.config.ts` 中的 proxy 目标 |
 

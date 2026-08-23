@@ -1,5 +1,6 @@
 -- Arbor outbound Postgres + pgvector schema.
--- embedding dim=64 matches arbor.domain.shared.textvec.fixture_embed (not bge-m3).
+-- embedding typmod is applied in 0001; 0005 widens to unbounded vector
+-- so fixture_embed (64) and bge-m3 (1024) can each use their own database.
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS tenants (
@@ -100,7 +101,7 @@ CREATE TABLE IF NOT EXISTS memory_items (
     source jsonb,
     status text NOT NULL DEFAULT 'active',
     supersedes uuid,
-    embedding vector(64),
+    embedding vector,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -129,9 +130,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 CREATE INDEX IF NOT EXISTS memory_items_scope_status
     ON memory_items (tenant_id, persona_id, status);
-
-CREATE INDEX IF NOT EXISTS memory_items_embedding_hnsw
-    ON memory_items USING hnsw (embedding vector_cosine_ops);
 
 CREATE INDEX IF NOT EXISTS event_nodes_scope
     ON event_nodes (tenant_id, persona_id);

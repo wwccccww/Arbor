@@ -55,4 +55,16 @@ describe('Home', () => {
     expect(screen.getByText(/DeepSeek 对话已接通/)).toBeInTheDocument()
     expect(screen.getByText(/Postgres 持久化/)).toBeInTheDocument()
   })
+
+  it('shows real embedding when runtime reports bge-m3', () => {
+    render(
+      <Home
+        personas={[]}
+        runtime={{ llm: 'deepseek', store: 'memory', embed: 'bge-m3' }}
+        onOpen={vi.fn()}
+        onCheckup={vi.fn()}
+      />,
+    )
+    expect(screen.getByText(/嵌入 bge-m3/)).toBeInTheDocument()
+  })
 })
