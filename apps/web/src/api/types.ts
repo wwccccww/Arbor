@@ -49,6 +49,12 @@ export type Me = {
   runtime?: RuntimeInfo
 }
 
+export type AuthTokens = {
+  access_token: string
+  refresh_token: string
+  user: { id: string; email: string }
+}
+
 export type TenantMember = {
   user: { id: string; email: string }
   role: string

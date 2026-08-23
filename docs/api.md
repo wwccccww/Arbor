@@ -46,18 +46,30 @@
 ### `POST /v1/auth/login`
 
 ```json
-{ "email": "a@b.com", "password": "…" }
+{ "email": "demo-a@arbor.eval", "password": "arbor-owner" }
 ```
 
 ```json
 { "access_token": "…", "refresh_token": "…", "user": { "id": "…", "email": "…" } }
 ```
 
+演示账号：`demo-a@arbor.eval` / `arbor-owner`（owner），`member-a@arbor.eval` / `arbor-member`（仅 CHAT）。旧静态令牌 `token-a` / `token-member` 仍可用。
+
 ### `POST /v1/auth/refresh`
 
 ```json
 { "refresh_token": "…" }
 ```
+
+刷新会轮换 access / refresh。旧 access 立即失效。
+
+### `POST /v1/auth/logout`
+
+```json
+{ "refresh_token": "…" }
+```
+
+作废该 refresh。前端清本地会话即可视为登出。
 
 ### `GET /v1/me`
 

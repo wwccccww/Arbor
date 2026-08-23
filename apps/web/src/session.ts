@@ -1,5 +1,6 @@
 export type Session = {
   token: string
+  refreshToken?: string
   tenantId: string
 }
 
@@ -13,4 +14,26 @@ export const DEMO_OWNER: Session = {
 export const DEMO_MEMBER: Session = {
   token: 'token-member',
   tenantId: DEMO_TENANT,
+}
+
+const STORAGE_KEY = 'arbor.session'
+
+export function loadSession(): Session | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Session
+    if (!parsed.token || !parsed.tenantId) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function saveSession(session: Session): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
+}
+
+export function clearSession(): void {
+  localStorage.removeItem(STORAGE_KEY)
 }

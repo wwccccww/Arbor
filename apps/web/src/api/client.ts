@@ -1,6 +1,7 @@
 import type { Session } from '../session'
 import type {
   ApiError,
+  AuthTokens,
   AuditList,
   ChatAttachment,
   ChatMessage,
@@ -48,6 +49,38 @@ async function parseError(res: Response): Promise<ApiError> {
   err.status = res.status
   err.code = code
   return err
+}
+
+export async function login(
+  email: string,
+  password: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AuthTokens> {
+  const res = await fetchImpl('/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as AuthTokens
+}
+
+export async function refreshSession(refreshToken: string, fetchImpl: typeof fetch = fetch): Promise<AuthTokens> {
+  const res = await fetchImpl('/v1/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+  if (!res.ok) throw await parseError(res)
+  return (await res.json()) as AuthTokens
+}
+
+export async function logout(refreshToken?: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+  await fetchImpl('/v1/auth/logout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken ?? '' }),
+  })
 }
 
 export function createClient(session: Session, fetchImpl: typeof fetch = fetch) {

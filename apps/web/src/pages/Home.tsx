@@ -24,6 +24,7 @@ export function Home({
   onSwitchTenant,
   onCreateTenant,
   onDeleteTenant,
+  onLogout,
 }: {
   personas: Persona[]
   members?: TenantMember[]
@@ -45,6 +46,7 @@ export function Home({
   onSwitchTenant?: (tenantId: string) => void
   onCreateTenant?: (name: string) => void
   onDeleteTenant?: () => void
+  onLogout?: () => void
 }) {
   return (
     <section className="home">
@@ -57,6 +59,11 @@ export function Home({
         {onAudit ? (
           <button type="button" onClick={onAudit}>
             审计日志
+          </button>
+        ) : null}
+        {onLogout ? (
+          <button type="button" onClick={onLogout}>
+            登出
           </button>
         ) : null}
       </header>

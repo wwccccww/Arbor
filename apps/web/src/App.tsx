@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { createClient } from './api/client'
-import { DEMO_OWNER } from './session'
+import { createClient, login as loginRequest, logout as logoutRequest } from './api/client'
+import { clearSession, DEMO_TENANT, loadSession, saveSession, type Session } from './session'
 import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
+import { Login } from './pages/Login'
 import { Workbench } from './pages/Workbench'
 import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from './api/types'
 
@@ -26,8 +27,9 @@ function canCreatePersonas(role?: string) {
 }
 
 export default function App() {
-  const [session, setSession] = useState(DEMO_OWNER)
-  const client = useMemo(() => createClient(session), [session])
+  const [session, setSession] = useState<Session | null>(() => loadSession())
+  const client = useMemo(() => (session ? createClient(session) : null), [session])
+  const [loginBusy, setLoginBusy] = useState(false)
   const route = useHashRoute()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [tenants, setTenants] = useState<Tenant[]>([])
@@ -40,40 +42,94 @@ export default function App() {
   const [error, setError] = useState<string | undefined>()
 
   useEffect(() => {
+    if (!client || !session) return
+    const api = client
+    const tenantId = session.tenantId
     let cancelled = false
     async function load() {
       try {
         const [me, items, tenants] = await Promise.all([
-          client.getMe(),
-          client.listPersonas(),
-          client.listTenants(),
+          api.getMe(),
+          api.listPersonas(),
+          api.listTenants(),
         ])
         if (cancelled) return
         setEmail(me.user.email)
         setRuntime(me.runtime)
         setPersonas(items)
         setTenants(tenants)
-        const current = tenants.find((tenant) => tenant.id === session.tenantId)
+        const current = tenants.find((tenant) => tenant.id === tenantId)
         const allowed = canCreatePersonas(current?.role)
         setCanCreate(allowed)
         if (allowed) {
-          const listed = await client.listMembers()
+          const listed = await api.listMembers()
           if (cancelled) return
           setMembers(listed.forbidden ? [] : listed.items)
         } else {
           setMembers([])
         }
       } catch (err) {
-        if (!cancelled) setError((err as Error).message)
+        if (cancelled) return
+        const status = (err as { status?: number }).status
+        if (status === 401) {
+          clearSession()
+          setSession(null)
+          return
+        }
+        setError((err as Error).message)
       }
     }
     void load()
     return () => {
       cancelled = true
     }
-  }, [client, session.tenantId])
+  }, [client, session])
+
+  async function signIn(email: string, password: string) {
+    setLoginBusy(true)
+    setError(undefined)
+    try {
+      const tokens = await loginRequest(email, password)
+      const probe = createClient({ token: tokens.access_token, tenantId: DEMO_TENANT })
+      const me = await probe.getMe()
+      const tenantId = me.tenants?.[0]?.id ?? DEMO_TENANT
+      const next = {
+        token: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        tenantId,
+      }
+      saveSession(next)
+      setSession(next)
+      window.location.hash = '#/'
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setLoginBusy(false)
+    }
+  }
+
+  async function signOut() {
+    const refresh = session?.refreshToken
+    clearSession()
+    setSession(null)
+    setEmail(undefined)
+    setPersonas([])
+    setTenants([])
+    setMembers([])
+    setRuntime(undefined)
+    setError(undefined)
+    window.location.hash = '#/'
+    if (refresh) {
+      try {
+        await logoutRequest(refresh)
+      } catch {
+        /* client already signed out */
+      }
+    }
+  }
 
   async function createPersona(draft: PersonaDraft) {
+    if (!client) return
     setCreating(true)
     setError(undefined)
     try {
@@ -88,12 +144,18 @@ export default function App() {
   }
 
   async function createTenant(name: string) {
+    if (!client) return
     setCreating(true)
     setError(undefined)
     try {
       const created = await client.createTenant(name)
       setTenants((current) => [...current, created])
-      setSession((current) => ({ ...current, tenantId: created.id }))
+      setSession((current) => {
+        if (!current) return current
+        const next = { ...current, tenantId: created.id }
+        saveSession(next)
+        return next
+      })
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -102,14 +164,20 @@ export default function App() {
   }
 
   async function deleteTenant() {
+    if (!client || !session) return
     setCreating(true)
     setError(undefined)
     try {
       await client.deleteTenant(session.tenantId)
       const remaining = tenants.filter((tenant) => tenant.id !== session.tenantId)
       setTenants(remaining)
-      const fallback = remaining[0]?.id ?? DEMO_OWNER.tenantId
-      setSession((current) => ({ ...current, tenantId: fallback }))
+      const fallback = remaining[0]?.id ?? DEMO_TENANT
+      setSession((current) => {
+        if (!current) return current
+        const next = { ...current, tenantId: fallback }
+        saveSession(next)
+        return next
+      })
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -118,6 +186,7 @@ export default function App() {
   }
 
   async function inviteMember(email: string, role: string) {
+    if (!client) return
     setInviting(true)
     setError(undefined)
     try {
@@ -131,6 +200,7 @@ export default function App() {
   }
 
   async function changeMemberRole(userId: string, role: string) {
+    if (!client) return
     setInviting(true)
     setError(undefined)
     try {
@@ -143,6 +213,10 @@ export default function App() {
     } finally {
       setInviting(false)
     }
+  }
+
+  if (!session || !client) {
+    return <Login busy={loginBusy} error={error} onLogin={(email, password) => void signIn(email, password)} />
   }
 
   if (route.page === 'workbench' && route.personaId) {
@@ -209,10 +283,16 @@ export default function App() {
       onChangeRole={(userId, role) => void changeMemberRole(userId, role)}
       onSwitchTenant={(tenantId) => {
         window.location.hash = '#/'
-        setSession((current) => ({ ...current, tenantId }))
+        setSession((current) => {
+          if (!current) return current
+          const next = { ...current, tenantId }
+          saveSession(next)
+          return next
+        })
       }}
       onCreateTenant={(name) => void createTenant(name)}
       onDeleteTenant={() => void deleteTenant()}
+      onLogout={() => void signOut()}
     />
   )
 }
