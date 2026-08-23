@@ -346,6 +346,27 @@ def _tenant_json(tenant, user_id: UserId) -> dict:
     }
 
 
+def _highest_seq_id(session) -> int:
+    """Return the largest a000-NNN sequence already stored, so the id generator
+    resumes past persisted rows instead of colliding after a restart."""
+    best = 0
+    tables = ("tenants", "users", "personas", "threads", "messages",
+              "event_nodes", "memory_items", "inbox_items", "audit_logs")
+    try:
+        for table in tables:
+            row = session.conn.execute(
+                f"""
+                SELECT MAX(CAST(SUBSTRING(id::text FROM 'a000-([0-9]+)$') AS bigint)) AS n
+                FROM {table}
+                """
+            ).fetchone()
+            if row and row.get("n"):
+                best = max(best, int(row["n"]))
+    except Exception:
+        return 0
+    return best
+
+
 def create_app(
     *,
     extra_citation: str | None = None,
@@ -406,7 +427,7 @@ def create_app(
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
     _ensure_demo_member(tenants, users)
-    ids = SeqIdGenerator()
+    ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     send = SendMessage(
         personas=personas,

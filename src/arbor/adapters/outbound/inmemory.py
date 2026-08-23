@@ -335,8 +335,8 @@ class FixedClock:
 
 
 class SeqIdGenerator:
-    def __init__(self) -> None:
-        self.n = 0
+    def __init__(self, start: int = 0) -> None:
+        self.n = start
 
     def new_id(self) -> str:
         self.n += 1
