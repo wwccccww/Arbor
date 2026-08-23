@@ -159,7 +159,7 @@ def _load_events(session, world: dict) -> None:
 
 
 def _load_memories(session, world: dict) -> None:
-    embed = FixtureEmbeddingClient()
+    embed = getattr(session, "embed", None) or FixtureEmbeddingClient()
     for raw in world.get("memories") or []:
         item = MemoryItem(
             id=MemoryId(raw["id"]),

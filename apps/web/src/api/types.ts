@@ -40,6 +40,7 @@ export type Tenant = {
 export type RuntimeInfo = {
   llm: string
   store: string
+  embed?: string
 }
 
 export type Me = {

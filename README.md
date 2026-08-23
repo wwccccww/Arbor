@@ -64,7 +64,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 ./scripts/run.sh
 ```
 
-打开 http://127.0.0.1:8000 。首页黄条写「DeepSeek 对话已接通」才是模型在答。细节见 [docs/local-dev.md](docs/local-dev.md)。
+打开 http://127.0.0.1:8000 。首页黄条需同时有「DeepSeek 对话已接通」和「嵌入 bge-m3」才是真实对话 + 真实检索。嵌入密钥见 `.env.example` 的 `EMBEDDING_API_KEY`。细节见 [docs/local-dev.md](docs/local-dev.md)。
 
 ## 文档索引
 

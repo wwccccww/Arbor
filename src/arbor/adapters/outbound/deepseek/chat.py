@@ -33,7 +33,7 @@ class DeepSeekChatLLM:
                 {"role": "user", "content": text},
             ],
             "temperature": 0.2,
-            "max_tokens": 400,
+            "max_tokens": 2048,
         }
         response = httpx.post(
             f"{chat_base_url()}/chat/completions",

@@ -53,3 +53,22 @@ def judge_api_key() -> str:
 def database_url() -> str:
     load_dotenv()
     return os.environ.get("DATABASE_URL") or ""
+
+
+def embedding_api_key() -> str:
+    load_dotenv()
+    return os.environ.get("EMBEDDING_API_KEY") or os.environ.get("SILICONFLOW_API_KEY") or ""
+
+
+def embedding_base_url() -> str:
+    load_dotenv()
+    return (
+        os.environ.get("EMBEDDING_BASE_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL")
+        or "https://api.siliconflow.cn/v1"
+    ).rstrip("/")
+
+
+def embedding_model() -> str:
+    load_dotenv()
+    return os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3")
