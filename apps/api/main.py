@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 import secrets
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -147,10 +148,43 @@ def _runtime_info(*, llm: object, database_url: str | None, embed: object) -> di
     }
 
 
+_WEB_UI_MISSING_HTML = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <title>Arbor — 工作台未构建</title>
+</head>
+<body>
+  <h1>工作台还没有构建</h1>
+  <p>现在只有 API。浏览器打开 <code>http://127.0.0.1:8000</code> 需要先生成 <code>apps/web/dist</code>。</p>
+  <p>仓库根目录执行：</p>
+  <pre>powershell -ExecutionPolicy Bypass -File scripts/run.ps1</pre>
+  <p>或先构建再启动 API：</p>
+  <pre>cd apps\\web
+npm install
+npm run build
+cd ..\\..
+python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000</pre>
+  <p>改前端时用两个终端：API 开 8000，<code>apps/web</code> 里 <code>npm run dev</code>，浏览器打开 <strong>http://localhost:5173</strong>（不要只用 8000）。</p>
+</body>
+</html>
+"""
+
+
 def _mount_web_ui(app: FastAPI) -> None:
     dist = repo_root() / "apps" / "web" / "dist"
     index = dist / "index.html"
     if not index.is_file():
+        logging.getLogger("arbor.api").warning(
+            "Web UI not built (missing %s). GET / explains how to build it. "
+            "Run scripts/run.ps1, or: cd apps/web && npm install && npm run build",
+            index,
+        )
+
+        @app.get("/")
+        def web_index_missing():
+            return HTMLResponse(_WEB_UI_MISSING_HTML, status_code=503)
+
         return
 
     @app.get("/")

@@ -82,7 +82,7 @@ python -m pip install -e ".[api]"
 python -m uvicorn apps.api.main:create_app_from_env --factory --port 8000
 ```
 
-看到 `Uvicorn running on http://127.0.0.1:8000` 即表示 API 就绪。
+看到 `Uvicorn running on http://127.0.0.1:8000` 即表示 API 就绪。只开这一步时 **http://127.0.0.1:8000 没有工作台页面**（未构建 `apps/web/dist`）。页面请用下面终端 2 的 **http://localhost:5173**，或改用 `scripts/run.ps1` 一次构建并托管。
 
 **终端 2 — 前端（端口 5173）**
 
@@ -208,6 +208,7 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 | `uvicorn: command not found` | 使用 `python -m uvicorn ...` |
 | `python3` 找不到 | Windows 上改用 `python` |
 | 首页 **Bad Gateway** | 只开了 5173、没开 8000。改用 `scripts/run.ps1` 打开 **http://127.0.0.1:8000**，或把 API 终端拉起来再刷新 |
+| `GET /` 404 或「工作台还没有构建」 | 只跑了 `uvicorn`，没有 `npm run build`。用 `scripts/run.ps1`，或先 `cd apps\\web` → `npm install` → `npm run build` 再重启 API。开发改 UI 请打开 **http://localhost:5173** |
 | `run.ps1` 报「意外的标记」或中文乱码 | 旧脚本编码不兼容 PowerShell 5。`git pull` 后再跑；脚本已改为 UTF-8 BOM |
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
 | 问「讨厌什么」答不上来 / 检索很差 | 未设置 `EMBEDDING_API_KEY`，检索仍是哈希。到 https://cloud.siliconflow.cn 创建密钥写入 `.env` |
