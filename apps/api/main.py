@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 import secrets
 import time
@@ -363,9 +364,12 @@ def create_app(
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
+        logging.getLogger("arbor.api").info("Applying Postgres migrations")
         session = PostgresSession.connect(database_url, embed=resolved_embed)
         session.migrate()
-        session.seed_demo_world_if_empty()
+        logging.getLogger("arbor.api").info("Postgres migrations applied")
+        if session.seed_demo_world_if_empty():
+            logging.getLogger("arbor.api").info("Seeded empty database with demo world")
         personas = session.personas
         memories = session.memories
         threads = session.threads
