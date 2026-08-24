@@ -293,6 +293,20 @@ def _public_attachments(items) -> list[dict]:
     ]
 
 
+def _citation_json(memories, tenant: TenantId, citation) -> dict:
+    """Project a stored citation into the same shape post_message returns, so the
+    frontend can show readable previews and jump to the related event."""
+    body: dict = {}
+    if citation.memory_id:
+        body["memory_id"] = citation.memory_id.value
+        item = memories.get(tenant, citation.memory_id)
+        if item is not None:
+            body["preview"] = (item.text or "")[:40]
+    if citation.event_id:
+        body["event_id"] = citation.event_id.value
+    return body
+
+
 async def _read_chat_payload(
     request: Request,
     storage,
@@ -1059,7 +1073,7 @@ def create_app(
                     "id": message.id,
                     "role": message.role,
                     "content": message.content,
-                    "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                    "citations": [_citation_json(memories, tenant, c) for c in message.citations],
                     "attachments": _public_attachments(message.attachments),
                 }
                 for message in page.items

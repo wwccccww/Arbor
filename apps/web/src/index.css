@@ -759,6 +759,24 @@ td:first-child {
   padding: 0.15rem 0.6rem;
   font-size: 0.8rem;
   cursor: pointer;
+  max-width: 18rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transcript [aria-label='依据'] .citation-text {
+  display: inline-block;
+  border: 1px dashed #d8c4a8;
+  background: rgba(216, 196, 168, 0.15);
+  color: #8f4e21;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  max-width: 18rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .transcript li[data-role='user'] [aria-label='聊天附件'] button {
@@ -917,10 +935,70 @@ td:first-child {
   margin-top: 0.1rem;
 }
 
-.event-tree[data-view='timeline'] button {
+/* Tree view nesting: children indented under their parent */
+.event-tree[data-view='tree'] li[data-depth='0'] > ol {
+  margin-top: 0.15rem;
+}
+
+.event-tree[data-view='tree'] li[data-depth='1'] {
+  margin-left: 0.7rem;
+}
+
+.event-tree[data-view='tree'] li[data-depth='2'],
+.event-tree[data-view='tree'] li[data-depth='3'] {
+  margin-left: 1.4rem;
+}
+
+/* Timeline view: chronological vertical line with dots and date */
+.event-tree.event-timeline {
+  padding-left: 0.1rem;
+}
+
+.event-tree.event-timeline li {
+  border-left: 0;
+  padding: 0.15rem 0 0.15rem 1.1rem;
+  margin: 0.1rem 0;
+  position: relative;
+}
+
+.event-tree.event-timeline li::before {
+  content: '';
+  position: absolute;
+  left: 0.25rem;
+  top: 0.8rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 2px solid var(--line-strong);
+}
+
+.event-tree.event-timeline li::after {
+  content: '';
+  position: absolute;
+  left: 0.29rem;
+  top: 0.8rem;
+  width: 1px;
+  height: 100%;
+  background: var(--line);
+}
+
+.event-tree.event-timeline li:last-child::after {
+  display: none;
+}
+
+.event-tree.event-timeline li[data-highlighted='true']::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.event-pane-head {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .event-tree [data-highlighted='true'] button .node-title {

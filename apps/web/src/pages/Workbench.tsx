@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { ChatMessage, EventCard, EventNode, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember, Thread } from '../api/types'
+import type { ChatMessage, EventCard, EventNode, EventTree, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember, Thread } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
@@ -44,6 +44,7 @@ export function Workbench({
   const [messageTotal, setMessageTotal] = useState(0)
   const messagePageSize = 50
   const [nodes, setNodes] = useState<EventNode[]>([])
+  const [treeEdges, setTreeEdges] = useState<EventTree['edges']>([])
   const [treeForbidden, setTreeForbidden] = useState(false)
   const [memories, setMemories] = useState<MemoryItem[]>([])
   const [memoriesForbidden, setMemoriesForbidden] = useState(false)
@@ -83,6 +84,7 @@ export function Workbench({
         setPersona(loadedPersona)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
+        setTreeEdges(tree.edges)
         setMemoriesForbidden(Boolean(listedMemories.forbidden))
         setMemories(listedMemories.items)
         setMemoryTotal(listedMemories.total)
@@ -119,6 +121,11 @@ export function Workbench({
 
   async function openCard(eventId?: string) {
     if (!eventId) return
+    if (highlightedId === eventId && card) {
+      setHighlightedId(undefined)
+      setCard(null)
+      return
+    }
     setHighlightedId(eventId)
     if (narrow) setTreeOpen(true)
     document.getElementById(`event-${eventId}`)?.scrollIntoView({ block: 'nearest' })
@@ -264,6 +271,7 @@ export function Workbench({
         const tree = await client.getEventTree(personaId, treeView, keyOnly)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
+        setTreeEdges(tree.edges)
       }
     } catch (err) {
       setError((err as Error).message)
@@ -326,6 +334,7 @@ export function Workbench({
       const tree = await client.getEventTree(personaId, view, keyOnly)
       setTreeForbidden(Boolean(tree.forbidden))
       setNodes(tree.nodes)
+      setTreeEdges(tree.edges)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -337,6 +346,7 @@ export function Workbench({
       const tree = await client.getEventTree(personaId, treeView, next)
       setTreeForbidden(Boolean(tree.forbidden))
       setNodes(tree.nodes)
+      setTreeEdges(tree.edges)
     } catch (err) {
       setError((err as Error).message)
     }
@@ -477,6 +487,7 @@ export function Workbench({
           <>
             <EventTreePane
               nodes={nodes}
+              edges={treeEdges}
               forbidden={treeForbidden}
               view={treeView}
               keyOnly={keyOnly}

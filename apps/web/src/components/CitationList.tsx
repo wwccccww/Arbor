@@ -10,13 +10,23 @@ export function CitationList({
   if (!citations.length) return null
   return (
     <ul aria-label="依据">
-      {citations.map((item, index) => (
-        <li key={item.memory_id ?? item.event_id ?? String(index)}>
-          <button type="button" onClick={() => onJump(item.event_id)}>
-            {item.preview || item.memory_id || '记忆'}
-          </button>
-        </li>
-      ))}
+      {citations.map((item, index) => {
+        const label = item.preview || '查看依据'
+        if (!item.preview && !item.event_id) return null
+        return (
+          <li key={item.memory_id ?? item.event_id ?? String(index)}>
+            {item.event_id ? (
+              <button type="button" onClick={() => onJump(item.event_id)} title={label}>
+                {label}
+              </button>
+            ) : (
+              <span className="citation-text" title={label}>
+                {label}
+              </span>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }
