@@ -99,7 +99,14 @@ export function ChatPane({
       <ol className="transcript">
         {messages.map((message) => (
           <li key={message.id} data-role={message.role}>
-            <p>{message.text}</p>
+            {message.text ? <p>{message.text}</p> : null}
+            {message.role === 'assistant' && !message.text ? (
+              <p className="chat-streaming" aria-label="正在输入">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </p>
+            ) : null}
             {message.attachments?.length ? (
               <ul aria-label="聊天附件">
                 {message.attachments.map((item) => (

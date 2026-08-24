@@ -741,6 +741,42 @@ td:first-child {
   box-shadow: var(--shadow);
 }
 
+.transcript .chat-streaming {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0;
+}
+
+.transcript .chat-streaming .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  animation: chat-blink 1.2s infinite ease-in-out;
+}
+
+.transcript .chat-streaming .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.transcript .chat-streaming .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes chat-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
 .transcript [aria-label='依据'],
 .transcript [aria-label='聊天附件'] {
   display: flex;

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 import secrets
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from starlette.concurrency import iterate_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -307,6 +309,54 @@ def _citation_json(memories, tenant: TenantId, citation) -> dict:
     return body
 
 
+async def _sse_stream(streamer):
+    """Turn a sync ``stream_reply`` generator into an SSE event stream.
+
+    Emits ``data: {"type":"delta","text":...}`` for each text chunk and a final
+    ``data: {"type":"done", ...}`` carrying the persisted message id, citations
+    and metadata. ``iter_in_threadpool`` keeps the blocking model calls off the
+    event loop.
+    """
+    from arbor.domain.conversation.stream import StreamFinished
+
+    final: dict | None = None
+    async for chunk in iterate_in_threadpool(streamer):
+        if isinstance(chunk, StreamFinished):
+            final = _parse_stream_finished(chunk.raw)
+            continue
+        if isinstance(chunk, str) and chunk:
+            yield _sse_event({"type": "delta", "text": chunk})
+    if final is None:
+        final = {"text": ""}
+    yield _sse_event(
+        {
+            "type": "done",
+            "message_id": final.get("message_id"),
+            "text": final.get("text", ""),
+            "citations": final.get("citation_items") or [],
+            "injected_memory_ids": final.get("injected_memory_ids") or [],
+            "inbox_created": final.get("inbox_added") or 0,
+            "attachments": final.get("attachments") or [],
+        }
+    )
+
+
+def _sse_event(payload: dict) -> str:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _parse_stream_finished(raw: str) -> dict:
+    """Convert the streamed-final envelope (already the post-message payload
+    produced by SendMessage.stream_reply) back into a dict for the SSE ``done``
+    event. The ``stream_reply`` generator yields a model JSON envelope, so we
+    parse it here."""
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        return {"text": raw}
+
+
 async def _read_chat_payload(
     request: Request,
     storage,
@@ -394,7 +444,18 @@ def create_app(
 ) -> FastAPI:
     session = None
     stores = None
-    resolved_embed = embed or FixtureEmbeddingClient()
+    if embed is not None:
+        resolved_embed = embed
+    elif database_url:
+        # When talking to a persistent store that may already hold bge-m3
+        # (1024) vectors, prefer the configured embedder instead of the 64-dim
+        # fixture, otherwise we hit "different vector dimensions" on query.
+        try:
+            resolved_embed = embedding_client_from_env()
+        except Exception:
+            resolved_embed = FixtureEmbeddingClient()
+    else:
+        resolved_embed = FixtureEmbeddingClient()
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
@@ -1087,6 +1148,7 @@ def create_app(
         request: Request,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
+        stream: bool = Query(default=False),
     ):
         user = current_user(authorization)
         tenant = TenantId(x_tenant_id or user["tenant_id"])
@@ -1102,6 +1164,17 @@ def create_app(
         text, attachments = await _read_chat_payload(
             request, storage, tenant, thread_id, max_upload_bytes
         )
+        if stream:
+            streamer = send.stream_reply(
+                tenant_id=tenant,
+                user_id=UserId(user["user_id"]),
+                thread_id=ThreadId(thread_id),
+                persona_id=thread.persona_id,
+                text=text,
+                capabilities=caps,
+                attachments=attachments,
+            )
+            return StreamingResponse(_sse_stream(streamer), media_type="text/event-stream")
         result = send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),

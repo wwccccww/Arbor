@@ -20,6 +20,7 @@ import type {
   PersonaDraft,
   PersonaGrant,
   PersonaPatch,
+  StreamEvent,
   Tenant,
   TenantMember,
   Thread,
@@ -245,6 +246,85 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
         inbox_created: body.inbox_created ?? 0,
         attachments: body.attachments ?? [],
       }
+    },
+
+    async sendMessageStream(
+      threadId: string,
+      text: string,
+      handlers: {
+        onDelta: (chunk: string) => void
+        onDone: (msg: ChatMessage, events: StreamEvent[]) => void
+      },
+      file?: File,
+    ): Promise<void> {
+      const init: RequestInit = file
+        ? (() => {
+            const body = new FormData()
+            body.append('text', text)
+            body.append('file', file)
+            return { method: 'POST', body }
+          })()
+        : {
+            method: 'POST',
+            body: JSON.stringify({ text, attachments: [] }),
+          }
+      const headers = new Headers(init.headers)
+      headers.set('Authorization', `Bearer ${session.token}`)
+      headers.set('X-Tenant-Id', session.tenantId)
+      if (init.body && !(init.body instanceof FormData)) {
+        headers.set('Content-Type', 'application/json')
+      }
+      const res = await fetchImpl(`/v1/threads/${threadId}/messages?stream=true`, { ...init, headers })
+      if (!res.ok) throw await parseError(res)
+      if (!res.body) throw new Error('streaming not supported')
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      const events: StreamEvent[] = []
+      let buffer = ''
+      let parsedDone: StreamEvent | null = null
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        let idx: number
+        while ((idx = buffer.indexOf('\n\n')) !== -1) {
+          const rawEvent = buffer.slice(0, idx)
+          buffer = buffer.slice(idx + 2)
+          const piece = rawEvent.trim()
+          if (!piece.startsWith('data:')) continue
+          const payload = piece.slice(5).trim()
+          if (!payload) continue
+          let event: StreamEvent
+          try {
+            event = JSON.parse(payload) as StreamEvent
+          } catch {
+            continue
+          }
+          events.push(event)
+          if (event.type === 'delta' && event.text) {
+            handlers.onDelta(event.text)
+          } else if (event.type === 'done') {
+            parsedDone = event
+          }
+        }
+      }
+      const doneEvent = (parsedDone as Extract<StreamEvent, { type: 'done' }> | null) ?? {
+        type: 'done',
+        text: '',
+        citations: [],
+      }
+      handlers.onDone(
+        {
+          id: doneEvent.message_id ?? `stream-${Date.now()}`,
+          role: 'assistant',
+          text: doneEvent.text,
+          citations: doneEvent.citations,
+          inbox_created: doneEvent.inbox_created ?? 0,
+          attachments: doneEvent.attachments ?? [],
+        },
+        events,
+      )
     },
 
     async downloadAttachment(threadId: string, filename: string): Promise<Blob> {

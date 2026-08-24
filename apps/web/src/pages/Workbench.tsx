@@ -195,15 +195,54 @@ export function Workbench({
     setMessages((current) => [...current, userMessage])
     setSending(true)
     setError(null)
+    const placeholderId = `stream-${Date.now()}`
+    const patchLast = (patch: (msg: ChatMessage) => ChatMessage) =>
+      setMessages((current) => {
+        const next = [...current]
+        const idx = next.findIndex((m) => m.id === placeholderId)
+        if (idx === -1) return current
+        next[idx] = patch(next[idx])
+        return next
+      })
+    // Optimistically render an empty assistant bubble that streams into place.
+    setMessages((current) => [
+      ...current,
+      { id: placeholderId, role: 'assistant', text: '', citations: [] },
+    ])
     try {
-      const reply = await client.sendMessage(threadId, text, file)
-      setMessages((current) => [...current, reply])
-      if (reply.inbox_created) {
-        const pending = await client.listInbox(personaId)
-        setInboxForbidden(Boolean(pending.forbidden))
-        setInbox(pending.items)
+      if (typeof client.sendMessageStream === 'function') {
+        await client.sendMessageStream(
+          threadId,
+          text,
+          {
+            onDelta: (chunk) => patchLast((m) => ({ ...m, text: m.text + chunk })),
+            onDone: (reply) => {
+              setMessages((current) => current.map((m) => (m.id === placeholderId ? reply : m)))
+              if (reply.inbox_created) {
+                void client
+                  .listInbox(personaId)
+                  .then((pending) => {
+                    setInboxForbidden(Boolean(pending.forbidden))
+                    setInbox(pending.items)
+                  })
+                  .catch(() => undefined)
+              }
+            },
+          },
+          file,
+        )
+      } else {
+        const reply = await client.sendMessage(threadId, text, file)
+        setMessages((current) => current.map((m) => (m.id === placeholderId ? reply : m)))
+        if (reply.inbox_created) {
+          const pending = await client.listInbox(personaId)
+          setInboxForbidden(Boolean(pending.forbidden))
+          setInbox(pending.items)
+        }
       }
     } catch (err) {
+      // Remove the placeholder on failure so the error is visible, not a ghost bubble.
+      setMessages((current) => current.filter((m) => m.id !== placeholderId))
       setError((err as Error).message)
     } finally {
       setSending(false)

@@ -99,6 +99,18 @@ export type MessagePage = {
   total: number
 }
 
+export type StreamEvent =
+  | { type: 'delta'; text: string }
+  | {
+      type: 'done'
+      message_id?: string
+      text: string
+      citations: Citation[]
+      injected_memory_ids?: string[]
+      inbox_created?: number
+      attachments?: ChatAttachment[]
+    }
+
 export type ThreadExport = {
   id: string
   persona_id: string

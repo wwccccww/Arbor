@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 
+from arbor.domain.conversation.stream import StreamFinished, chunk_text
 from arbor.domain.audit.log import AuditLog
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
@@ -268,6 +270,24 @@ class ScriptedLLM:
             citations.append(self.extra_citation_memory_id)
         return {"text": f"(fake) {text}", "citations": citations}
 
+    def complete_stream(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]):
+        """Deterministic byte-by-byte stream mirror of :meth:`complete`.
+
+        Yields chunks of the reply text, then a final ``StreamFinished``
+        sentinel carrying the same raw envelope ``complete`` would produce.
+        """
+        self.last_slots = prompt_slots
+        self.last_injected = list(injected_memory_ids)
+        self.calls.append({"text": text, "slots": prompt_slots, "injected": list(injected_memory_ids)})
+        citations = list(injected_memory_ids[:1])
+        if self.extra_citation_memory_id:
+            citations.append(self.extra_citation_memory_id)
+        reply = _scripted_reply(text, citations)
+        for piece in chunk_text(reply):
+            yield piece
+        raw = json.dumps({"text": reply, "citations": citations}, ensure_ascii=False)
+        yield StreamFinished(raw)
+
 
 class ScriptedReasoner:
     def __init__(self, proposed_fact: str | None = None) -> None:
@@ -277,6 +297,12 @@ class ScriptedReasoner:
         if not self.proposed_fact:
             return None
         return {"kind": "fact", "text": self.proposed_fact, "source_text": text}
+
+
+def _scripted_reply(text: str, citations: list[str]) -> str:
+    """Deterministic reply for the scripted LLM that mirrors ``complete``'s
+    ``(fake) {text}`` shape so tests asserting the streamed output stay stable."""
+    return f"(fake) {text}"
 
 
 class FixtureEmbeddingClient:
