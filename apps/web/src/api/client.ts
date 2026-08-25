@@ -437,6 +437,19 @@ export function createClient(
       }
     },
 
+    async pollImport(jobId: string, opts: { intervalMs?: number; timeoutMs?: number } = {}): Promise<ImportJob> {
+      const intervalMs = opts.intervalMs ?? 500
+      const timeoutMs = opts.timeoutMs ?? 30000
+      const start = Date.now()
+      let job = await this.getImport(jobId)
+      while (job.status === 'pending' || job.status === 'running') {
+        if (Date.now() - start > timeoutMs) break
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
+        job = await this.getImport(jobId)
+      }
+      return job
+    },
+
     async listMemories(
       personaId: string,
       opts: { type?: string; status?: string; event_id?: string; limit?: number; offset?: number } = {},

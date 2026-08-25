@@ -55,6 +55,35 @@ docker compose -f infra/compose/postgres.yml up -d
 
 然后重新运行 `scripts/run.ps1`。
 
+## 导入异步队列（Redis + ARQ，可选）
+
+默认不设 `REDIS_URL` 时，导入在 API 进程内**同步**完成（`POST` 返回 `status: completed`）。大文件或希望 API 快速返回时，可启用真异步：
+
+1. 启动 Redis：
+
+```bash
+docker compose -f infra/compose/redis.yml up -d
+```
+
+2. `.env` 中配置：
+
+```text
+REDIS_URL=redis://127.0.0.1:6379/0
+```
+
+3. 安装 worker 依赖并**另开终端**跑 worker：
+
+```bash
+python3 -m pip install -e ".[api,postgres,worker]"
+arbor-worker
+```
+
+4. 启动 API（`scripts/run.sh` 或 uvicorn）。`GET /v1/me` 的 `runtime.job_queue` 应为 `redis`。
+
+此时 `POST /imports` 返回 `status: pending`；工作台会轮询 `GET /v1/imports/{job_id}` 直到 `completed` 或 `failed`。解析仍只进 Inbox，不直写记忆。
+
+显式强制同步（即使配了 Redis）：`ARBOR_JOB_QUEUE=sync`。
+
 ## 对象存储（上传与聊天附件）
 
 导入文件、聊天附件不进 Postgres 业务表，由 `ObjectStorage` 出站端口保存。通过 `.env` 的 `ARBOR_OBJECT_STORE` 选择后端（详见 `.env.example`）：

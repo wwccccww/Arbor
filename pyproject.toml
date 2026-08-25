@@ -36,9 +36,14 @@ postgres = [
   "alembic>=1.13",
   "sqlalchemy>=2.0",
 ]
+worker = [
+  "arq>=0.26",
+  "redis>=5",
+]
 
 [project.scripts]
 arbor-eval = "arbor.adapters.inbound.cli.eval_cli:main"
+arbor-worker = "arbor.adapters.outbound.arq.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

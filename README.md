@@ -16,7 +16,8 @@
 | 导入任务 / 评测运行 | Postgres 表 + 内存回退 |
 | 人设创建模板 | 伴侣 / 导师 / 客服 / 面试官 |
 | 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
-| Redis ARQ、Whisper/Docling | 文档规划，尚未实现 |
+| Redis ARQ（导入异步） | 已实现；`REDIS_URL` + `arbor-worker` |
+| Whisper/Docling | 文档规划，尚未实现 |
 
 实现遵循六边形架构（端口-适配器）与 DDD 分层；组合根在 `apps/api/factory.py`，领域层不依赖框架与供应商 SDK。
 
@@ -60,7 +61,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | 前端 | React + TypeScript + Vite + React Flow |
 | 后端 | Python 3.12 + FastAPI（仅作为入站适配器） |
 | 主库 / 向量 | PostgreSQL 16 + pgvector（`infra/compose/postgres.yml`） |
-| 队列 | Redis + ARQ（规划） |
+| 队列 | Redis + ARQ（导入任务；可选 `infra/compose/redis.yml` + `arbor-worker`） |
 | 对象存储 | 本地盘 / Postgres `object_blobs` / S3（MinIO） |
 | 对话 / 抽取 | DeepSeek `deepseek-chat` / `deepseek-reasoner` |
 | 嵌入 | bge-m3 |

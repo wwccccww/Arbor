@@ -82,6 +82,20 @@ def embedding_model() -> str:
     return os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3")
 
 
+def redis_url() -> str:
+    load_dotenv()
+    return os.environ.get("REDIS_URL") or os.environ.get("ARBOR_REDIS_URL") or ""
+
+
+def job_queue_backend() -> str:
+    """sync (inline) or redis (ARQ). Default: redis when REDIS_URL set, else sync."""
+    load_dotenv()
+    explicit = (os.environ.get("ARBOR_JOB_QUEUE") or "").strip().lower()
+    if explicit in {"sync", "redis"}:
+        return explicit
+    return "redis" if redis_url() else "sync"
+
+
 def object_store_backend() -> str:
     load_dotenv()
     raw = (os.environ.get("ARBOR_OBJECT_STORE") or "local").strip().lower()

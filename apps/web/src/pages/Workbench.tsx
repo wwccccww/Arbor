@@ -533,7 +533,10 @@ export function Workbench({
     setSidebarError(null)
     try {
       const created = await client.importFile(personaId, file, hint)
-      const job = await client.getImport(created.job_id)
+      const job =
+        created.status === 'pending'
+          ? await client.pollImport(created.job_id)
+          : await client.getImport(created.job_id)
       setImportJob(job)
       const pending = await client.listInbox(personaId)
       setInboxForbidden(Boolean(pending.forbidden))
