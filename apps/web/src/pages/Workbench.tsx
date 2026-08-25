@@ -10,6 +10,7 @@ import { InboxPane } from '../components/InboxPane'
 import { MemoryListPane } from '../components/MemoryListPane'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
+import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
 
 function useNarrow() {
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 900px)').matches)
@@ -100,11 +101,16 @@ export function Workbench({
           setGrantsForbidden(true)
           setMembers([])
         }
-        const thread = threads[0] ?? (await client.createThread(personaId))
+        const threadList = threads.length ? threads : [await client.createThread(personaId)]
+        const savedThreadId = loadThreadSelection(personaId)
+        const activeThread =
+          (savedThreadId ? threadList.find((item) => item.id === savedThreadId) : undefined) ??
+          threadList[0]
         if (cancelled) return
-        setThreads(threads.length ? threads : [thread])
-        setThreadId(thread.id)
-        const page = await client.listMessages(thread.id, { limit: messagePageSize, offset: 0 })
+        setThreads(threadList)
+        setThreadId(activeThread.id)
+        saveThreadSelection(personaId, activeThread.id)
+        const page = await client.listMessages(activeThread.id, { limit: messagePageSize, offset: 0 })
         if (cancelled) return
         setMessages(page.items)
         setMessageTotal(page.total)
@@ -161,6 +167,7 @@ export function Workbench({
     try {
       const page = await client.listMessages(id, { limit: messagePageSize, offset: 0 })
       setThreadId(id)
+      saveThreadSelection(personaId, id)
       setMessages(page.items)
       setMessageTotal(page.total)
       setMessageOffset(0)

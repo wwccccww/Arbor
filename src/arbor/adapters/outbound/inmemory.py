@@ -200,11 +200,14 @@ class InMemoryThreadRepository:
         return t
 
     def list(self, tenant_id: TenantId, persona_id: PersonaId) -> list[Thread]:
-        return [
-            t
-            for t in self.stores.threads.values()
-            if t.tenant_id == tenant_id and t.persona_id == persona_id
-        ]
+        return sorted(
+            (
+                t
+                for t in self.stores.threads.values()
+                if t.tenant_id == tenant_id and t.persona_id == persona_id
+            ),
+            key=lambda t: t.id.value,
+        )
 
     def save(self, thread: Thread) -> None:
         self.stores.threads[thread.id.value] = thread
