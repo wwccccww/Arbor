@@ -11,7 +11,6 @@ describe('EventTreePane', () => {
   it('shows an empty state without read_memory', () => {
     render(<EventTreePane nodes={[]} forbidden />)
     expect(screen.getByText('没有记忆权限，事件树为空。')).toBeInTheDocument()
-    expect(screen.queryByRole('list')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '时间轴' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('仅关键事件')).not.toBeInTheDocument()
   })

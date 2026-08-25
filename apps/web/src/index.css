@@ -903,6 +903,87 @@ td:first-child {
   color: var(--ink-soft);
 }
 
+.event-tree-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+}
+
+.event-flow {
+  height: min(420px, 42vh);
+  min-height: 280px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.event-flow .react-flow__panel.react-flow__controls {
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.event-flow .react-flow__edge-text {
+  font-size: 0.68rem;
+  fill: var(--ink-faint);
+}
+
+.event-flow-node {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 196px;
+  min-height: 56px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.event-flow-node:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+.event-flow-node--highlighted {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.event-flow-node[data-type='milestone'],
+.event-flow-node[data-type='promise'],
+.event-flow-node[data-type='conflict'] {
+  border-left: 3px solid var(--accent);
+}
+
+.event-flow-node .node-title {
+  display: block;
+  font-weight: 550;
+  font-size: 0.88rem;
+  line-height: 1.25;
+}
+
+.event-flow-node .node-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.event-flow-node .react-flow__handle {
+  width: 7px;
+  height: 7px;
+  background: var(--line-strong);
+  border: 1px solid var(--surface);
+}
+
 .event-tree {
   padding-left: 0.4rem;
   margin: 0;

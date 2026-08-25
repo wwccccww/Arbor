@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { createClient } from '../api/client'
@@ -10,7 +9,6 @@ import { EventTreePane } from './EventTreePane'
 
 describe('EventCardPane', () => {
   it('loads the event card from GET /v1/events/:id', async () => {
-    const user = userEvent.setup()
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       expect(String(input)).toBe('/v1/events/evt-fight')
       return new Response(
@@ -43,7 +41,8 @@ describe('EventCardPane', () => {
     }
 
     render(<Harness />)
-    await user.click(screen.getByRole('button', { name: '面店争吵' }))
+    const node = await screen.findByText('面店争吵')
+    fireEvent.click(node.closest('button')!)
     expect(await screen.findByRole('heading', { name: '面店争吵' })).toBeInTheDocument()
     expect(screen.getByText('在西湖附近的面店吵了一架')).toBeInTheDocument()
     expect(screen.getByText('合影：雨天的店门口')).toBeInTheDocument()
