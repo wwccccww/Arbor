@@ -3,10 +3,9 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from arbor.env import database_url
 from apps.api.main import create_app
+from arbor.env import database_url
 from tests.api.test_auth import _citation_ids
-
 
 pytestmark = pytest.mark.postgres
 

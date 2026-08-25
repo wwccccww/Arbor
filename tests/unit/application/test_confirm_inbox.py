@@ -14,7 +14,11 @@ from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId
-from tests.unit.application.test_send_message import USER, _stack, test_confirm_inbox_makes_searchable
+from tests.unit.application.test_send_message import (
+    USER,
+    _stack,
+    test_confirm_inbox_makes_searchable,
+)
 
 
 def test_confirm_inbox():

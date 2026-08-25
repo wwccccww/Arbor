@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from arbor.domain.errors import DomainError
-from arbor.domain.identity.tenant import Role, Tenant
+from arbor.domain.identity.tenant import Tenant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
 

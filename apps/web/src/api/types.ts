@@ -34,6 +34,14 @@ export type PersonaDraft = {
   skin: 'companion' | 'employee'
   display_name: string
   one_liner?: string
+  template?: string
+}
+
+export type PersonaTemplate = {
+  id: string
+  label: string
+  skin: 'companion' | 'employee'
+  one_liner: string
 }
 
 export type Tenant = {

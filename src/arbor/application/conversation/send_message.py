@@ -11,19 +11,30 @@ from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import InboxItem, MemoryItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.ports.outbound import (
+    EmbeddingClient,
+    EventGraphRepository,
+    InboxRepository,
+    LLMClient,
+    MemoryRepository,
+    PersonaRepository,
+    ReasoningClient,
+    ThreadRepository,
+    VectorIndex,
+)
 
 
 @dataclass
 class SendMessage:
-    personas: object
-    memories: object
-    threads: object
-    events: object
-    inbox: object
-    vectors: object
-    llm: object
-    reasoner: object
-    embed: object
+    personas: PersonaRepository
+    memories: MemoryRepository
+    threads: ThreadRepository
+    events: EventGraphRepository
+    inbox: InboxRepository
+    vectors: VectorIndex
+    llm: LLMClient
+    reasoner: ReasoningClient
+    embed: EmbeddingClient
     ids: object
     auth: AuthorizationPolicy
     strategy: str = "layered_tree"
@@ -126,7 +137,7 @@ class SendMessage:
         text: str,
         capabilities: list[Capability] | None,
         attachments: list | None,
-    ) -> "_Context":
+    ) -> _Context:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "persona not found")
@@ -205,7 +216,7 @@ class SendMessage:
             inbox_added=inbox_added,
         )
 
-    def _finish(self, ctx: "_Context", llm_out: dict) -> dict:
+    def _finish(self, ctx: _Context, llm_out: dict) -> dict:
         allowed = set(ctx.slots.injected_memory_ids)
         citations = []
         for cid in llm_out.get("citations") or []:

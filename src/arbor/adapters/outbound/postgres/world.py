@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from arbor.adapters.outbound.inmemory import FixtureEmbeddingClient
+from arbor.domain.auth.credentials import hash_password
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
@@ -59,14 +60,26 @@ def _ensure_tenants(session, world: dict) -> None:
         seen.add(tid)
 
 
+_DEMO_PASSWORDS = {
+    "demo-a@arbor.eval": "arbor-owner",
+    "member-a@arbor.eval": "arbor-member",
+    "demo-b@arbor.eval": "arbor-owner",
+}
+
+
 def _load_users(session, world: dict) -> None:
     for user in world.get("users") or []:
+        email = (user.get("email") or "").strip().lower()
+        password_hash = hash_password(_DEMO_PASSWORDS.get(email, "")) if email in _DEMO_PASSWORDS else None
         session.conn.execute(
             """
-            INSERT INTO users (id, email) VALUES (%s::uuid, %s)
-            ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+            INSERT INTO users (id, email, password_hash)
+            VALUES (%s::uuid, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                email = EXCLUDED.email,
+                password_hash = COALESCE(EXCLUDED.password_hash, users.password_hash)
             """,
-            (user["id"], user.get("email")),
+            (user["id"], user.get("email"), password_hash),
         )
         if user.get("tenant_id"):
             session.conn.execute(

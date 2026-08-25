@@ -12,9 +12,9 @@ class RagasFaithfulnessScorer:
         if not answer.strip() or not contexts:
             return None
         try:
+            from datasets import Dataset
             from ragas import evaluate
             from ragas.metrics import faithfulness
-            from datasets import Dataset
         except Exception:
             return None
         # Judge wiring is opt-in via ARBOR_JUDGE_API_KEY. Without it we skip rather

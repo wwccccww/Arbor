@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 
 from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryItem
-from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId
 
 
 @dataclass(frozen=True, slots=True)

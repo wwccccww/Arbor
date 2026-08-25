@@ -74,7 +74,7 @@ def parse_extract(content: str) -> dict | None:
     blob = (content or "").strip()
     if not blob:
         return None
-    match = re.search(r"\{.*\}", blob, flags=re.S)
+    match = re.search(r"\{.*\}", blob, flags=re.DOTALL)
     if not match:
         return None
     try:

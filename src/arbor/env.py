@@ -55,6 +55,14 @@ def database_url() -> str:
     return os.environ.get("DATABASE_URL") or ""
 
 
+def data_dir() -> Path:
+    load_dotenv()
+    raw = os.environ.get("ARBOR_DATA_DIR") or ""
+    if raw:
+        return Path(raw).expanduser()
+    return repo_root() / ".arbor-data"
+
+
 def embedding_api_key() -> str:
     load_dotenv()
     return os.environ.get("EMBEDDING_API_KEY") or os.environ.get("SILICONFLOW_API_KEY") or ""

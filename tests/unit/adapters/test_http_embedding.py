@@ -47,7 +47,7 @@ def test_create_app_from_env_uses_http_embed(monkeypatch):
             return [float(len(text or "")), 1.0, 0.0]
 
     monkeypatch.setattr(
-        "apps.api.main.embedding_client_from_env",
+        "apps.api.factory.embedding_client_from_env",
         lambda: StubEmbed(),
     )
     app = create_app_from_env()

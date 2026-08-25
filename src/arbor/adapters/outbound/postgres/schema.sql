@@ -140,6 +140,51 @@ CREATE INDEX IF NOT EXISTS event_edges_scope
 CREATE INDEX IF NOT EXISTS audit_logs_tenant_created
     ON audit_logs (tenant_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS object_blobs (
+    key text PRIMARY KEY,
+    tenant_id uuid,
+    persona_id uuid,
+    data bytea NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    access_token text PRIMARY KEY,
+    refresh_token text NOT NULL UNIQUE,
+    user_id uuid NOT NULL REFERENCES users (id),
+    tenant_id uuid NOT NULL,
+    role text NOT NULL,
+    email text NOT NULL DEFAULT '',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS import_jobs (
+    id text PRIMARY KEY,
+    tenant_id uuid NOT NULL,
+    persona_id uuid NOT NULL,
+    filename text NOT NULL DEFAULT '',
+    object_uri text,
+    hint text,
+    status text NOT NULL DEFAULT 'completed',
+    inbox_created int NOT NULL DEFAULT 0,
+    error text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS eval_runs (
+    id text PRIMARY KEY,
+    tenant_id uuid NOT NULL,
+    suite_version text NOT NULL,
+    strategy text NOT NULL,
+    mode text NOT NULL DEFAULT 'retrieval',
+    status text NOT NULL DEFAULT 'completed',
+    metrics jsonb NOT NULL DEFAULT '{}'::jsonb,
+    p0_tenant_leak_zero boolean NOT NULL DEFAULT false,
+    cases jsonb NOT NULL DEFAULT '[]'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE OR REPLACE FUNCTION arbor_event_edge_same_persona() RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE

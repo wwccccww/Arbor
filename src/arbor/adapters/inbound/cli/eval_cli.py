@@ -9,7 +9,13 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from arbor.adapters.inbound.eval_runner import ROOT, resolve_backend, run_all_strategies, run_generation, run_suite
+from arbor.adapters.inbound.eval_runner import (
+    ROOT,
+    resolve_backend,
+    run_all_strategies,
+    run_generation,
+    run_suite,
+)
 from arbor.application.retrieval import STRATEGIES
 from arbor.env import chat_api_key
 

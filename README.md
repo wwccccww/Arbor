@@ -4,7 +4,21 @@
 
 虚拟女友（陪伴）与数字员工是同一套内核上的两张皮肤，不是两个产品。
 
-> 当前仓库以**架构与设计文档**为主。实现必须遵循六边形架构（端口-适配器）与 DDD 分层，领域层不得依赖框架、数据库或模型供应商。
+## 当前实现状态（2026-08）
+
+| 模块 | 状态 |
+|---|---|
+| 工作台 UI（三栏、体检、审计） | 已实现 |
+| 分层记忆 + 事件树 + Inbox | 已实现 |
+| Postgres + pgvector 持久化 | 已实现（核心表、会话、向量） |
+| 上传 / 聊天附件 | 本地盘 `.arbor-data/objects`（可配置 `ARBOR_DATA_DIR`） |
+| 登录会话 | 演示 token + Postgres `auth_sessions` 表 |
+| 导入任务 / 评测运行 | Postgres 表 + 内存回退 |
+| 人设创建模板 | 伴侣 / 导师 / 客服 / 面试官 |
+| 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
+| Redis ARQ、S3、Whisper/Docling | 文档规划，尚未实现 |
+
+实现遵循六边形架构（端口-适配器）与 DDD 分层；组合根在 `apps/api/factory.py`，领域层不依赖框架与供应商 SDK。
 
 ## 它解决什么
 
@@ -46,8 +60,8 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | 前端 | React + TypeScript + Vite + React Flow |
 | 后端 | Python 3.12 + FastAPI（仅作为入站适配器） |
 | 主库 / 向量 | PostgreSQL 16 + pgvector（`infra/compose/postgres.yml`） |
-| 队列 | Redis + ARQ |
-| 对象存储 | S3 兼容 |
+| 队列 | Redis + ARQ（规划） |
+| 对象存储 | 本地盘（`.arbor-data`）/ 规划 S3 |
 | 对话 / 抽取 | DeepSeek `deepseek-chat` / `deepseek-reasoner` |
 | 嵌入 | bge-m3 |
 | 语音 / 文档 | Whisper、Docling 或 pypdf |
@@ -64,7 +78,15 @@ powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 ./scripts/run.sh
 ```
 
-打开 http://127.0.0.1:8000 。首页黄条需同时有「DeepSeek 对话已接通」和「嵌入 bge-m3」才是真实对话 + 真实检索。嵌入密钥见 `.env.example` 的 `EMBEDDING_API_KEY`。细节见 [docs/local-dev.md](docs/local-dev.md)。
+打开 http://127.0.0.1:8000 。首页黄条需同时有「DeepSeek 对话已接通」和「嵌入 bge-m3」才是真实对话 + 真实检索。嵌入密钥见 `.env.example` 的 `EMBEDDING_API_KEY`。
+
+持久化（推荐）：在 `.env` 启用 `DATABASE_URL` 并启动 Postgres：
+
+```bash
+docker compose -f infra/compose/postgres.yml up -d
+```
+
+上传与附件默认写入仓库根目录下的 `.arbor-data/`（可用 `ARBOR_DATA_DIR` 覆盖）。细节见 [docs/local-dev.md](docs/local-dev.md)。
 
 ## 文档索引
 
@@ -88,7 +110,7 @@ powershell -ExecutionPolicy Bypass -File scripts/run.ps1
 
 ```text
 apps/web                     # 入站适配器：工作台 UI
-apps/api                     # 组合根 + FastAPI
+apps/api                     # 组合根（factory.py）+ FastAPI 入口
 src/arbor/domain             # 领域模型（零基础设施依赖）
 src/arbor/application        # 用例编排
 src/arbor/ports              # 入站 / 出站端口（接口）

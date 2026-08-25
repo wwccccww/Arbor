@@ -5,12 +5,11 @@ import pytest
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.thread import Citation, Message, Thread
 from arbor.domain.errors import DomainError
-from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.identity.tenant import Membership, Role, Tenant
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
-from arbor.domain.persona.authorization import Capability, Grant
+from arbor.domain.memory.memory import MemoryItem
+from arbor.domain.persona.authorization import Capability
 from arbor.domain.persona.persona import Persona, Profile
-from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
 
 
 def test_authorization_persona_cannot_change_tenant():

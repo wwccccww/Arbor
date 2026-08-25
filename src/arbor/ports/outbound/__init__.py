@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import Protocol
 
 from arbor.domain.audit.log import AuditLog
+from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.identity.tenant import Tenant
 from arbor.domain.identity.user import User
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.persona import Persona
-from arbor.domain.conversation.thread import Thread
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 
 

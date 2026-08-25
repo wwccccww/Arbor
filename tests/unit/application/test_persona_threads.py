@@ -1,6 +1,10 @@
 import pytest
 
-from arbor.adapters.outbound.inmemory import InMemoryPersonaRepository, InMemoryThreadRepository, SeqIdGenerator
+from arbor.adapters.outbound.inmemory import (
+    InMemoryPersonaRepository,
+    InMemoryThreadRepository,
+    SeqIdGenerator,
+)
 from arbor.application.conversation.threads import CreateThread, ListThreads
 from arbor.application.persona.commands import CreatePersona, PatchPersona
 from arbor.application.persona.queries import ListPersonas
@@ -8,7 +12,6 @@ from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 from tests.unit.application.test_send_message import USER, _stack
-
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 LINXIA = PersonaId("0a000000-0000-4000-a000-000000000010")

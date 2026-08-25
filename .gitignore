@@ -27,6 +27,7 @@ apps/web/.vite/
 
 # Data / local storage
 data/
+.arbor-data/
 *.sqlite
 storage/
 

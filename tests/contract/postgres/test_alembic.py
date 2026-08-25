@@ -6,7 +6,6 @@ from arbor.domain.shared.ids import PersonaId, TenantId
 from arbor.domain.shared.textvec import fixture_embed
 from arbor.env import database_url
 
-
 pytestmark = pytest.mark.postgres
 
 

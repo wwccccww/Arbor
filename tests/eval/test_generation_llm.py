@@ -4,7 +4,6 @@ import pytest
 
 from arbor.env import chat_api_key
 
-
 pytestmark = pytest.mark.llm
 
 

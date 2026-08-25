@@ -6,7 +6,6 @@ import pytest
 
 from arbor.env import database_url
 
-
 pytestmark = pytest.mark.postgres
 
 

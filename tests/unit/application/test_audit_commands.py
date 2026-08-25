@@ -1,6 +1,7 @@
 import pytest
 
 from arbor.adapters.outbound.inmemory import (
+    FixedClock,
     FixtureEmbeddingClient,
     InMemoryAuditLogRepository,
     InMemoryInboxRepository,
@@ -8,7 +9,6 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryObjectStorage,
     InMemoryPersonaRepository,
     InMemoryVectorIndex,
-    FixedClock,
     SeqIdGenerator,
 )
 from arbor.application.audit.commands import RecordAudit

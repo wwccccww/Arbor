@@ -1,15 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.thread import Citation, Message, Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.identity.tenant import Membership, Role, Tenant
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus
 from arbor.domain.persona.authorization import Capability
 from arbor.domain.persona.persona import Persona, Profile
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId

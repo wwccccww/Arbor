@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 
-from arbor.domain.conversation.stream import StreamFinished, chunk_text
 from arbor.domain.audit.log import AuditLog
+from arbor.domain.conversation.stream import StreamFinished, chunk_text
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode

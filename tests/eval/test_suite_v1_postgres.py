@@ -5,7 +5,6 @@ import pytest
 from arbor.adapters.inbound.eval_runner import ROOT, run_all_strategies, run_suite
 from arbor.env import database_url
 
-
 pytestmark = pytest.mark.postgres
 
 

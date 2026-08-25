@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from arbor.domain.conversation.thread import Thread
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.persona.persona import Persona, Profile
+from arbor.domain.persona.templates import apply_template
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
 
@@ -25,22 +25,32 @@ class CreatePersona:
         personality: dict | None = None,
         taboos: list[str] | None = None,
         relationships: list[dict] | None = None,
+        template: str | None = None,
     ) -> Persona:
         if not workspace_admin:
             raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
-        name = (display_name or "").strip()
+        merged = apply_template(
+            template,
+            skin=skin,
+            display_name=display_name,
+            one_liner=one_liner,
+            personality=personality,
+            taboos=taboos,
+            relationships=relationships,
+        )
+        name = (merged.get("display_name") or "").strip()
         if not name:
             raise DomainError("VALIDATION_ERROR", "display_name required")
         persona = Persona(
             id=PersonaId(self.ids.new_id()),
             tenant_id=tenant_id,
-            skin=skin or "companion",
+            skin=merged.get("skin") or "companion",
             profile=Profile(
                 display_name=name,
-                one_liner=one_liner or "",
-                personality=personality,
-                taboos=list(taboos or []),
-                relationships=list(relationships or []),
+                one_liner=merged.get("one_liner") or "",
+                personality=merged.get("personality"),
+                taboos=list(merged.get("taboos") or []),
+                relationships=list(merged.get("relationships") or []),
             ),
             grants=[Grant(user_id=user_id, capabilities=list(Capability))],
         )

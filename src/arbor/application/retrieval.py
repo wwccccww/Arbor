@@ -5,7 +5,6 @@ from arbor.domain.memory.memory import MemoryItem, MemoryType
 from arbor.domain.shared.ids import PersonaId, TenantId
 from arbor.domain.shared.textvec import cosine, fixture_embed
 
-
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
 
 

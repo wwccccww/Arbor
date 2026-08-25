@@ -161,6 +161,7 @@ export function createClient(
           skin: draft.skin,
           display_name: draft.display_name,
           one_liner: draft.one_liner ?? '',
+          template: draft.template,
         }),
       })) as Persona
     },

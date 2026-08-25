@@ -27,8 +27,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - run: pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
+      - run: pip install -e ".[dev]" ruff
+      - run: ruff check src/arbor/domain/auth src/arbor/domain/persona/templates.py src/arbor/adapters/outbound/localfs.py src/arbor/adapters/outbound/auth_sessions.py src/arbor/adapters/outbound/postgres/auth_sessions.py src/arbor/adapters/outbound/postgres/import_jobs.py src/arbor/adapters/outbound/postgres/eval_runs.py apps/api/demo_auth.py apps/api/main.py
+      - run: python3 -m pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres
   web:
@@ -44,5 +45,6 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm test
       - run: npm run build

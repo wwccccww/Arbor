@@ -36,7 +36,7 @@ def parse_model_out(content: str) -> dict:
     ``{"text", "citations"}`` dict. Falls back to treating the raw output as
     plain text when the envelope is malformed."""
     blob = content.strip()
-    match = re.search(r"\{.*\}", blob, flags=re.S)
+    match = re.search(r"\{.*\}", blob, flags=re.DOTALL)
     if match:
         try:
             data = json.loads(match.group(0))
