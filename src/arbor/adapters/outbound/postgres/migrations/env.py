@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import logging
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import create_engine, pool
 
-from arbor.adapters.outbound.postgres.alembic_runner import sqlalchemy_url
+from arbor.adapters.outbound.postgres.alembic_runner import migration_engine, sqlalchemy_url
 from arbor.env import database_url
 
 config = context.config
-if config.config_file_name:
+# Don't reset uvicorn logging. fileConfig(alembic.ini) would silence later "Running upgrade" lines.
+if config.config_file_name and not (
+    logging.getLogger().handlers or logging.getLogger("uvicorn").handlers
+):
     try:
-        fileConfig(config.config_file_name)
+        fileConfig(config.config_file_name, disable_existing_loggers=False)
     except KeyError:
         pass
 
@@ -33,9 +36,9 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = create_engine(_url(), poolclass=pool.NullPool)
+    connectable = migration_engine(_url())
     with connectable.connect() as connection:
-        context.configure(connection=connection)
+        context.configure(connection=connection, transaction_per_migration=True)
         with context.begin_transaction():
             context.run_migrations()
 

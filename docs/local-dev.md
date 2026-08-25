@@ -212,6 +212,7 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 | 对话回复很「模板化」 | 未设置 `DEEPSEEK_API_KEY` 时为预期行为 |
 | 问「讨厌什么」答不上来 / 检索很差 | 未设置 `EMBEDDING_API_KEY`，检索仍是哈希。到 https://cloud.siliconflow.cn 创建密钥写入 `.env` |
 | `connection timeout expired` / 连不上 Postgres | `.env` 里有 `DATABASE_URL` 但本机没起数据库。用记事本打开 `.env`，把 `DATABASE_URL=` 那一行删掉或前面加 `#`。不要 Postgres 也能跑（内存库）。要持久化再执行 `docker compose -f infra/compose/postgres.yml up -d` |
+| 卡在 `Will assume transactional DDL` | API 已连上 Postgres，正在跑 Alembic。常见原因：另有一个 `python`/`uvicorn` 占着库锁；或 Windows 连虚拟机里的库时第二条连接卡住。`Ctrl+C` 后在任务管理器结束多余的 `python.exe`，再只开一个窗口启动。可先把 `.env` 里 `DATABASE_URL` 注释掉用内存库确认页面能开。迁移现有 15s 锁超时 / 60s 语句超时，超时会报错而不是永远卡住 |
 | 端口被占用 | 换端口时需同时改 API 启动参数与 `vite.config.ts` 中的 proxy 目标 |
 
 ## 相关文档
