@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-import re
 
 import httpx
 
+from arbor.domain.conversation.stream import StreamFinished, extract_text_delta, parse_model_out
 from arbor.env import chat_api_key, chat_base_url, chat_model
 
 
@@ -44,7 +44,61 @@ class DeepSeekChatLLM:
         if response.status_code >= 400:
             raise DeepSeekUnavailable(f"deepseek HTTP {response.status_code}")
         content = response.json()["choices"][0]["message"]["content"]
-        return _parse_model_json(content)
+        return parse_model_out(content)
+
+    def complete_stream(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]):
+        """Stream the ``text`` portion of the model reply, token by token.
+
+        The model is instructed to emit a JSON envelope; the streamed deltas are
+        that envelope. We extract only the human-readable ``text`` field and
+        yield it incrementally, so the UI can typewriter-render it. After the
+        stream closes we yield a :class:`StreamFinished` sentinel carrying the
+        raw envelope, so the caller can parse ``citations`` reliably.
+        """
+        key = chat_api_key()
+        if not key:
+            raise DeepSeekUnavailable("DEEPSEEK_API_KEY missing")
+        self.last_slots = prompt_slots
+        self.last_injected = list(injected_memory_ids)
+        payload = {
+            "model": chat_model(),
+            "messages": [
+                {"role": "system", "content": _system_prompt(prompt_slots, injected_memory_ids)},
+                {"role": "user", "content": text},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 2048,
+            "stream": True,
+        }
+        buffer = ""
+        emitted = 0
+        with httpx.stream(
+            "POST",
+            f"{chat_base_url()}/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=self.timeout,
+        ) as response:
+            if response.status_code >= 400:
+                raise DeepSeekUnavailable(f"deepseek HTTP {response.status_code}")
+            for line in response.iter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+                data = line[len("data:") :].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    delta = json.loads(data)["choices"][0]["delta"].get("content", "")
+                except (KeyError, IndexError, json.JSONDecodeError):
+                    continue
+                if not delta:
+                    continue
+                buffer += delta
+                current = extract_text_delta(buffer)
+                if len(current) > emitted:
+                    yield current[emitted:]
+                    emitted = len(current)
+        yield StreamFinished(buffer)
 
 
 def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
@@ -63,17 +117,3 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
             "记忆: " + json.dumps(prompt_slots.get("memory_hits") or [], ensure_ascii=False),
         ]
     )
-
-
-def _parse_model_json(content: str) -> dict:
-    blob = content.strip()
-    match = re.search(r"\{.*\}", blob, flags=re.S)
-    if match:
-        try:
-            data = json.loads(match.group(0))
-            text = str(data.get("text") or "")
-            citations = [c for c in (data.get("citations") or []) if isinstance(c, str)]
-            return {"text": text, "citations": citations}
-        except json.JSONDecodeError:
-            pass
-    return {"text": blob, "citations": []}
