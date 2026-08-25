@@ -224,7 +224,7 @@ POLICY: tenant_id = current_setting('app.tenant_id')::uuid
 
 ## 4. 对象存储
 
-原图、音频、PDF 不进 Postgres。`source.uri` 指向 S3。删除 MemoryItem 时由应用层发出站端口删对象（或标记 GC）。
+原图、音频、PDF 不进 Postgres 业务表。实现上由 `ObjectStorage` 适配器写入本地盘、`object_blobs` 表或 S3 兼容存储；`source.uri` / 消息 `attachments.uri` 保存返回的 key。本地开发可用 `infra/compose/minio.yml` 起 MinIO（见 [local-dev.md](local-dev.md)）。删除 MemoryItem 时由应用层发出站端口删对象（或标记 GC）。
 
 ## 5. 迁移原则
 

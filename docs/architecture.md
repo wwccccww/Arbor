@@ -88,7 +88,7 @@ Arbor 采用 **六边形架构（端口-适配器）** 承载 **DDD 限界上下
 | `ReasoningClient` | DeepSeek Reasoner | 可回退到 `LLMClient` |
 | `FaithfulnessScorer` | RAGAS faithfulness 适配器 | 其他 LLM 评委；仅 generation |
 | `EmbeddingClient` | bge-m3 | 其他嵌入模型 |
-| `ObjectStorage` | S3 | 本地盘 |
+| `ObjectStorage` | `local` / `postgres`（`object_blobs`）/ `s3`（MinIO 或云） | — |
 | `SpeechTranscriber` | Whisper | — |
 | `VisionDescriber` | 视觉模型 | — |
 | `DocumentParser` | Docling / pypdf | — |

@@ -55,6 +55,53 @@ docker compose -f infra/compose/postgres.yml up -d
 
 然后重新运行 `scripts/run.ps1`。
 
+## 对象存储（上传与聊天附件）
+
+导入文件、聊天附件不进 Postgres 业务表，由 `ObjectStorage` 出站端口保存。通过 `.env` 的 `ARBOR_OBJECT_STORE` 选择后端（详见 `.env.example`）：
+
+| 值 | 存哪 | 何时用 |
+|---|---|---|
+| `local`（默认） | `ARBOR_DATA_DIR/objects`（默认仓库下 `.arbor-data`） | 本机开发、单机部署 |
+| `postgres` | 表 `object_blobs` | 希望附件和库一起备份、不单独管目录 |
+| `s3` | S3 兼容桶（MinIO / 云 OSS） | 多实例 API、生产对象存储 |
+
+`GET /v1/me` 的 `runtime.object_store` 会显示当前后端：`local` / `postgres` / `s3`。
+
+### 本地 MinIO（免费 S3 兼容，可选）
+
+MinIO 是开源对象存储，API 与 AWS S3 兼容。仓库提供 Docker 配置，**不需要云账号、不需要付费**，只在本机跑容器。
+
+1. 启动 MinIO（会创建 bucket `arbor`）：
+
+```bash
+docker compose -f infra/compose/minio.yml up -d
+```
+
+控制台（可选）：http://127.0.0.1:9001 ，账号 `arbor` / 密码 `arbor-secret`。
+
+2. 安装 S3 依赖（`boto3`）：
+
+```bash
+python3 -m pip install -e ".[api,postgres,s3]"
+```
+
+3. 在 `.env` 中配置（与 `infra/compose/minio.yml` 默认账号一致）：
+
+```text
+ARBOR_OBJECT_STORE=s3
+ARBOR_S3_ENDPOINT=http://127.0.0.1:9000
+ARBOR_S3_BUCKET=arbor
+ARBOR_S3_ACCESS_KEY=arbor
+ARBOR_S3_SECRET_KEY=arbor-secret
+ARBOR_S3_PREFIX=arbor/
+```
+
+4. 若使用 Postgres 持久化，仍建议保留 `DATABASE_URL`；对象存储与数据库是两套：库管结构化数据，MinIO 管文件字节。
+
+5. 重新运行 `./scripts/run.sh`，确认 `runtime.object_store` 为 `s3`。
+
+不用 MinIO 时保持默认即可，无需改 `ARBOR_OBJECT_STORE`。
+
 ## 前置条件
 
 | 依赖 | 版本 | 用途 |

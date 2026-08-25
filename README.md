@@ -11,12 +11,12 @@
 | 工作台 UI（三栏、体检、审计） | 已实现 |
 | 分层记忆 + 事件树 + Inbox | 已实现 |
 | Postgres + pgvector 持久化 | 已实现（核心表、会话、向量） |
-| 上传 / 聊天附件 | 本地盘 `.arbor-data/objects`（可配置 `ARBOR_DATA_DIR`） |
+| 上传 / 聊天附件 | `local` 本地盘 / `postgres` 表 / `s3`（MinIO 或云 OSS） |
 | 登录会话 | 演示 token + Postgres `auth_sessions` 表 |
 | 导入任务 / 评测运行 | Postgres 表 + 内存回退 |
 | 人设创建模板 | 伴侣 / 导师 / 客服 / 面试官 |
 | 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
-| Redis ARQ、S3、Whisper/Docling | 文档规划，尚未实现 |
+| Redis ARQ、Whisper/Docling | 文档规划，尚未实现 |
 
 实现遵循六边形架构（端口-适配器）与 DDD 分层；组合根在 `apps/api/factory.py`，领域层不依赖框架与供应商 SDK。
 
