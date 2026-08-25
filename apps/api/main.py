@@ -304,6 +304,8 @@ def _citation_json(memories, tenant: TenantId, citation) -> dict:
         item = memories.get(tenant, citation.memory_id)
         if item is not None:
             body["preview"] = (item.text or "")[:40]
+            if item.event_id:
+                body["event_id"] = item.event_id.value
     if citation.event_id:
         body["event_id"] = citation.event_id.value
     return body
