@@ -61,7 +61,7 @@ LLM 使用 DeepSeek；嵌入使用 bge-m3；向量与业务数据同库（Postgr
 | 后端 | Python 3.12 + FastAPI（仅作为入站适配器） |
 | 主库 / 向量 | PostgreSQL 16 + pgvector（`infra/compose/postgres.yml`） |
 | 队列 | Redis + ARQ（规划） |
-| 对象存储 | 本地盘（`.arbor-data`）/ 规划 S3 |
+| 对象存储 | 本地盘 / Postgres `object_blobs` / S3（MinIO） |
 | 对话 / 抽取 | DeepSeek `deepseek-chat` / `deepseek-reasoner` |
 | 嵌入 | bge-m3 |
 | 语音 / 文档 | Whisper、Docling 或 pypdf |

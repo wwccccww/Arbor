@@ -80,3 +80,11 @@ def embedding_base_url() -> str:
 def embedding_model() -> str:
     load_dotenv()
     return os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3")
+
+
+def object_store_backend() -> str:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_OBJECT_STORE") or "local").strip().lower()
+    if raw in {"local", "postgres", "s3"}:
+        return raw
+    return "local"

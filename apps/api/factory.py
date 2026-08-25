@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-import tempfile
 import time
-from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
@@ -23,7 +21,6 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryEventGraphRepository,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
-    InMemoryObjectStorage,
     InMemoryPersonaRepository,
     InMemoryStores,
     InMemoryTenantRepository,
@@ -34,7 +31,7 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
-from arbor.adapters.outbound.localfs import LocalFileObjectStorage
+from arbor.adapters.outbound.object_storage import build_object_storage, object_store_label
 from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
 from arbor.adapters.outbound.postgres.eval_runs import (
     InMemoryEvalRunRepository,
@@ -103,7 +100,13 @@ def _reject_oversize(data: bytes, limit: int) -> None:
         raise DomainError("VALIDATION_ERROR", "file too large")
 
 
-def _runtime_info(*, llm: object, database_url: str | None, embed: object) -> dict[str, str]:
+def _runtime_info(
+    *,
+    llm: object,
+    database_url: str | None,
+    embed: object,
+    object_store: str = "local",
+) -> dict[str, str]:
     if isinstance(embed, FixtureEmbeddingClient) or embed is None:
         embed_label = "fixture"
     else:
@@ -112,6 +115,7 @@ def _runtime_info(*, llm: object, database_url: str | None, embed: object) -> di
         "llm": "deepseek" if isinstance(llm, DeepSeekChatLLM) else "scripted",
         "store": "postgres" if database_url else "memory",
         "embed": embed_label,
+        "object_store": object_store,
     }
 
 
@@ -494,18 +498,7 @@ def create_app(
     list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
     list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
     export_thread = ExportThread(personas=personas, threads=threads, auth=AuthorizationPolicy(), audit=record_audit)
-    object_stores = stores or InMemoryStores()
-    if session is not None:
-        storage_root = data_dir() / "objects"
-    else:
-        storage_root = Path(tempfile.mkdtemp(prefix="arbor-objects-"))
-    storage = LocalFileObjectStorage(storage_root)
-    if stores is not None and object_stores.objects:
-        mem_storage = InMemoryObjectStorage(object_stores)
-        for key in list(object_stores.objects.keys()):
-            blob = mem_storage.get(key)
-            if blob is not None:
-                storage.put(key, blob)
+    storage = build_object_storage(session=session, stores=stores)
     get_chat_attachment = GetChatAttachment(
         personas=personas, threads=threads, storage=storage, auth=AuthorizationPolicy()
     )
@@ -571,7 +564,12 @@ def create_app(
     app.state.import_jobs = import_jobs
     app.state.eval_runs = eval_runs
     app.state.storage = storage
-    app.state.runtime = _runtime_info(llm=send.llm, database_url=database_url, embed=resolved_embed)
+    app.state.runtime = _runtime_info(
+        llm=send.llm,
+        database_url=database_url,
+        embed=resolved_embed,
+        object_store=object_store_label(storage),
+    )
     app.state.auth_sessions = auth_sessions
 
     @app.exception_handler(DomainError)
