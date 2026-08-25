@@ -14,6 +14,7 @@ export function ImportPane({
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [hint, setHint] = useState('')
+  const [fileKey, setFileKey] = useState(0)
 
   if (forbidden) return null
 
@@ -21,6 +22,9 @@ export function ImportPane({
     event.preventDefault()
     if (!file || busy) return
     onImport(file, hint.trim() || undefined)
+    setFile(null)
+    setHint('')
+    setFileKey((current) => current + 1)
   }
 
   return (
@@ -31,6 +35,7 @@ export function ImportPane({
         <label>
           导入文件
           <input
+            key={fileKey}
             type="file"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />

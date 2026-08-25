@@ -23,4 +23,14 @@ describe('CitationList', () => {
     await user.click(chip)
     expect(onJump).toHaveBeenCalledWith('evt-fight')
   })
+
+  it('shows memory-only citations', () => {
+    render(
+      <CitationList
+        citations={[{ memory_id: 'mem-1' }]}
+        onJump={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('查看依据')).toBeInTheDocument()
+  })
 })

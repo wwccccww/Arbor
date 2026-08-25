@@ -80,7 +80,7 @@ export function GrantsPane({
                     <input
                       type="checkbox"
                       checked={selected.has(cap.id)}
-                      disabled={Boolean(busy)}
+                      disabled={Boolean(busy) || implicit}
                       aria-label={`${member.user.email} ${cap.label}`}
                       onChange={(event) => toggle(member.user.id, cap.id, event.target.checked)}
                     />

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
 
@@ -7,11 +7,14 @@ export function ChatPane({
   sending,
   exporting,
   creatingThread,
+  switchingThread,
+  ready = true,
   threads,
   threadId,
   offset = 0,
   total,
   pageSize = 50,
+  error,
   onSend,
   onJump,
   onOpenAttachment,
@@ -24,11 +27,14 @@ export function ChatPane({
   sending?: boolean
   exporting?: boolean
   creatingThread?: boolean
+  switchingThread?: boolean
+  ready?: boolean
   threads?: Thread[]
   threadId?: string
   offset?: number
   total?: number
   pageSize?: number
+  error?: string | null
   onSend: (text: string, file?: File) => void
   onJump: (eventId?: string) => void
   onOpenAttachment?: (filename: string) => void
@@ -40,11 +46,19 @@ export function ChatPane({
   const [draft, setDraft] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [fileKey, setFileKey] = useState(0)
+  const transcriptRef = useRef<HTMLOListElement>(null)
+  const disabled = !ready || Boolean(sending) || Boolean(switchingThread)
+
+  useEffect(() => {
+    const node = transcriptRef.current
+    if (!node) return
+    node.scrollTop = node.scrollHeight
+  }, [messages, sending])
 
   function submit(event: FormEvent) {
     event.preventDefault()
     const text = draft.trim()
-    if ((!text && !file) || sending) return
+    if ((!text && !file) || disabled) return
     onSend(text, file ?? undefined)
     setDraft('')
     setFile(null)
@@ -58,7 +72,11 @@ export function ChatPane({
           {threads && threadId && onSwitchThread ? (
             <label>
               会话
-              <select value={threadId} onChange={(event) => onSwitchThread(event.target.value)}>
+              <select
+                value={threadId}
+                disabled={disabled}
+                onChange={(event) => onSwitchThread(event.target.value)}
+              >
                 {threads.map((thread, index) => (
                   <option key={thread.id} value={thread.id}>
                     会话 {index + 1}
@@ -68,20 +86,27 @@ export function ChatPane({
             </label>
           ) : null}
           {onNewThread ? (
-            <button type="button" disabled={Boolean(creatingThread)} onClick={onNewThread}>
+            <button type="button" disabled={disabled || Boolean(creatingThread)} onClick={onNewThread}>
               新会话
             </button>
           ) : null}
           {onExport ? (
-            <button type="button" disabled={Boolean(exporting)} onClick={onExport}>
+            <button type="button" disabled={disabled || Boolean(exporting)} onClick={onExport}>
               导出会话
             </button>
           ) : null}
         </div>
       ) : null}
+      {!ready ? <p className="chat-status">正在加载会话…</p> : null}
+      {switchingThread ? <p className="chat-status">正在切换会话…</p> : null}
+      {error ? (
+        <p className="chat-error" role="alert">
+          {error}
+        </p>
+      ) : null}
       {onPage && typeof total === 'number' && total > pageSize ? (
         <div className="chat-pager">
-          <button type="button" disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - pageSize))}>
+          <button type="button" disabled={offset <= 0 || disabled} onClick={() => onPage(Math.max(0, offset - pageSize))}>
             上一页
           </button>
           <span>
@@ -89,16 +114,22 @@ export function ChatPane({
           </span>
           <button
             type="button"
-            disabled={offset + messages.length >= total}
+            disabled={offset + messages.length >= total || disabled}
             onClick={() => onPage(offset + pageSize)}
           >
             下一页
           </button>
         </div>
       ) : null}
-      <ol className="transcript">
+      <ol
+        ref={transcriptRef}
+        className="transcript"
+        aria-live="polite"
+        aria-relevant="additions text"
+        aria-label="对话记录"
+      >
         {messages.map((message) => (
-          <li key={message.id} data-role={message.role}>
+          <li key={message.id} data-role={message.role} aria-label={message.role === 'user' ? '用户' : '助手'}>
             {message.text ? <p>{message.text}</p> : null}
             {message.role === 'assistant' && !message.text ? (
               <p className="chat-streaming" aria-label="正在输入">
@@ -129,6 +160,7 @@ export function ChatPane({
           发送消息
           <textarea
             value={draft}
+            disabled={disabled}
             onChange={(event) => setDraft(event.target.value)}
             rows={3}
           />
@@ -138,10 +170,11 @@ export function ChatPane({
           <input
             key={fileKey}
             type="file"
+            disabled={disabled}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>
-        <button type="submit" disabled={Boolean(sending) || (!draft.trim() && !file)}>
+        <button type="submit" disabled={disabled || (!draft.trim() && !file)}>
           发送
         </button>
       </form>

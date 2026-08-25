@@ -1462,13 +1462,74 @@ td:first-child {
 }
 
 @media (max-width: 900px) {
-  .workbench:not(.workbench-narrow) {
+  .workbench.workbench-narrow {
     grid-template-columns: 1fr;
   }
 
-  .pane-left,
-  .pane-right {
+  .workbench-narrow .pane-left,
+  .workbench-narrow .pane-right,
+  .workbench-narrow .pane-center {
     position: static;
     max-height: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .workbench-narrow .pane-left [data-left-panel] {
+    display: none;
+  }
+
+  .workbench-narrow .pane-left__panel--profile [data-left-panel='profile'],
+  .workbench-narrow .pane-left__panel--memory [data-left-panel='memory'],
+  .workbench-narrow .pane-left__panel--tools [data-left-panel='tools'] {
+    display: block;
+  }
+
+  .workbench-tabs {
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .workbench-tabs button {
+    flex: 1;
+  }
+
+  .workbench-tabs button.is-active {
+    font-weight: 600;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .topbar__nav {
+    flex-wrap: wrap;
+  }
+
+  .chat {
+    height: auto;
+    min-height: 24rem;
+  }
+
+  .chat-status,
+  .chat-error,
+  .checkup-progress {
+    margin: 0;
+    color: var(--ink-faint);
+    font-size: 0.9rem;
+  }
+
+  .chat-error {
+    color: var(--danger, #9b2c2c);
+  }
+
+  .workbench-alert {
+    margin: 0.5rem 1rem 0;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    background: #fff4f4;
+    border: 1px solid #f0caca;
   }
 }

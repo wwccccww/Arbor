@@ -84,8 +84,31 @@ export async function logout(refreshToken?: string, fetchImpl: typeof fetch = fe
   })
 }
 
-export function createClient(session: Session, fetchImpl: typeof fetch = fetch) {
-  async function request(path: string, init: RequestInit = {}): Promise<unknown> {
+export type ClientHooks = {
+  onTokensRefreshed?: (tokens: AuthTokens) => void
+  onUnauthorized?: () => void
+}
+
+export function createClient(
+  session: Session,
+  fetchImpl: typeof fetch = fetch,
+  hooks: ClientHooks = {},
+) {
+  async function refreshAccessToken(): Promise<boolean> {
+    if (!session.refreshToken) return false
+    try {
+      const tokens = await refreshSession(session.refreshToken, fetchImpl)
+      session.token = tokens.access_token
+      session.refreshToken = tokens.refresh_token
+      hooks.onTokensRefreshed?.(tokens)
+      return true
+    } catch {
+      hooks.onUnauthorized?.()
+      return false
+    }
+  }
+
+  async function request(path: string, init: RequestInit = {}, retried = false): Promise<unknown> {
     const headers = new Headers(init.headers)
     headers.set('Authorization', `Bearer ${session.token}`)
     headers.set('X-Tenant-Id', session.tenantId)
@@ -93,6 +116,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       headers.set('Content-Type', 'application/json')
     }
     const res = await fetchImpl(`/v1${path}`, { ...init, headers })
+    if (res.status === 401) {
+      if (!retried && (await refreshAccessToken())) {
+        return request(path, init, true)
+      }
+      hooks.onUnauthorized?.()
+      throw await parseError(res)
+    }
     if (!res.ok) throw await parseError(res)
     if (res.status === 204) return null
     return await res.json()
@@ -104,8 +134,8 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
     },
 
     async listPersonas(): Promise<Persona[]> {
-      const body = (await request('/personas')) as { items: Persona[] }
-      return body.items
+      const body = (await request('/personas')) as { items?: Persona[] }
+      return body.items ?? []
     },
 
     async listTenants(): Promise<Tenant[]> {
@@ -181,8 +211,8 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
     },
 
     async listThreads(personaId: string): Promise<Thread[]> {
-      const body = (await request(`/personas/${personaId}/threads`)) as { items: Thread[] }
-      return body.items
+      const body = (await request(`/personas/${personaId}/threads`)) as { items?: Thread[] }
+      return body.items ?? []
     },
 
     async createThread(personaId: string): Promise<Thread> {
@@ -274,7 +304,15 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       if (init.body && !(init.body instanceof FormData)) {
         headers.set('Content-Type', 'application/json')
       }
-      const res = await fetchImpl(`/v1/threads/${threadId}/messages?stream=true`, { ...init, headers })
+      let res = await fetchImpl(`/v1/threads/${threadId}/messages?stream=true`, { ...init, headers })
+      if (res.status === 401 && (await refreshAccessToken())) {
+        headers.set('Authorization', `Bearer ${session.token}`)
+        res = await fetchImpl(`/v1/threads/${threadId}/messages?stream=true`, { ...init, headers })
+      }
+      if (res.status === 401) {
+        hooks.onUnauthorized?.()
+        throw await parseError(res)
+      }
       if (!res.ok) throw await parseError(res)
       if (!res.body) throw new Error('streaming not supported')
 
@@ -319,7 +357,7 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
           id: doneEvent.message_id ?? `stream-${Date.now()}`,
           role: 'assistant',
           text: doneEvent.text,
-          citations: doneEvent.citations,
+          citations: asCitations(doneEvent.citations),
           inbox_created: doneEvent.inbox_created ?? 0,
           attachments: doneEvent.attachments ?? [],
         },
@@ -457,7 +495,16 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       }
     },
 
-    async listAuditLogs(opts: { action?: string; persona_id?: string; since?: string; until?: string } = {}): Promise<AuditList> {
+    async listAuditLogs(
+      opts: {
+        action?: string
+        persona_id?: string
+        since?: string
+        until?: string
+        limit?: number
+        offset?: number
+      } = {},
+    ): Promise<AuditList> {
       const params = new URLSearchParams()
       if (opts.action) params.set('action', opts.action)
       if (opts.persona_id) params.set('persona_id', opts.persona_id)
@@ -466,7 +513,13 @@ export function createClient(session: Session, fetchImpl: typeof fetch = fetch) 
       const query = params.size ? `?${params.toString()}` : ''
       try {
         const body = (await request(`/audit-logs${query}`)) as AuditList
-        return { items: body.items ?? [] }
+        const items = body.items ?? []
+        const limit = opts.limit ?? items.length
+        const offset = opts.offset ?? 0
+        return {
+          items: items.slice(offset, offset + limit),
+          total: body.total ?? items.length,
+        }
       } catch (err) {
         const status = (err as ApiError).status
         if (status === 403 || status === 404) {

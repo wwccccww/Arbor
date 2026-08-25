@@ -11,8 +11,8 @@ export function CitationList({
   return (
     <ul aria-label="依据">
       {citations.map((item, index) => {
-        const label = item.preview || '查看依据'
-        if (!item.preview && !item.event_id) return null
+        const label = item.preview || (item.memory_id ? '查看依据' : '查看依据')
+        if (!item.preview && !item.event_id && !item.memory_id) return null
         return (
           <li key={item.memory_id ?? item.event_id ?? String(index)}>
             {item.event_id ? (

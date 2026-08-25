@@ -260,6 +260,72 @@ describe('createClient', () => {
     expect(hidden.forbidden).toBe(true)
     expect(hidden.memories).toEqual([])
   })
+
+  it('returns an empty persona list when items are missing', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({}), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    ) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    await expect(client.listPersonas()).resolves.toEqual([])
+  })
+
+  it('refreshes the access token after a 401 and retries once', async () => {
+    let personasCalls = 0
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input)
+      if (url.endsWith('/auth/refresh')) {
+        return new Response(
+          JSON.stringify({
+            access_token: 'tok-new',
+            refresh_token: 'ref-new',
+            user: { id: 'u1', email: 'demo-a@arbor.eval' },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        )
+      }
+      if (url.endsWith('/personas')) {
+        personasCalls += 1
+        if (personasCalls === 1) {
+          return new Response(JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'expired' } }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        }
+        return new Response(JSON.stringify({ items: [{ id: 'p1', display_name: '林夏' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'not found' } }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }) as unknown as typeof fetch
+    const session = { token: 'old', refreshToken: 'ref-old', tenantId: DEMO_OWNER.tenantId }
+    const refreshed = vi.fn()
+    const client = createClient(session, fetchImpl, { onTokensRefreshed: refreshed })
+    const items = await client.listPersonas()
+    expect(items[0]?.display_name).toBe('林夏')
+    expect(refreshed).toHaveBeenCalledTimes(1)
+    expect(session.token).toBe('tok-new')
+  })
+
+  it('normalizes string citations from stream done events', async () => {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode('data: {"type":"done","text":"ok","citations":["mem-1"],"message_id":"m-1"}\n\n'),
+        )
+        controller.close()
+      },
+    })
+    const fetchImpl = vi.fn(async () => new Response(body, { status: 200 })) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const done = vi.fn()
+    await client.sendMessageStream('thread-1', 'hi', { onDelta: vi.fn(), onDone: done })
+    expect(done.mock.calls[0][0].citations).toEqual([{ memory_id: 'mem-1' }])
+  })
 })
 
 describe('login', () => {

@@ -76,6 +76,7 @@ export function Checkup({
   const [run, setRun] = useState<EvalRun | null>(null)
   const [rows, setRows] = useState<EvalRun[]>([])
   const [busy, setBusy] = useState(false)
+  const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [forbidden, setForbidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
@@ -92,6 +93,7 @@ export function Checkup({
 
   async function runDefault() {
     setBusy(true)
+    setBusyLabel('正在跑 layered_tree…')
     setError(null)
     try {
       setRun(await fetchRun('layered_tree'))
@@ -100,6 +102,7 @@ export function Checkup({
       else setError((err as Error).message)
     } finally {
       setBusy(false)
+      setBusyLabel(null)
     }
   }
 
@@ -109,6 +112,7 @@ export function Checkup({
     try {
       const next: EvalRun[] = []
       for (const strategy of STRATEGIES) {
+        setBusyLabel(`正在跑 ${STRATEGY_LABELS[strategy] ?? strategy}…`)
         next.push(await fetchRun(strategy))
       }
       setRows(next)
@@ -118,6 +122,7 @@ export function Checkup({
       else setError((err as Error).message)
     } finally {
       setBusy(false)
+      setBusyLabel(null)
     }
   }
 
@@ -150,6 +155,7 @@ export function Checkup({
 
         {forbidden ? <p role="alert">没有评测权限</p> : null}
         {error ? <p role="alert">{error}</p> : null}
+        {busyLabel ? <p className="checkup-progress">{busyLabel}</p> : null}
 
         <div className="checkup-actions">
           <button type="button" className="btn--primary" disabled={busy || forbidden} onClick={() => void runDefault()}>

@@ -9,8 +9,8 @@ export function Login({
   error?: string
   onLogin: (email: string, password: string) => void
 }) {
-  const [email, setEmail] = useState('demo-a@arbor.eval')
-  const [password, setPassword] = useState('arbor-owner')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -25,7 +25,7 @@ export function Login({
           <h1>Arbor</h1>
           <p className="eyebrow">人格树工作台</p>
         </header>
-        <p>用邮箱和密码换取令牌。演示账号已预填，可改成成员账号。</p>
+        <p>用邮箱和密码换取令牌。下方为演示账号，可直接复制使用。</p>
         {error ? <p role="alert">{error}</p> : null}
         <form onSubmit={submit}>
           <label>

@@ -13,7 +13,11 @@ export function EventCardPane({ card }: { card?: EventCard | null }) {
     return <p className="empty-state">点选事件节点查看卡片。</p>
   }
   if (card.forbidden) {
-    return <p className="empty-state">没有记忆权限，无法打开事件卡。</p>
+    return (
+      <p className="empty-state" role="alert">
+        没有记忆权限，无法打开事件卡。
+      </p>
+    )
   }
   return (
     <article className="event-card">

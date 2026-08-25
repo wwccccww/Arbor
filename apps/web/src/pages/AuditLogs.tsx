@@ -10,6 +10,8 @@ const ACTIONS = [
   { id: 'thread.export', label: '导出会话' },
 ]
 
+const PAGE_SIZE = 20
+
 function payloadText(payload?: Record<string, unknown>) {
   if (!payload) return ''
   return JSON.stringify(payload)
@@ -23,6 +25,8 @@ export function AuditLogs({
   onBack: () => void
 }) {
   const [items, setItems] = useState<AuditLog[]>([])
+  const [total, setTotal] = useState(0)
+  const [offset, setOffset] = useState(0)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [action, setAction] = useState('')
   const [personaId, setPersonaId] = useState('')
@@ -30,6 +34,10 @@ export function AuditLogs({
   const [until, setUntil] = useState('')
   const [forbidden, setForbidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setOffset(0)
+  }, [action, personaId, since, until])
 
   useEffect(() => {
     let cancelled = false
@@ -40,11 +48,14 @@ export function AuditLogs({
           persona_id: personaId || undefined,
           since: since ? `${since}T00:00:00` : undefined,
           until: until ? `${until}T23:59:59` : undefined,
+          limit: PAGE_SIZE,
+          offset,
         })
         if (cancelled) return
         setForbidden(Boolean(listed.forbidden))
         setItems(listed.items)
-        if (!listed.forbidden) {
+        setTotal(listed.total ?? listed.items.length)
+        if (!listed.forbidden && personas.length === 0) {
           const people = await client.listPersonas()
           if (!cancelled) setPersonas(people)
         }
@@ -56,7 +67,7 @@ export function AuditLogs({
     return () => {
       cancelled = true
     }
-  }, [client, action, personaId, since, until])
+  }, [client, action, personaId, since, until, offset, personas.length])
 
   return (
     <section className="checkup">
@@ -115,6 +126,23 @@ export function AuditLogs({
                 <input type="date" value={until} onChange={(event) => setUntil(event.target.value)} />
               </label>
             </div>
+            {total > PAGE_SIZE ? (
+              <div className="chat-pager">
+                <button type="button" disabled={offset <= 0} onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}>
+                  上一页
+                </button>
+                <span>
+                  {offset + 1}–{offset + items.length} / {total}
+                </span>
+                <button
+                  type="button"
+                  disabled={offset + items.length >= total}
+                  onClick={() => setOffset(offset + PAGE_SIZE)}
+                >
+                  下一页
+                </button>
+              </div>
+            ) : null}
             {items.length === 0 ? (
               <p className="empty-state">暂无记录</p>
             ) : (

@@ -23,6 +23,7 @@ describe('WorkbenchLayout', () => {
     const user = userEvent.setup()
     render(<Harness />)
     expect(screen.getByRole('button', { name: '事件树' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '档案' })).toBeInTheDocument()
     expect(screen.queryByText('生命线')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '事件树' }))
     expect(screen.getByText('生命线')).toBeInTheDocument()
