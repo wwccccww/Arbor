@@ -52,6 +52,7 @@ export function ImportPane({
         <p>
           {job.filename ?? '导入'} · {job.status}
           {typeof job.inbox_created === 'number' ? ` · ${job.inbox_created} 条进收件箱` : ''}
+          {job.status === 'failed' && job.error ? ` · ${job.error}` : ''}
         </p>
       ) : null}
     </section>

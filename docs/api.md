@@ -216,11 +216,11 @@ Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100�
 ### `POST /v1/personas/{persona_id}/imports`
 
 `multipart/form-data`：file + 可选 `hint`。需要 `write_memory`。  
-返回 `job_id`。演示组合根同步解析 UTF-8 文本进 Inbox，不直写 Memory。
+立即返回 `job_id` 与 `status`。配置了 `REDIS_URL` 时任务为真异步（`pending` → worker 解析后进 Inbox）；未配置时在 API 进程内同步完成（`completed`）。不直写 Memory。
 
 ### `GET /v1/imports/{job_id}`
 
-任务状态。
+任务状态：`pending` / `running` / `completed` / `failed`；失败时含 `error`。
 
 ### `GET /v1/personas/{persona_id}/inbox`
 

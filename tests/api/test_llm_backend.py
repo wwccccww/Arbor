@@ -39,6 +39,7 @@ def test_me_runtime_defaults_to_scripted_memory():
         "store": "memory",
         "embed": "fixture",
         "object_store": "local",
+        "job_queue": "sync",
     }
 
 
@@ -53,6 +54,7 @@ def test_me_runtime_reports_deepseek(monkeypatch):
         "store": "memory",
         "embed": "fixture",
         "object_store": "local",
+        "job_queue": "sync",
     }
 
 

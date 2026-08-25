@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+from contextlib import asynccontextmanager
 import json
 import os
 import time
@@ -31,6 +30,8 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
+from arbor.adapters.outbound.job_queue import ArqJobQueue, arq_redis_settings
+from arbor.adapters.outbound.job_queue_holder import JobQueueHolder
 from arbor.adapters.outbound.object_storage import build_object_storage, object_store_label
 from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
 from arbor.adapters.outbound.postgres.eval_runs import (
@@ -62,12 +63,8 @@ from arbor.application.identity.commands import (
     ListTenants,
     PatchTenantMember,
 )
-from arbor.application.memory.commands import (
-    ConfirmInboxItem,
-    DismissInboxItem,
-    ImportArtifact,
-    ProcessImportJob,
-)
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ProcessImportJob
+from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
@@ -106,6 +103,7 @@ def _runtime_info(
     database_url: str | None,
     embed: object,
     object_store: str = "local",
+    job_queue: str = "sync",
 ) -> dict[str, str]:
     if isinstance(embed, FixtureEmbeddingClient) or embed is None:
         embed_label = "fixture"
@@ -116,6 +114,7 @@ def _runtime_info(
         "store": "postgres" if database_url else "memory",
         "embed": embed_label,
         "object_store": object_store,
+        "job_queue": job_queue,
     }
 
 
@@ -405,6 +404,7 @@ def create_app(
     max_upload_bytes: int = DEFAULT_MAX_UPLOAD_BYTES,
     rate_limit_per_window: int = DEFAULT_RATE_LIMIT_PER_WINDOW,
     rate_window_seconds: int = DEFAULT_RATE_WINDOW_SECONDS,
+    redis_url: str | None = None,
 ) -> FastAPI:
     session = None
     stores = None
@@ -461,6 +461,14 @@ def create_app(
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
     _ensure_demo_member(tenants, users)
+    if session is not None:
+        import_jobs = PgImportJobRepository(session.conn)
+        eval_runs = PgEvalRunRepository(session.conn)
+        auth_sessions = PgAuthSessionStore(session.conn, TOKENS)
+    else:
+        import_jobs = InMemoryImportJobRepository()
+        eval_runs = InMemoryEvalRunRepository()
+        auth_sessions = InMemoryAuthSessionStore(TOKENS)
     ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     send = SendMessage(
@@ -502,7 +510,6 @@ def create_app(
     get_chat_attachment = GetChatAttachment(
         personas=personas, threads=threads, storage=storage, auth=AuthorizationPolicy()
     )
-    import_artifact = ImportArtifact(personas=personas, storage=storage, auth=AuthorizationPolicy(), audit=record_audit)
     process_import = ProcessImportJob(
         personas=personas,
         inbox=inbox,
@@ -510,6 +517,20 @@ def create_app(
         auth=AuthorizationPolicy(),
         reasoner=reasoner or ScriptedReasoner(),
     )
+    run_import = RunImportJob(
+        import_jobs=import_jobs,
+        storage=storage,
+        process_import=process_import,
+    )
+    submit_import = SubmitImportJob(
+        personas=personas,
+        storage=storage,
+        import_jobs=import_jobs,
+        ids=ids,
+        auth=AuthorizationPolicy(),
+        audit=record_audit,
+    )
+    job_queue_holder = JobQueueHolder(run_import)
     list_memories = ListMemories(personas=personas, memories=memories, auth=AuthorizationPolicy())
     list_audit_logs = ListAuditLogs(audit_logs)
     list_tenants = ListTenants(tenants)
@@ -518,14 +539,6 @@ def create_app(
     list_members = ListMembers(tenants, users)
     add_member = AddTenantMember(tenants=tenants, users=users, ids=ids)
     patch_member = PatchTenantMember(tenants)
-    if session is not None:
-        import_jobs = PgImportJobRepository(session.conn)
-        eval_runs = PgEvalRunRepository(session.conn)
-        auth_sessions = PgAuthSessionStore(session.conn, TOKENS)
-    else:
-        import_jobs = InMemoryImportJobRepository()
-        eval_runs = InMemoryEvalRunRepository()
-        auth_sessions = InMemoryAuthSessionStore(TOKENS)
 
     def run_retrieval(*, strategy: str, suite_version: str) -> dict:
         from arbor.adapters.inbound.eval_runner import run_suite
@@ -538,7 +551,21 @@ def create_app(
             raise DomainError("VALIDATION_ERROR", "suite files missing") from exc
 
     start_eval = StartEvalRun(run_retrieval=run_retrieval, ids=ids)
-    app = FastAPI()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        pool = None
+        if redis_url:
+            from arq.connections import create_pool
+
+            pool = await create_pool(arq_redis_settings(redis_url))
+            job_queue_holder.use_arq(ArqJobQueue(pool))
+            app.state.arq_pool = pool
+        yield
+        if pool is not None:
+            await pool.close()
+
+    app = FastAPI(lifespan=lifespan)
     limiter = InMemoryRateLimiter(limit=rate_limit_per_window, window_seconds=rate_window_seconds)
 
     @app.middleware("http")
@@ -569,6 +596,7 @@ def create_app(
         database_url=database_url,
         embed=resolved_embed,
         object_store=object_store_label(storage),
+        job_queue="redis" if redis_url else "sync",
     )
     app.state.auth_sessions = auth_sessions
 
@@ -876,38 +904,37 @@ def create_app(
         caps = _require_write(persona, user)
         data = await file.read()
         _reject_oversize(data, max_upload_bytes)
-        filename = file.filename or "upload.bin"
-        import_artifact(
+        job = submit_import(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
             persona_id=PersonaId(persona_id),
-            filename=filename,
-            data=data,
-            capabilities=caps,
-        )
-        inbox_created = process_import(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            filename=filename,
+            filename=file.filename or "upload.bin",
             data=data,
             hint=hint,
             capabilities=caps,
         )
-        job_id = ids.new_id()
-        import_jobs.save(
-            {
-                "id": job_id,
-                "tenant_id": x_tenant_id,
-                "persona_id": persona_id,
-                "status": "completed",
-                "filename": filename,
-                "hint": hint,
-                "object_uri": filename,
-                "inbox_created": inbox_created,
+        payload = {
+            "job_id": job["id"],
+            "tenant_id": x_tenant_id,
+            "persona_id": persona_id,
+            "object_uri": job["object_uri"],
+            "filename": job["filename"],
+            "hint": hint,
+            "user_id": user["user_id"],
+        }
+        await job_queue_holder.enqueue_import_job(payload)
+        if job_queue_holder.is_async:
+            return {
+                "job_id": job["id"],
+                "status": "pending",
+                "inbox_created": 0,
             }
-        )
-        return {"job_id": job_id, "status": "completed", "inbox_created": inbox_created}
+        updated = import_jobs.get(x_tenant_id, job["id"]) or job
+        return {
+            "job_id": updated["id"],
+            "status": updated.get("status", "completed"),
+            "inbox_created": int(updated.get("inbox_created") or 0),
+        }
 
     @app.get("/v1/imports/{job_id}")
     def get_import(
@@ -931,6 +958,7 @@ def create_app(
             "filename": job["filename"],
             "persona_id": job["persona_id"],
             "inbox_created": job.get("inbox_created", 0),
+            "error": job.get("error"),
         }
 
     @app.post("/v1/eval/runs", status_code=202)
@@ -1405,6 +1433,7 @@ def create_app_from_env() -> FastAPI:
 
     from arbor.env import chat_api_key
     from arbor.env import database_url as env_database_url
+    from arbor.env import job_queue_backend, redis_url as env_redis_url
 
     llm = None
     reasoner = None
@@ -1422,9 +1451,11 @@ def create_app_from_env() -> FastAPI:
                 "docker compose -f infra/compose/postgres.yml up -d"
             )
             url = None
+    redis = env_redis_url() if job_queue_backend() == "redis" else None
     return create_app(
         database_url=url,
         llm=llm,
         reasoner=reasoner,
         embed=embedding_client_from_env(),
+        redis_url=redis or None,
     )

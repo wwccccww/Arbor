@@ -112,7 +112,7 @@ search(tenant_id, persona_id, query_vector, k, filters) -> list[MemoryHit]
 |---|---|
 | `SendMessage` | 鉴权 → 装载档案与摘要 → 路由事件节点 → 向量检索 → 调 LLM → 抽取候选 → 写入 Inbox → 返回引用 |
 | `ConfirmInboxItem` | 鉴权 write_memory → 领域合并规则 → 写档案或事件或记忆 → 失效旧向量 |
-| `ImportArtifact` | 鉴权 → 存对象 → 入队解析 |
+| `ImportArtifact` | 鉴权 → 存对象 → 入队解析（`SubmitImportJob` + `JobQueue`） |
 | `ProcessImportJob` | 解析/转写/描述 → 切 MemoryItem → 嵌入 → 待确认或按策略直写 |
 | `GetEventTree` | 鉴权 read_memory → 读节点与边 → 投影为树 DTO |
 | `RunEvaluation` | 装载金标世界 → 只调检索与对话端口 → 算指标 |

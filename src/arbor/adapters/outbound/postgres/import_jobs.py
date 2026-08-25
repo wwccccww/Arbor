@@ -13,7 +13,8 @@ class PgImportJobRepository:
                 status, inbox_created, error, finished_at
             )
             VALUES (
-                %s, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, now()
+                %s, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s,
+                CASE WHEN %s THEN now() ELSE NULL END
             )
             ON CONFLICT (id) DO UPDATE SET
                 status = EXCLUDED.status,
@@ -28,16 +29,52 @@ class PgImportJobRepository:
                 job.get("filename") or "",
                 job.get("object_uri"),
                 job.get("hint"),
-                job.get("status") or "completed",
+                job.get("status") or "pending",
                 int(job.get("inbox_created") or 0),
                 job.get("error"),
+                bool(job.get("finished")),
             ),
+        )
+
+    def update(
+        self,
+        job_id: str,
+        tenant_id: str,
+        *,
+        status: str | None = None,
+        inbox_created: int | None = None,
+        error: str | None = None,
+        finished: bool = False,
+    ) -> None:
+        fields: list[str] = []
+        values: list = []
+        if status is not None:
+            fields.append("status = %s")
+            values.append(status)
+        if inbox_created is not None:
+            fields.append("inbox_created = %s")
+            values.append(inbox_created)
+        if error is not None:
+            fields.append("error = %s")
+            values.append(error)
+        if finished:
+            fields.append("finished_at = now()")
+        if not fields:
+            return
+        values.extend([job_id, tenant_id])
+        self.conn.execute(
+            f"""
+            UPDATE import_jobs
+            SET {", ".join(fields)}
+            WHERE id = %s AND tenant_id = %s::uuid
+            """,
+            tuple(values),
         )
 
     def get(self, tenant_id: str, job_id: str) -> dict | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, filename, status, inbox_created
+            SELECT id, tenant_id, persona_id, filename, status, inbox_created, error
             FROM import_jobs
             WHERE id = %s AND tenant_id = %s::uuid
             """,
@@ -52,6 +89,7 @@ class PgImportJobRepository:
             "filename": str(row["filename"] or ""),
             "status": str(row["status"] or ""),
             "inbox_created": int(row["inbox_created"] or 0),
+            "error": row.get("error"),
         }
 
 
@@ -61,6 +99,28 @@ class InMemoryImportJobRepository:
 
     def save(self, job: dict) -> None:
         self._jobs[job["id"]] = dict(job)
+
+    def update(
+        self,
+        job_id: str,
+        tenant_id: str,
+        *,
+        status: str | None = None,
+        inbox_created: int | None = None,
+        error: str | None = None,
+        finished: bool = False,
+    ) -> None:
+        job = self._jobs.get(job_id)
+        if job is None or job.get("tenant_id") != tenant_id:
+            return
+        if status is not None:
+            job["status"] = status
+        if inbox_created is not None:
+            job["inbox_created"] = inbox_created
+        if error is not None:
+            job["error"] = error
+        if finished:
+            job["finished"] = True
 
     def get(self, tenant_id: str, job_id: str) -> dict | None:
         job = self._jobs.get(job_id)

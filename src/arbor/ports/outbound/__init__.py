@@ -91,6 +91,15 @@ class ObjectStorage(Protocol):
     def count(self) -> int: ...
 
 
+class JobQueue(Protocol):
+    """Enqueue background work. Sync implementations run inline (demo / tests)."""
+
+    @property
+    def is_async(self) -> bool: ...
+
+    def enqueue_import_job(self, payload: dict) -> None: ...
+
+
 class AuditLogRepository(Protocol):
     def append(self, entry: AuditLog) -> None: ...
     def list(
