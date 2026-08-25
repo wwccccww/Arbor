@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import hmac
+import json
 import os
 import secrets
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from starlette.concurrency import iterate_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -262,10 +264,6 @@ def _caps_for(persona, user: dict) -> list[Capability]:
     return []
 
 
-def _workspace_admin(user: dict) -> bool:
-    return user["role"] in {"owner", "admin"}
-
-
 def _grant_json(grant) -> dict:
     return {
         "user_id": grant.user_id.value,
@@ -295,6 +293,68 @@ def _public_attachments(items) -> list[dict]:
         for item in items or []
         if isinstance(item, dict) and item.get("filename")
     ]
+
+
+def _citation_json(memories, tenant: TenantId, citation) -> dict:
+    """Project a stored citation into the same shape post_message returns, so the
+    frontend can show readable previews and jump to the related event."""
+    body: dict = {}
+    if citation.memory_id:
+        body["memory_id"] = citation.memory_id.value
+        item = memories.get(tenant, citation.memory_id)
+        if item is not None:
+            body["preview"] = (item.text or "")[:40]
+    if citation.event_id:
+        body["event_id"] = citation.event_id.value
+    return body
+
+
+async def _sse_stream(streamer):
+    """Turn a sync ``stream_reply`` generator into an SSE event stream.
+
+    Emits ``data: {"type":"delta","text":...}`` for each text chunk and a final
+    ``data: {"type":"done", ...}`` carrying the persisted message id, citations
+    and metadata. ``iter_in_threadpool`` keeps the blocking model calls off the
+    event loop.
+    """
+    from arbor.domain.conversation.stream import StreamFinished
+
+    final: dict | None = None
+    async for chunk in iterate_in_threadpool(streamer):
+        if isinstance(chunk, StreamFinished):
+            final = _parse_stream_finished(chunk.raw)
+            continue
+        if isinstance(chunk, str) and chunk:
+            yield _sse_event({"type": "delta", "text": chunk})
+    if final is None:
+        final = {"text": ""}
+    yield _sse_event(
+        {
+            "type": "done",
+            "message_id": final.get("message_id"),
+            "text": final.get("text", ""),
+            "citations": final.get("citation_items") or [],
+            "injected_memory_ids": final.get("injected_memory_ids") or [],
+            "inbox_created": final.get("inbox_added") or 0,
+            "attachments": final.get("attachments") or [],
+        }
+    )
+
+
+def _sse_event(payload: dict) -> str:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _parse_stream_finished(raw: str) -> dict:
+    """Convert the streamed-final envelope (already the post-message payload
+    produced by SendMessage.stream_reply) back into a dict for the SSE ``done``
+    event. The ``stream_reply`` generator yields a model JSON envelope, so we
+    parse it here."""
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        return {"text": raw}
 
 
 async def _read_chat_payload(
@@ -350,6 +410,27 @@ def _tenant_json(tenant, user_id: UserId) -> dict:
     }
 
 
+def _highest_seq_id(session) -> int:
+    """Return the largest a000-NNN sequence already stored, so the id generator
+    resumes past persisted rows instead of colliding after a restart."""
+    best = 0
+    tables = ("tenants", "users", "personas", "threads", "messages",
+              "event_nodes", "memory_items", "inbox_items", "audit_logs")
+    try:
+        for table in tables:
+            row = session.conn.execute(
+                f"""
+                SELECT MAX(CAST(SUBSTRING(id::text FROM 'a000-([0-9]+)$') AS bigint)) AS n
+                FROM {table}
+                """
+            ).fetchone()
+            if row and row.get("n"):
+                best = max(best, int(row["n"]))
+    except Exception:
+        return 0
+    return best
+
+
 def create_app(
     *,
     extra_citation: str | None = None,
@@ -363,7 +444,18 @@ def create_app(
 ) -> FastAPI:
     session = None
     stores = None
-    resolved_embed = embed or FixtureEmbeddingClient()
+    if embed is not None:
+        resolved_embed = embed
+    elif database_url:
+        # When talking to a persistent store that may already hold bge-m3
+        # (1024) vectors, prefer the configured embedder instead of the 64-dim
+        # fixture, otherwise we hit "different vector dimensions" on query.
+        try:
+            resolved_embed = embedding_client_from_env()
+        except Exception:
+            resolved_embed = FixtureEmbeddingClient()
+    else:
+        resolved_embed = FixtureEmbeddingClient()
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
@@ -410,7 +502,7 @@ def create_app(
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
     _ensure_demo_member(tenants, users)
-    ids = SeqIdGenerator()
+    ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     send = SendMessage(
         personas=personas,
@@ -540,6 +632,16 @@ def create_app(
             raise DomainError("UNAUTHENTICATED", "bad token")
         return user
 
+    def workspace_admin_for(user: dict, tenant_id: str) -> bool:
+        """Workspace-admin intent: allow tenant membership owners/admins, and keep
+        global token owners/admins as an escape hatch for cross-tenant visibility."""
+        if user["role"] in {"owner", "admin"}:
+            return True
+        tenant = tenants.get(TenantId(tenant_id))
+        if tenant is None:
+            return False
+        return tenant.can_admin_workspace(UserId(user["user_id"]))
+
     @app.post("/v1/auth/login")
     def login(payload: LoginIn):
         email = (payload.email or "").strip().lower()
@@ -668,7 +770,7 @@ def create_app(
         items = list_personas(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
         )
         return {
             "items": [_persona_json(persona, _caps_for(persona, user)) for persona in items]
@@ -686,7 +788,7 @@ def create_app(
         persona = create_persona(
             tenant_id=TenantId(x_tenant_id),
             user_id=UserId(user["user_id"]),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             skin=payload.skin,
             display_name=payload.display_name,
             one_liner=payload.one_liner,
@@ -866,7 +968,7 @@ def create_app(
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
         result = start_eval(
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             strategy=payload.strategy,
             suite_version=payload.suite_version,
             mode=payload.mode,
@@ -884,7 +986,7 @@ def create_app(
         user = current_user(authorization)
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if not _workspace_admin(user):
+        if not workspace_admin_for(user, x_tenant_id):
             raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
         run = eval_runs.get(run_id)
         if run is None or run["tenant_id"] != x_tenant_id:
@@ -897,6 +999,7 @@ def create_app(
             "mode": run["mode"],
             "metrics": run["metrics"],
             "p0_tenant_leak_zero": run["p0_tenant_leak_zero"],
+            "cases": run.get("cases", []),
         }
 
     @app.get("/v1/audit-logs")
@@ -913,7 +1016,7 @@ def create_app(
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
         items = list_audit_logs(
             tenant_id=TenantId(x_tenant_id),
-            workspace_admin=_workspace_admin(user),
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
             action=action,
             persona_id=PersonaId(persona_id) if persona_id else None,
             since=since,
@@ -1031,7 +1134,7 @@ def create_app(
                     "id": message.id,
                     "role": message.role,
                     "content": message.content,
-                    "citations": [c.memory_id.value for c in message.citations if c.memory_id],
+                    "citations": [_citation_json(memories, tenant, c) for c in message.citations],
                     "attachments": _public_attachments(message.attachments),
                 }
                 for message in page.items
@@ -1045,6 +1148,7 @@ def create_app(
         request: Request,
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
+        stream: bool = Query(default=False),
     ):
         user = current_user(authorization)
         tenant = TenantId(x_tenant_id or user["tenant_id"])
@@ -1060,6 +1164,17 @@ def create_app(
         text, attachments = await _read_chat_payload(
             request, storage, tenant, thread_id, max_upload_bytes
         )
+        if stream:
+            streamer = send.stream_reply(
+                tenant_id=tenant,
+                user_id=UserId(user["user_id"]),
+                thread_id=ThreadId(thread_id),
+                persona_id=thread.persona_id,
+                text=text,
+                capabilities=caps,
+                attachments=attachments,
+            )
+            return StreamingResponse(_sse_stream(streamer), media_type="text/event-stream")
         result = send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
