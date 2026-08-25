@@ -32,7 +32,7 @@ class PgThreadRepository:
             SELECT id, tenant_id, persona_id, summary
             FROM threads
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
-            ORDER BY updated_at DESC, id
+            ORDER BY created_at ASC, id
             """,
             (tenant_id.value, persona_id.value),
         ).fetchall()

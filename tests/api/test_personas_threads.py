@@ -104,6 +104,33 @@ def test_member_cannot_create_persona_or_read_zhou():
     assert patched.status_code in {403, 404}
 
 
+def test_thread_list_keeps_creation_order_after_chat():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        "/v1/personas",
+        headers=_headers(),
+        json={"skin": "companion", "display_name": "会话顺序", "one_liner": "测试"},
+    )
+    assert created.status_code == 201
+    persona_id = created.json()["id"]
+    first = client.post(f"/v1/personas/{persona_id}/threads", headers=_headers())
+    second = client.post(f"/v1/personas/{persona_id}/threads", headers=_headers())
+    assert first.status_code == 201
+    assert second.status_code == 201
+    first_id = first.json()["id"]
+    second_id = second.json()["id"]
+    chat = client.post(
+        f"/v1/threads/{first_id}/messages",
+        headers=_headers(),
+        json={"text": "更新第一段会话"},
+    )
+    assert chat.status_code == 200
+    listed = client.get(f"/v1/personas/{persona_id}/threads", headers=_headers())
+    assert listed.status_code == 200
+    ids = [item["id"] for item in listed.json()["items"]]
+    assert ids.index(first_id) < ids.index(second_id)
+
+
 def test_existing_thread_history_endpoint():
     client = TestClient(create_app(), raise_server_exceptions=False)
     client.post(
