@@ -11,6 +11,7 @@ import { MemoryListPane } from '../components/MemoryListPane'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
+import { useAsyncGuard } from '../useAsyncGuard'
 
 function useNarrow() {
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 900px)').matches)
@@ -23,19 +24,28 @@ function useNarrow() {
   return narrow
 }
 
+const TERMINAL_IMPORT = new Set(['done', 'failed', 'error', 'unknown'])
+
 export function Workbench({
   client,
   personaId,
+  workspaceAdmin = false,
   onBack,
 }: {
   client: ArborClient
   personaId: string
+  workspaceAdmin?: boolean
   onBack: () => void
 }) {
   const narrow = useNarrow()
+  const loadGuard = useAsyncGuard()
+  const threadGuard = useAsyncGuard()
+  const treeGuard = useAsyncGuard()
   const [treeOpen, setTreeOpen] = useState(false)
   const [treeView, setTreeView] = useState<'tree' | 'timeline'>('tree')
   const [keyOnly, setKeyOnly] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [switchingThread, setSwitchingThread] = useState(false)
   const [persona, setPersona] = useState<Persona | null>(null)
   const [threadId, setThreadId] = useState<string | null>(null)
   const [threads, setThreads] = useState<Thread[]>([])
@@ -68,20 +78,33 @@ export function Workbench({
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importJob, setImportJob] = useState<ImportJob | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
+  const [sidebarError, setSidebarError] = useState<string | null>(null)
+  const [treeError, setTreeError] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
+    const token = loadGuard.begin()
+    setLoading(true)
+    setPersona(null)
+    setThreadId(null)
+    setThreads([])
+    setMessages([])
+    setChatError(null)
+    setSidebarError(null)
+    setTreeError(null)
+    setCard(null)
+    setHighlightedId(undefined)
+
     async function load() {
       try {
-        const [loadedPersona, threads, tree, pending, listedMemories] = await Promise.all([
+        const [loadedPersona, listedThreads, tree, pending, listedMemories] = await Promise.all([
           client.getPersona(personaId),
           client.listThreads(personaId),
           client.getEventTree(personaId, 'tree'),
           client.listInbox(personaId),
           client.listMemories(personaId, { limit: memoryPageSize, offset: 0 }),
         ])
-        if (cancelled) return
+        if (!loadGuard.isLatest(token)) return
         setPersona(loadedPersona)
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
@@ -92,38 +115,71 @@ export function Workbench({
         setMemoryOffset(0)
         setInboxForbidden(Boolean(pending.forbidden))
         setInbox(pending.items)
-        if (Array.isArray(loadedPersona.grants)) {
-          const listed = await client.listMembers()
-          if (cancelled) return
-          setGrantsForbidden(Boolean(listed.forbidden))
-          setMembers(listed.items)
+        if (workspaceAdmin || Array.isArray(loadedPersona.grants)) {
+          try {
+            const listed = await client.listMembers()
+            if (!loadGuard.isLatest(token)) return
+            setGrantsForbidden(Boolean(listed.forbidden))
+            setMembers(listed.items)
+          } catch {
+            if (!loadGuard.isLatest(token)) return
+            setGrantsForbidden(true)
+            setMembers([])
+          }
         } else {
           setGrantsForbidden(true)
           setMembers([])
         }
-        const threadList = threads.length ? threads : [await client.createThread(personaId)]
+        const threadList = listedThreads.length ? listedThreads : [await client.createThread(personaId)]
         const savedThreadId = loadThreadSelection(personaId)
         const activeThread =
-          (savedThreadId ? threadList.find((item) => item.id === savedThreadId) : undefined) ??
-          threadList[0]
-        if (cancelled) return
+          (savedThreadId ? threadList.find((item) => item.id === savedThreadId) : undefined) ?? threadList[0]
+        if (!loadGuard.isLatest(token)) return
         setThreads(threadList)
         setThreadId(activeThread.id)
         saveThreadSelection(personaId, activeThread.id)
         const page = await client.listMessages(activeThread.id, { limit: messagePageSize, offset: 0 })
-        if (cancelled) return
+        if (!loadGuard.isLatest(token)) return
         setMessages(page.items)
         setMessageTotal(page.total)
         setMessageOffset(0)
       } catch (err) {
-        if (!cancelled) setError((err as Error).message)
+        if (!loadGuard.isLatest(token)) return
+        setSidebarError((err as Error).message)
+      } finally {
+        if (loadGuard.isLatest(token)) setLoading(false)
       }
     }
     void load()
-    return () => {
-      cancelled = true
-    }
-  }, [client, personaId])
+  }, [client, personaId, workspaceAdmin])
+
+  useEffect(() => {
+    if (!importJob?.id || importJob.forbidden || TERMINAL_IMPORT.has(importJob.status)) return
+    const timer = window.setInterval(() => {
+      void client
+        .getImport(importJob.id)
+        .then(async (job) => {
+          setImportJob(job)
+          if (job.status === 'done') {
+            const pending = await client.listInbox(personaId)
+            setInboxForbidden(Boolean(pending.forbidden))
+            setInbox(pending.items)
+          }
+        })
+        .catch(() => undefined)
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [client, importJob?.id, importJob?.forbidden, importJob?.status, personaId])
+
+  async function ensureLatestMessagePage(currentThreadId: string, total: number) {
+    const lastOffset = Math.max(0, total - messagePageSize)
+    if (messageOffset === lastOffset && messages.length > 0) return messages
+    const page = await client.listMessages(currentThreadId, { limit: messagePageSize, offset: lastOffset })
+    setMessages(page.items)
+    setMessageTotal(page.total)
+    setMessageOffset(lastOffset)
+    return page.items
+  }
 
   async function openCard(eventId?: string) {
     if (!eventId) return
@@ -134,14 +190,36 @@ export function Workbench({
     }
     setHighlightedId(eventId)
     if (narrow) setTreeOpen(true)
-    document.getElementById(`event-${eventId}`)?.scrollIntoView({ block: 'nearest' })
+    setTreeError(null)
+    let visibleNodes = nodes
+    if (!nodes.some((node) => node.id === eventId) && keyOnly) {
+      try {
+        const token = treeGuard.begin()
+        const tree = await client.getEventTree(personaId, treeView, false)
+        if (!treeGuard.isLatest(token)) return
+        setKeyOnly(false)
+        setTreeForbidden(Boolean(tree.forbidden))
+        setNodes(tree.nodes)
+        setTreeEdges(tree.edges)
+        visibleNodes = tree.nodes
+      } catch (err) {
+        setTreeError((err as Error).message)
+      }
+    }
+    if (visibleNodes.some((node) => node.id === eventId)) {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`event-${eventId}`)?.scrollIntoView({ block: 'nearest' })
+      })
+    }
     try {
-      setCard(await client.getEventCard(eventId))
+      const loaded = await client.getEventCard(eventId)
+      setCard(loaded)
+      if (loaded.forbidden) setTreeError('没有记忆权限，无法打开事件卡。')
       if (memoryByEvent) {
         await loadMemories(memoryType, memoryStatus, 0, eventId)
       }
     } catch (err) {
-      setError((err as Error).message)
+      setTreeError((err as Error).message)
     }
   }
 
@@ -151,72 +229,78 @@ export function Workbench({
 
   async function pageMessages(offset: number) {
     if (!threadId) return
-    setError(null)
+    setChatError(null)
     try {
       const page = await client.listMessages(threadId, { limit: messagePageSize, offset })
       setMessages(page.items)
       setMessageTotal(page.total)
       setMessageOffset(offset)
     } catch (err) {
-      setError((err as Error).message)
+      setChatError((err as Error).message)
     }
   }
 
   async function switchThread(id: string) {
-    setError(null)
+    const token = threadGuard.begin()
+    setSwitchingThread(true)
+    setChatError(null)
     try {
       const page = await client.listMessages(id, { limit: messagePageSize, offset: 0 })
+      if (!threadGuard.isLatest(token)) return
       setThreadId(id)
       saveThreadSelection(personaId, id)
       setMessages(page.items)
       setMessageTotal(page.total)
       setMessageOffset(0)
     } catch (err) {
-      setError((err as Error).message)
+      if (!threadGuard.isLatest(token)) return
+      setChatError((err as Error).message)
+    } finally {
+      if (threadGuard.isLatest(token)) setSwitchingThread(false)
     }
   }
 
   async function newThread() {
     setCreatingThread(true)
-    setError(null)
+    setChatError(null)
     try {
       const created = await client.createThread(personaId)
       setThreads((current) => [...current, created])
       await switchThread(created.id)
     } catch (err) {
-      setError((err as Error).message)
+      setChatError((err as Error).message)
     } finally {
       setCreatingThread(false)
     }
   }
 
   async function send(text: string, file?: File) {
-    if (!threadId) return
-    const userMessage: ChatMessage = {
-      id: `local-${Date.now()}`,
-      role: 'user',
-      text,
-      citations: [],
-      attachments: file ? [{ filename: file.name }] : [],
+    if (!threadId) {
+      setChatError('会话尚未就绪，请稍后再试。')
+      return
     }
-    setMessages((current) => [...current, userMessage])
     setSending(true)
-    setError(null)
+    setChatError(null)
+    const userMessageId = `local-${Date.now()}`
     const placeholderId = `stream-${Date.now()}`
-    const patchLast = (patch: (msg: ChatMessage) => ChatMessage) =>
-      setMessages((current) => {
-        const next = [...current]
-        const idx = next.findIndex((m) => m.id === placeholderId)
-        if (idx === -1) return current
-        next[idx] = patch(next[idx])
-        return next
-      })
-    // Optimistically render an empty assistant bubble that streams into place.
-    setMessages((current) => [
-      ...current,
-      { id: placeholderId, role: 'assistant', text: '', citations: [] },
-    ])
     try {
+      const baseMessages = await ensureLatestMessagePage(threadId, messageTotal)
+      const userMessage: ChatMessage = {
+        id: userMessageId,
+        role: 'user',
+        text,
+        citations: [],
+        attachments: file ? [{ filename: file.name }] : [],
+      }
+      setMessages([...baseMessages, userMessage, { id: placeholderId, role: 'assistant', text: '', citations: [] }])
+      const patchLast = (patch: (msg: ChatMessage) => ChatMessage) =>
+        setMessages((current) => {
+          const next = [...current]
+          const idx = next.findIndex((m) => m.id === placeholderId)
+          if (idx === -1) return current
+          next[idx] = patch(next[idx])
+          return next
+        })
       if (typeof client.sendMessageStream === 'function') {
         await client.sendMessageStream(
           threadId,
@@ -225,6 +309,7 @@ export function Workbench({
             onDelta: (chunk) => patchLast((m) => ({ ...m, text: m.text + chunk })),
             onDone: (reply) => {
               setMessages((current) => current.map((m) => (m.id === placeholderId ? reply : m)))
+              setMessageTotal((current) => current + 2)
               if (reply.inbox_created) {
                 void client
                   .listInbox(personaId)
@@ -241,6 +326,7 @@ export function Workbench({
       } else {
         const reply = await client.sendMessage(threadId, text, file)
         setMessages((current) => current.map((m) => (m.id === placeholderId ? reply : m)))
+        setMessageTotal((current) => current + 2)
         if (reply.inbox_created) {
           const pending = await client.listInbox(personaId)
           setInboxForbidden(Boolean(pending.forbidden))
@@ -248,17 +334,19 @@ export function Workbench({
         }
       }
     } catch (err) {
-      // Remove the placeholder on failure so the error is visible, not a ghost bubble.
-      setMessages((current) => current.filter((m) => m.id !== placeholderId))
-      setError((err as Error).message)
+      setMessages((current) => current.filter((m) => m.id !== placeholderId && m.id !== userMessageId))
+      setChatError((err as Error).message)
     } finally {
       setSending(false)
     }
   }
 
   async function openAttachment(filename: string) {
-    if (!threadId) return
-    setError(null)
+    if (!threadId) {
+      setChatError('会话尚未就绪，请稍后再试。')
+      return
+    }
+    setChatError(null)
     try {
       const blob = await client.downloadAttachment(threadId, filename)
       const url = URL.createObjectURL(blob)
@@ -268,14 +356,17 @@ export function Workbench({
       link.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError((err as Error).message)
+      setChatError((err as Error).message)
     }
   }
 
   async function exportThread() {
-    if (!threadId) return
+    if (!threadId) {
+      setChatError('会话尚未就绪，请稍后再试。')
+      return
+    }
     setExporting(true)
-    setError(null)
+    setChatError(null)
     try {
       const data = await client.exportThread(threadId)
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -286,7 +377,7 @@ export function Workbench({
       link.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError((err as Error).message)
+      setChatError((err as Error).message)
     } finally {
       setExporting(false)
     }
@@ -308,19 +399,21 @@ export function Workbench({
 
   async function confirmItem(inboxId: string, opts: { markKeyEvent: boolean }) {
     setInboxBusy(inboxId)
-    setError(null)
+    setSidebarError(null)
     try {
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
       await loadMemories(memoryType, memoryStatus, memoryOffset, memoryByEvent ? highlightedId : undefined)
       if (opts.markKeyEvent) {
+        const token = treeGuard.begin()
         const tree = await client.getEventTree(personaId, treeView, keyOnly)
+        if (!treeGuard.isLatest(token)) return
         setTreeForbidden(Boolean(tree.forbidden))
         setNodes(tree.nodes)
         setTreeEdges(tree.edges)
       }
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     } finally {
       setInboxBusy(undefined)
     }
@@ -328,12 +421,12 @@ export function Workbench({
 
   async function dismissItem(inboxId: string) {
     setInboxBusy(inboxId)
-    setError(null)
+    setSidebarError(null)
     try {
       await client.dismissInbox(inboxId)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     } finally {
       setInboxBusy(undefined)
     }
@@ -341,70 +434,82 @@ export function Workbench({
 
   async function changeMemoryType(type: string) {
     setMemoryType(type)
+    setSidebarError(null)
     try {
       await loadMemories(type, memoryStatus, 0, memoryByEvent ? highlightedId : undefined)
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     }
   }
 
   async function changeMemoryStatus(status: string) {
     setMemoryStatus(status)
+    setSidebarError(null)
     try {
       await loadMemories(memoryType, status, 0, memoryByEvent ? highlightedId : undefined)
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     }
   }
 
   async function changeMemoryByEvent(next: boolean) {
     setMemoryByEvent(next)
+    setSidebarError(null)
     try {
       await loadMemories(memoryType, memoryStatus, 0, next ? highlightedId : undefined)
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     }
   }
 
   async function pageMemories(offset: number) {
+    setSidebarError(null)
     try {
       await loadMemories(memoryType, memoryStatus, offset, memoryByEvent ? highlightedId : undefined)
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     }
   }
 
   async function changeView(view: 'tree' | 'timeline') {
     setTreeView(view)
+    setTreeError(null)
+    const token = treeGuard.begin()
     try {
       const tree = await client.getEventTree(personaId, view, keyOnly)
+      if (!treeGuard.isLatest(token)) return
       setTreeForbidden(Boolean(tree.forbidden))
       setNodes(tree.nodes)
       setTreeEdges(tree.edges)
     } catch (err) {
-      setError((err as Error).message)
+      if (!treeGuard.isLatest(token)) return
+      setTreeError((err as Error).message)
     }
   }
 
   async function changeKeyOnly(next: boolean) {
     setKeyOnly(next)
+    setTreeError(null)
+    const token = treeGuard.begin()
     try {
       const tree = await client.getEventTree(personaId, treeView, next)
+      if (!treeGuard.isLatest(token)) return
       setTreeForbidden(Boolean(tree.forbidden))
       setNodes(tree.nodes)
       setTreeEdges(tree.edges)
     } catch (err) {
-      setError((err as Error).message)
+      if (!treeGuard.isLatest(token)) return
+      setTreeError((err as Error).message)
     }
   }
 
   async function saveProfile(patch: PersonaPatch) {
     setProfileBusy(true)
-    setError(null)
+    setSidebarError(null)
     try {
       setPersona(await client.patchPersona(personaId, patch))
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     } finally {
       setProfileBusy(false)
     }
@@ -412,12 +517,12 @@ export function Workbench({
 
   async function saveGrants(grants: PersonaGrant[]) {
     setGrantsBusy(true)
-    setError(null)
+    setSidebarError(null)
     try {
       const updated = await client.replaceGrants(personaId, grants)
       setPersona((current) => (current ? { ...current, grants: updated.grants } : current))
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     } finally {
       setGrantsBusy(false)
     }
@@ -425,7 +530,7 @@ export function Workbench({
 
   async function importFile(file: File, hint?: string) {
     setImporting(true)
-    setError(null)
+    setSidebarError(null)
     try {
       const created = await client.importFile(personaId, file, hint)
       const job = await client.getImport(created.job_id)
@@ -434,11 +539,13 @@ export function Workbench({
       setInboxForbidden(Boolean(pending.forbidden))
       setInbox(pending.items)
     } catch (err) {
-      setError((err as Error).message)
+      setSidebarError((err as Error).message)
     } finally {
       setImporting(false)
     }
   }
+
+  const canEditPersona = workspaceAdmin || Array.isArray(persona?.grants)
 
   return (
     <div>
@@ -454,7 +561,16 @@ export function Workbench({
         ) : null}
         <span className="crumb">{persona?.one_liner ?? ''}</span>
       </header>
-      {error ? <p role="alert">{error}</p> : null}
+      {sidebarError ? (
+        <p className="workbench-alert workbench-alert--sidebar" role="alert">
+          {sidebarError}
+        </p>
+      ) : null}
+      {treeError ? (
+        <p className="workbench-alert workbench-alert--tree" role="alert">
+          {treeError}
+        </p>
+      ) : null}
       <WorkbenchLayout
         narrow={narrow}
         treeOpen={treeOpen}
@@ -462,51 +578,57 @@ export function Workbench({
         left={
           persona ? (
             <>
-              <ProfilePane
-                persona={persona}
-                editable={Array.isArray(persona.grants)}
-                busy={profileBusy}
-                onSave={(patch) => void saveProfile(patch)}
-              />
-              <MemoryListPane
-                items={memories}
-                total={memoryTotal}
-                forbidden={memoriesForbidden}
-                type={memoryType}
-                status={memoryStatus}
-                offset={memoryOffset}
-                pageSize={memoryPageSize}
-                eventId={highlightedId}
-                filterByEvent={memoryByEvent}
-                onChangeType={(next) => void changeMemoryType(next)}
-                onChangeStatus={(next) => void changeMemoryStatus(next)}
-                onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
-                onPage={(next) => void pageMemories(next)}
-                onSelect={(eventId) => void openCard(eventId)}
-              />
-              <GrantsPane
-                members={members}
-                grants={persona.grants ?? []}
-                forbidden={grantsForbidden}
-                busy={grantsBusy}
-                onSave={(next) => void saveGrants(next)}
-              />
-              <ImportPane
-                forbidden={inboxForbidden}
-                busy={importing}
-                job={importJob}
-                onImport={(file, hint) => void importFile(file, hint)}
-              />
-              <InboxPane
-                items={inbox}
-                forbidden={inboxForbidden}
-                busyId={inboxBusy}
-                onConfirm={(id, opts) => void confirmItem(id, opts)}
-                onDismiss={(id) => void dismissItem(id)}
-              />
+              <div data-left-panel="profile">
+                <ProfilePane
+                  persona={persona}
+                  editable={canEditPersona}
+                  busy={profileBusy}
+                  onSave={(patch) => void saveProfile(patch)}
+                />
+              </div>
+              <div data-left-panel="memory">
+                <MemoryListPane
+                  items={memories}
+                  total={memoryTotal}
+                  forbidden={memoriesForbidden}
+                  type={memoryType}
+                  status={memoryStatus}
+                  offset={memoryOffset}
+                  pageSize={memoryPageSize}
+                  eventId={highlightedId}
+                  filterByEvent={memoryByEvent}
+                  onChangeType={(next) => void changeMemoryType(next)}
+                  onChangeStatus={(next) => void changeMemoryStatus(next)}
+                  onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
+                  onPage={(next) => void pageMemories(next)}
+                  onSelect={(eventId) => void openCard(eventId)}
+                />
+              </div>
+              <div data-left-panel="tools">
+                <GrantsPane
+                  members={members}
+                  grants={persona.grants ?? []}
+                  forbidden={grantsForbidden}
+                  busy={grantsBusy}
+                  onSave={(next) => void saveGrants(next)}
+                />
+                <ImportPane
+                  forbidden={inboxForbidden}
+                  busy={importing}
+                  job={importJob}
+                  onImport={(file, hint) => void importFile(file, hint)}
+                />
+                <InboxPane
+                  items={inbox}
+                  forbidden={inboxForbidden}
+                  busyId={inboxBusy}
+                  onConfirm={(id, opts) => void confirmItem(id, opts)}
+                  onDismiss={(id) => void dismissItem(id)}
+                />
+              </div>
             </>
           ) : (
-            <p>加载档案…</p>
+            <p>{loading ? '加载档案…' : '无法加载档案'}</p>
           )
         }
         center={
@@ -515,11 +637,14 @@ export function Workbench({
             sending={sending}
             exporting={exporting}
             creatingThread={creatingThread}
+            switchingThread={switchingThread}
+            ready={Boolean(threadId) && !loading}
             threads={threads}
             threadId={threadId ?? undefined}
             offset={messageOffset}
             total={messageTotal}
             pageSize={messagePageSize}
+            error={chatError}
             onSend={(text, file) => void send(text, file)}
             onJump={jump}
             onOpenAttachment={(filename) => void openAttachment(filename)}

@@ -37,3 +37,12 @@ export function saveSession(session: Session): void {
 export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY)
 }
+
+export function pickTenantId(
+  tenants: { id: string }[] | undefined,
+  preferredId?: string,
+  fallback = DEMO_TENANT,
+): string {
+  if (preferredId && tenants?.some((tenant) => tenant.id === preferredId)) return preferredId
+  return tenants?.[0]?.id ?? fallback
+}

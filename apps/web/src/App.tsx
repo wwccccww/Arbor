@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient, login as loginRequest, logout as logoutRequest } from './api/client'
-import { clearSession, DEMO_TENANT, loadSession, saveSession, type Session } from './session'
+import type { AuthTokens } from './api/types'
+import { clearSession, DEMO_TENANT, loadSession, pickTenantId, saveSession, type Session } from './session'
 import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
@@ -28,15 +29,41 @@ function canCreatePersonas(role?: string) {
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(() => loadSession())
-  const client = useMemo(() => (session ? createClient(session) : null), [session])
+  const sessionRef = useRef(session)
+  sessionRef.current = session
+
+  const client = useMemo(() => {
+    if (!session) return null
+    const live = { ...session }
+    return createClient(live, fetch, {
+      onTokensRefreshed: (tokens: AuthTokens) => {
+        const next = {
+          token: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          tenantId: sessionRef.current?.tenantId ?? DEMO_TENANT,
+        }
+        saveSession(next)
+        setSession(next)
+      },
+      onUnauthorized: () => {
+        clearSession()
+        setSession(null)
+        window.location.hash = '#/'
+      },
+    })
+  }, [session])
+
   const [loginBusy, setLoginBusy] = useState(false)
   const route = useHashRoute()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [canCreate, setCanCreate] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [creatingPersona, setCreatingPersona] = useState(false)
+  const [creatingTenant, setCreatingTenant] = useState(false)
+  const [deletingTenant, setDeletingTenant] = useState(false)
   const [members, setMembers] = useState<TenantMember[]>([])
   const [inviting, setInviting] = useState(false)
+  const [changingRole, setChangingRole] = useState(false)
   const [email, setEmail] = useState<string | undefined>()
   const [runtime, setRuntime] = useState<RuntimeInfo | undefined>()
   const [error, setError] = useState<string | undefined>()
@@ -56,11 +83,22 @@ export default function App() {
               api.listThreads(persona.id),
             ])
             if (memories.forbidden) return persona
+            let lastInteraction: string | undefined
+            if (threads.length) {
+              try {
+                const page = await api.listMessages(threads[threads.length - 1].id, { limit: 1, offset: 0 })
+                const last = page.items[page.items.length - 1]
+                if (last?.id) lastInteraction = last.id
+              } catch {
+                /* ignore per-persona message errors */
+              }
+            }
             return {
               ...persona,
               stats: {
                 memory_count: memories.total,
                 thread_count: threads.length,
+                last_interaction: lastInteraction,
               },
             }
           } catch {
@@ -73,7 +111,7 @@ export default function App() {
 
     async function load() {
       try {
-        const [me, items, tenants] = await Promise.all([
+        const [me, items, listedTenants] = await Promise.all([
           api.getMe(),
           api.listPersonas(),
           api.listTenants(),
@@ -82,8 +120,8 @@ export default function App() {
         setEmail(me.user.email)
         setRuntime(me.runtime)
         setPersonas(items)
-        setTenants(tenants)
-        const current = tenants.find((tenant) => tenant.id === tenantId)
+        setTenants(listedTenants)
+        const current = listedTenants.find((tenant) => tenant.id === tenantId)
         const allowed = canCreatePersonas(current?.role)
         setCanCreate(allowed)
         if (allowed) {
@@ -93,7 +131,6 @@ export default function App() {
         } else {
           setMembers([])
         }
-        // Enrich persona cards with real stats (memory count + last interaction)
         await enrichPersonas(items)
       } catch (err) {
         if (cancelled) return
@@ -117,9 +154,10 @@ export default function App() {
     setError(undefined)
     try {
       const tokens = await loginRequest(email, password)
+      const previous = loadSession()
       const probe = createClient({ token: tokens.access_token, tenantId: DEMO_TENANT })
       const me = await probe.getMe()
-      const tenantId = me.tenants?.[0]?.id ?? DEMO_TENANT
+      const tenantId = pickTenantId(me.tenants, previous?.tenantId, DEMO_TENANT)
       const next = {
         token: tokens.access_token,
         refreshToken: tokens.refresh_token,
@@ -157,7 +195,7 @@ export default function App() {
 
   async function createPersona(draft: PersonaDraft) {
     if (!client) return
-    setCreating(true)
+    setCreatingPersona(true)
     setError(undefined)
     try {
       const created = await client.createPersona(draft)
@@ -166,13 +204,13 @@ export default function App() {
     } catch (err) {
       setError((err as Error).message)
     } finally {
-      setCreating(false)
+      setCreatingPersona(false)
     }
   }
 
   async function createTenant(name: string) {
     if (!client) return
-    setCreating(true)
+    setCreatingTenant(true)
     setError(undefined)
     try {
       const created = await client.createTenant(name)
@@ -186,19 +224,19 @@ export default function App() {
     } catch (err) {
       setError((err as Error).message)
     } finally {
-      setCreating(false)
+      setCreatingTenant(false)
     }
   }
 
   async function deleteTenant() {
     if (!client || !session) return
-    setCreating(true)
+    setDeletingTenant(true)
     setError(undefined)
     try {
       await client.deleteTenant(session.tenantId)
       const remaining = tenants.filter((tenant) => tenant.id !== session.tenantId)
       setTenants(remaining)
-      const fallback = remaining[0]?.id ?? DEMO_TENANT
+      const fallback = pickTenantId(remaining, undefined, DEMO_TENANT)
       setSession((current) => {
         if (!current) return current
         const next = { ...current, tenantId: fallback }
@@ -208,7 +246,7 @@ export default function App() {
     } catch (err) {
       setError((err as Error).message)
     } finally {
-      setCreating(false)
+      setDeletingTenant(false)
     }
   }
 
@@ -228,7 +266,7 @@ export default function App() {
 
   async function changeMemberRole(userId: string, role: string) {
     if (!client) return
-    setInviting(true)
+    setChangingRole(true)
     setError(undefined)
     try {
       const updated = await client.patchMember(userId, role)
@@ -238,7 +276,7 @@ export default function App() {
     } catch (err) {
       setError((err as Error).message)
     } finally {
-      setInviting(false)
+      setChangingRole(false)
     }
   }
 
@@ -246,11 +284,15 @@ export default function App() {
     return <Login busy={loginBusy} error={error} onLogin={(email, password) => void signIn(email, password)} />
   }
 
+  const currentTenant = tenants.find((tenant) => tenant.id === session.tenantId)
+  const workspaceAdmin = canCreatePersonas(currentTenant?.role)
+
   if (route.page === 'workbench' && route.personaId) {
     return (
       <Workbench
         client={client}
         personaId={route.personaId}
+        workspaceAdmin={workspaceAdmin}
         onBack={() => {
           window.location.hash = '#/'
         }}
@@ -287,15 +329,14 @@ export default function App() {
       runtime={runtime}
       error={error}
       canCreate={canCreate}
-      creating={creating}
+      creating={creatingPersona || creatingTenant || deletingTenant}
       members={members}
       tenants={tenants}
       currentTenantId={session.tenantId}
       canDeleteTenant={
-        Boolean(tenants.find((tenant) => tenant.id === session.tenantId)?.role === 'owner') &&
-        personas.length === 0
+        Boolean(currentTenant?.role === 'owner') && personas.length === 0
       }
-      inviting={inviting}
+      inviting={inviting || changingRole}
       onOpen={(id) => {
         window.location.hash = `#/personas/${id}`
       }}

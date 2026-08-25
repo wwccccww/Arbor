@@ -237,5 +237,6 @@ export type AuditLog = {
 
 export type AuditList = {
   items: AuditLog[]
+  total?: number
   forbidden?: boolean
 }

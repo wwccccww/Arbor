@@ -56,7 +56,13 @@ export function TenantPane({
         </button>
       </form>
       {canDelete && onDelete ? (
-        <button type="button" disabled={Boolean(busy)} onClick={onDelete}>
+        <button
+          type="button"
+          disabled={Boolean(busy)}
+          onClick={() => {
+            if (window.confirm('确定删除当前工作空间？此操作不可撤销。')) onDelete()
+          }}
+        >
           删除当前空间
         </button>
       ) : null}
