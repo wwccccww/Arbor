@@ -78,7 +78,7 @@ describe('Checkup', () => {
     const user = userEvent.setup()
     const fetchImpl = evalFetch()
     render(<Checkup client={createClient(DEMO_OWNER, fetchImpl)} onBack={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索' }))
+    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索（13 题）' }))
     expect(await screen.findByLabelText('体检指标')).toBeInTheDocument()
     expect(screen.getByText(/跨租户泄漏/)).toHaveTextContent('通过')
     const posted = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
@@ -100,7 +100,7 @@ describe('Checkup', () => {
       }),
     ) as unknown as typeof fetch
     render(<Checkup client={createClient(DEMO_OWNER, fetchImpl)} onBack={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索' }))
+    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索（13 题）' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('没有评测权限')
     expect(screen.queryByLabelText('体检指标')).not.toBeInTheDocument()
   })
@@ -109,7 +109,7 @@ describe('Checkup', () => {
     const user = userEvent.setup()
     const fetchImpl = evalFetch()
     render(<Checkup client={createClient(DEMO_OWNER, fetchImpl)} onBack={vi.fn()} />)
-    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索' }))
+    await user.click(screen.getByRole('button', { name: '跑 suite-v1 检索（13 题）' }))
     expect(await screen.findByLabelText('逐题红绿清单')).toBeInTheDocument()
     expect(screen.getByText(/你住在哪里/)).toBeInTheDocument()
     expect(screen.getByText(/你们在哪家店吵起来/)).toBeInTheDocument()

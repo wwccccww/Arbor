@@ -301,6 +301,10 @@ Query：`view=tree|timeline`、`key_only=true`。
 
 响应 `202`：`{ "id": "…" }`。结果写入 `eval_runs`，与全局评测共用 `GET /v1/eval/runs/{run_id}`。
 
+### `POST /v1/eval/seed-world`
+
+装载 suite-v1 冻结演示世界（租户 A/B、林夏/小周等）。仅空间 Admin。会清空演示租户下的人设与记忆后重载夹具。响应含 `persona_count`、`memory_count`。
+
 ### `POST /v1/eval/runs`
 
 ```json

@@ -18,6 +18,10 @@
 | 首页头像 + 聊天导入初稿 | 头像字段；首页独立导入 + Inbox bootstrap |
 | 人设轻量体检 API | `POST /v1/personas/{id}/eval/runs` |
 | tool_policy 注入 prompt | `ContextPolicy` 槽位 |
+| tool_policy stub 执行 | 日历/工单触发器 + prompt `tool_results` |
+| Postgres 连接池 | `psycopg-pool` + 每请求 checkout |
+| HTTP 评测路由拆分 | `adapters/inbound/http/register_eval.py` |
+| 体检冻结世界 API | `POST /v1/eval/seed-world` + 体检页按钮 |
 | 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
 | Redis ARQ（导入异步） | 已实现；`REDIS_URL` + `arbor-worker` |
 | 多模态文档 | pypdf/docx/pptx；可选 Docling；`.doc` 经 LibreOffice 转换 |
