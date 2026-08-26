@@ -106,7 +106,7 @@ class SendMessage:
             result = self._finish(ctx, llm_out)
             for piece in result["text"]:
                 yield piece
-            yield StreamFinished(json.dumps({"text": result["text"], "citations": result["citations"]}))
+            yield StreamFinished(json.dumps(result, ensure_ascii=False))
             return
 
         deltas: list[str] = []

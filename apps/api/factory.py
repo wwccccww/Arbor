@@ -304,7 +304,7 @@ def _citation_json(memories, tenant: TenantId, citation) -> dict:
     return body
 
 
-async def _sse_stream(streamer):
+async def _sse_stream(streamer, extra_inbox_created: int = 0):
     """Turn a sync ``stream_reply`` generator into an SSE event stream.
 
     Emits ``data: {"type":"delta","text":...}`` for each text chunk and a final
@@ -330,7 +330,7 @@ async def _sse_stream(streamer):
             "text": final.get("text", ""),
             "citations": final.get("citation_items") or [],
             "injected_memory_ids": final.get("injected_memory_ids") or [],
-            "inbox_created": final.get("inbox_added") or 0,
+            "inbox_created": (final.get("inbox_added") or 0) + int(extra_inbox_created or 0),
             "attachments": final.get("attachments") or [],
         }
     )
@@ -1235,7 +1235,10 @@ def create_app(
                 capabilities=caps,
                 attachments=attachments,
             )
-            return StreamingResponse(_sse_stream(streamer), media_type="text/event-stream")
+            return StreamingResponse(
+                _sse_stream(streamer, extra_inbox_created=chat_media_added),
+                media_type="text/event-stream",
+            )
         result = send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),

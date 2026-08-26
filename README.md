@@ -17,7 +17,7 @@
 | 人设创建模板 | 伴侣 / 导师 / 客服 / 面试官 |
 | 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
 | Redis ARQ（导入异步） | 已实现；`REDIS_URL` + `arbor-worker` |
-| Whisper/Docling 核心路径 | 文档 pypdf/docx/pptx、图片视觉描述、聊天附件进 Inbox；语音需 `pip install -e ".[speech]"` |
+| 多模态文档 | pypdf/docx/pptx；可选 Docling；`.doc` 经 LibreOffice 转换 |
 
 实现遵循六边形架构（端口-适配器）与 DDD 分层；组合根在 `apps/api/factory.py`，领域层不依赖框架与供应商 SDK。
 

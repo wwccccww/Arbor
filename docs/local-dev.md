@@ -98,6 +98,8 @@ python3 -m pip install -e ".[api,documents,speech,worker]"
 |---|---|---|---|
 | 纯文本 / Markdown | `.txt` `.md` | `file_chunk`（或 reasoner 抽取 `fact`） | 内置 |
 | 文档 | `.pdf` `.docx` `.pptx` | `file_chunk` | `documents`（pypdf、python-docx、python-pptx） |
+| 老式 Office | `.doc` `.ppt` | `file_chunk` | 本机 **LibreOffice**（`libreoffice`/`soffice`）转 docx/pptx 后解析 |
+| 复杂版式（可选） | PDF 等 | `file_chunk` | `docling` + `ARBOR_DOCUMENT_PARSER=docling` 或 `auto` |
 | 图片 | `.png` `.jpg` `.webp` | `image_caption` | `DEEPSEEK_API_KEY`（视觉描述 API） |
 | 音频 | `.mp3` `.wav` `.m4a` | `transcript` | `speech`（faster-whisper） |
 
