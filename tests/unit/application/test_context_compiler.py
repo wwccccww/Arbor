@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from arbor.application.conversation.context_budget import estimate_tokens, truncate_text
+from arbor.application.conversation.context_budget import truncate_text
 from arbor.application.conversation.context_compiler import ContextCompiler
 from arbor.domain.conversation.thread import Message, Thread
 from arbor.domain.persona.authorization import Capability
-from arbor.domain.persona.persona import Profile
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId
-from tests.unit.application.test_send_message import USER, _stack
+from tests.unit.application.test_send_message import _stack
 
 
 def test_context_compiler_includes_recent_turns_and_summary():

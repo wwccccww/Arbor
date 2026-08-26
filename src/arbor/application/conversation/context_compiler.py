@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from arbor.application.conversation.context_budget import (
-    estimate_json_tokens,
     estimate_prompt_slots_tokens,
     estimate_tokens,
     trim_recent_turn,
@@ -11,6 +10,7 @@ from arbor.application.conversation.context_budget import (
 )
 from arbor.application.evaluation.generation import injected_contexts
 from arbor.application.retrieval import retrieve
+from arbor.application.tools.run_tools import allowed_tool_names
 from arbor.domain.conversation.context_policy import ContextPolicy, ContextSlots
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.memory.memory import MemoryItem
@@ -24,7 +24,6 @@ from arbor.env import (
     context_window_tokens,
     tool_mode,
 )
-from arbor.application.tools.run_tools import allowed_tool_names
 
 
 @dataclass
