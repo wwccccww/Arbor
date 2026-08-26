@@ -90,7 +90,32 @@ def authenticate_user(users, tenants, email: str, password: str) -> dict | None:
 
 
 def ensure_demo_member(tenants, users) -> None:
+    from arbor.domain.auth.credentials import hash_password
+    from arbor.domain.identity.tenant import Membership, Role
     from arbor.domain.identity.user import User
+
+    for profile in TOKENS.values():
+        uid = UserId(profile["user_id"])
+        tenant_id = TenantId(profile["tenant_id"])
+        if users.get(uid) is None:
+            users.save(User(id=uid, email=profile["email"]))
+        if hasattr(users, "conn"):
+            password = DEMO_PASSWORDS.get(profile["email"])
+            if password:
+                users.conn.execute(
+                    """
+                    UPDATE users SET password_hash = %s
+                    WHERE id = %s::uuid AND password_hash IS NULL
+                    """,
+                    (hash_password(password), uid.value),
+                )
+        tenant = tenants.get(tenant_id)
+        if tenant is None:
+            continue
+        role = Role(profile["role"])
+        if tenant.member(uid) is None:
+            tenant.memberships.append(Membership(tenant_id=tenant_id, user_id=uid, role=role))
+            tenants.save(tenant)
 
     tenant = tenants.get(DEMO_TENANT)
     if tenant is None:
@@ -98,8 +123,6 @@ def ensure_demo_member(tenants, users) -> None:
     if users.get(MEMBER_ID) is None:
         users.save(User(id=MEMBER_ID, email="member-a@arbor.eval"))
     if hasattr(users, "conn"):
-        from arbor.domain.auth.credentials import hash_password
-
         users.conn.execute(
             """
             UPDATE users SET password_hash = %s
