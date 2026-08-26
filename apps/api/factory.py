@@ -13,6 +13,7 @@ from arbor.adapters.inbound.http.errors import error_response
 from arbor.adapters.inbound.http.register_audit import AuditHttpDeps, register_audit_routes
 from arbor.adapters.inbound.http.register_auth import AuthHttpDeps, register_auth_routes
 from arbor.adapters.inbound.http.register_eval import EvalHttpDeps, register_eval_routes
+from arbor.adapters.inbound.http.register_feishu import FeishuHttpDeps, register_feishu_routes
 from arbor.adapters.inbound.http.register_personas import PersonaHttpDeps, register_persona_routes
 from arbor.adapters.inbound.http.register_tenants import TenantHttpDeps, register_tenant_routes
 from arbor.adapters.inbound.http.register_threads import ThreadHttpDeps, register_thread_routes
@@ -39,6 +40,9 @@ from arbor.adapters.outbound.inmemory import (
 from arbor.adapters.outbound.job_queue import ArqJobQueue, arq_redis_settings
 from arbor.adapters.outbound.job_queue_holder import JobQueueHolder
 from arbor.adapters.outbound.object_storage import build_object_storage, object_store_label
+from arbor.adapters.outbound.tools.credential_store import FileFeishuCredentialStore
+from arbor.adapters.outbound.tools.feishu_calendar import FeishuCalendarTool, StubCalendarTool
+from arbor.adapters.outbound.tools.feishu_client import FeishuClient
 from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
 from arbor.adapters.outbound.postgres.eval_runs import (
     InMemoryEvalRunRepository,
@@ -85,6 +89,13 @@ from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, strict_tenant_membership
+from arbor.env import (
+    calendar_backend,
+    feishu_app_id,
+    feishu_app_secret,
+    feishu_redirect_uri,
+    feishu_web_success_url,
+)
 from arbor.paths import repo_root
 
 from .demo_auth import (
@@ -203,6 +214,19 @@ def _reject_oversize(data: bytes, limit: int) -> None:
     reject_oversize(data, limit)
 
 
+def _build_calendar_stack() -> tuple[object, FeishuClient | None, FileFeishuCredentialStore]:
+    """Return calendar tool, optional Feishu client, and credential store."""
+    credentials = FileFeishuCredentialStore(data_dir() / "feishu_credentials")
+    backend = calendar_backend()
+    app_id = feishu_app_id()
+    app_secret = feishu_app_secret()
+    use_feishu = backend == "feishu" or (backend == "auto" and app_id and app_secret)
+    if use_feishu and app_id and app_secret:
+        client = FeishuClient(app_id=app_id, app_secret=app_secret)
+        return FeishuCalendarTool(client, credentials), client, credentials
+    return StubCalendarTool(), None, credentials
+
+
 def _highest_seq_id(session) -> int:
     """Return the largest a000-NNN sequence already stored, so the id generator
     resumes past persisted rows instead of colliding after a restart."""
@@ -303,6 +327,7 @@ def create_app(
     ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     storage = build_object_storage(session=session, stores=stores)
+    calendar_tool, feishu_client, feishu_credentials = _build_calendar_stack()
     vision_enrich = (
         (lambda text, attachments: _enrich_chat_with_vision(text, attachments, storage))
         if chat_api_key()
@@ -322,6 +347,7 @@ def create_app(
         auth=AuthorizationPolicy(),
         storage=storage,
         vision_enrich=vision_enrich,
+        calendar_tool=calendar_tool,
     )
     confirm = ConfirmInboxItem(
         personas=personas,
@@ -640,6 +666,17 @@ def create_app(
             resolve_tenant=resolve_tenant,
         ),
     )
+    if feishu_client is not None:
+        register_feishu_routes(
+            app,
+            FeishuHttpDeps(
+                client=feishu_client,
+                credentials=feishu_credentials,
+                redirect_uri=feishu_redirect_uri(),
+                success_url=feishu_web_success_url(),
+                current_user=current_user,
+            ),
+        )
 
     register_auth_routes(
         app,

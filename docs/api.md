@@ -85,6 +85,26 @@
 
 `runtime.llm` 为 `deepseek` 或 `scripted`；`runtime.store` 为 `postgres` 或 `memory`；`runtime.embed` 为 `fixture` 或 `bge-m3`（及其他 HTTP 嵌入模型名）。
 
+### 飞书日历（可选）
+
+配置 `ARBOR_FEISHU_APP_ID`、`ARBOR_FEISHU_APP_SECRET` 后启用（`ARBOR_CALENDAR_BACKEND=auto` 默认会自动选飞书）。
+
+| 方法 | 说明 |
+|------|------|
+| `GET /v1/me/feishu/status` | 是否已绑定飞书日历 |
+| `GET /v1/me/feishu/connect` | 返回 `authorize_url`，浏览器打开完成 OAuth |
+| `DELETE /v1/me/feishu/disconnect` | 解除绑定 |
+| `GET /v1/auth/feishu/callback` | OAuth 回调（飞书重定向，无需手动调） |
+
+回调成功后跳转到 `ARBOR_WEB_URL?feishu=connected`。人设 `tool_policy.allowed_tools` 含 `calendar` 且用户消息命中日程关键词时，会查飞书近 7 日日程并注入 prompt。
+
+环境变量：
+
+- `ARBOR_FEISHU_APP_ID` / `ARBOR_FEISHU_APP_SECRET`
+- `ARBOR_FEISHU_REDIRECT_URI`（默认 `http://localhost:8000/v1/auth/feishu/callback`）
+- `ARBOR_CALENDAR_BACKEND`：`auto` | `feishu` | `stub`
+- `ARBOR_WEB_URL`（OAuth 成功后前端地址，默认 `http://localhost:5173`）
+
 ## 3. 工作空间
 
 ### `GET /v1/tenants`

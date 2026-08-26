@@ -131,3 +131,35 @@ def document_parser_backend() -> str:
 def libreoffice_path() -> str:
     load_dotenv()
     return (os.environ.get("ARBOR_LIBREOFFICE_PATH") or "").strip()
+
+
+def feishu_app_id() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_FEISHU_APP_ID") or os.environ.get("FEISHU_APP_ID") or "").strip()
+
+
+def feishu_app_secret() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_FEISHU_APP_SECRET") or os.environ.get("FEISHU_APP_SECRET") or "").strip()
+
+
+def feishu_redirect_uri() -> str:
+    load_dotenv()
+    return (
+        os.environ.get("ARBOR_FEISHU_REDIRECT_URI")
+        or "http://localhost:8000/v1/auth/feishu/callback"
+    ).strip()
+
+
+def feishu_web_success_url() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_WEB_URL") or "http://localhost:5173").rstrip("/")
+
+
+def calendar_backend() -> str:
+    """stub | feishu | auto — auto uses feishu when app credentials are set."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_CALENDAR_BACKEND") or "auto").strip().lower()
+    if raw in {"stub", "feishu", "auto"}:
+        return raw
+    return "auto"
