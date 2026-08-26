@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from arbor.domain.auth.credentials import verify_password
+from arbor.domain.auth.credentials import hash_password, verify_password
 from arbor.domain.identity.tenant import Membership, Role
 from arbor.domain.shared.ids import TenantId, UserId
 
@@ -90,8 +90,6 @@ def authenticate_user(users, tenants, email: str, password: str) -> dict | None:
 
 
 def ensure_demo_member(tenants, users) -> None:
-    from arbor.domain.auth.credentials import hash_password
-    from arbor.domain.identity.tenant import Membership, Role
     from arbor.domain.identity.user import User
 
     for profile in TOKENS.values():
