@@ -38,6 +38,9 @@ class SendMessage:
     ids: object
     auth: AuthorizationPolicy
     strategy: str = "layered_tree"
+    storage: object | None = None
+    enrich_with_vision: bool = True
+    vision_enrich: object | None = None
 
     def __call__(
         self,
@@ -61,7 +64,7 @@ class SendMessage:
         )
         llm_out = self.llm.complete(
             prompt_slots=ctx.prompt_slots,
-            text=text,
+            text=ctx.llm_text,
             injected_memory_ids=list(ctx.slots.injected_memory_ids),
         )
         return self._finish(ctx, llm_out)
@@ -110,7 +113,7 @@ class SendMessage:
         parsed: dict | None = None
         for chunk in streaming(
             prompt_slots=ctx.prompt_slots,
-            text=text,
+            text=ctx.llm_text,
             injected_memory_ids=list(ctx.slots.injected_memory_ids),
         ):
             if isinstance(chunk, StreamFinished):
@@ -151,9 +154,11 @@ class SendMessage:
         policy = ContextPolicy()
         event_nodes = self.events.list_nodes(tenant_id, persona_id)
         active = self.memories.list_active(tenant_id, persona_id)
+        stored_attachments = _normalize_attachments(attachments)
+        llm_text = self._enrich_text_with_attachments(text, stored_attachments)
         retrieved = retrieve(
             strategy=self.strategy if Capability.READ_MEMORY in caps else "summary_only",
-            query=text,
+            query=llm_text,
             tenant_id=tenant_id,
             persona_id=persona_id,
             k=5,
@@ -190,7 +195,6 @@ class SendMessage:
             "event_hits": slots.event_hits,
             "memory_hits": [m.text for m in slots.memory_hits],
         }
-        stored_attachments = _normalize_attachments(attachments)
         extracted = self.reasoner.extract(text) if self.reasoner else None
         inbox_added = 0
         if extracted and extracted.get("text"):
@@ -208,6 +212,7 @@ class SendMessage:
             persona_id=persona_id,
             thread=thread,
             text=text,
+            llm_text=llm_text,
             caps=caps,
             slots=slots,
             prompt_slots=prompt_slots,
@@ -215,6 +220,13 @@ class SendMessage:
             stored_attachments=stored_attachments,
             inbox_added=inbox_added,
         )
+
+    def _enrich_text_with_attachments(self, text: str, attachments: list[dict]) -> str:
+        if self.vision_enrich is not None:
+            return str(self.vision_enrich(text, attachments))
+        if self.storage is None or not self.enrich_with_vision:
+            return text
+        return text
 
     def _finish(self, ctx: _Context, llm_out: dict) -> dict:
         allowed = set(ctx.slots.injected_memory_ids)
@@ -275,6 +287,7 @@ class _Context:
     persona_id: PersonaId
     thread: Thread
     text: str
+    llm_text: str
     caps: list[Capability]
     slots: object
     prompt_slots: dict

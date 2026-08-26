@@ -5,7 +5,8 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
-from arbor.application.memory.commands import ProcessImportJob
+from arbor.application.memory.media_to_inbox import MediaToInbox
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
@@ -16,14 +17,15 @@ def test_process_import_uses_reasoner_extraction():
     inbox = InMemoryInboxRepository(stores)
     tenant = TenantId("0a000000-0000-4000-a000-000000000001")
     persona_id = PersonaId("0a000000-0000-4000-a000-000000000010")
-    process = ProcessImportJob(
+    media = MediaToInbox(
         personas=personas,
         inbox=inbox,
         ids=SeqIdGenerator(),
         auth=AuthorizationPolicy(),
         reasoner=ScriptedReasoner(proposed_fact="林夏讨厌香菜"),
     )
-    created = process(
+    process = ProcessImportJob(media_to_inbox=media)
+    result = process(
         tenant_id=tenant,
         user_id=UserId("0a000000-0000-4000-a000-000000000002"),
         persona_id=persona_id,
@@ -31,6 +33,6 @@ def test_process_import_uses_reasoner_extraction():
         data="她从来不吃香菜".encode(),
         capabilities=list(Capability),
     )
-    assert created == 1
+    assert result.inbox_created == 1
     pending = inbox.list_pending(tenant, persona_id)
     assert pending[0].payload["text"] == "林夏讨厌香菜"

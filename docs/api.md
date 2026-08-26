@@ -189,7 +189,7 @@ Owner/Admin。
 }
 ```
 
-聊天附件只挂在用户消息上，不解析进 Inbox，不直写 Memory。需要 `chat`。GET 历史只回 `filename`；下载走 `GET /v1/threads/{thread_id}/attachments/{filename}`。
+聊天附件在具备 `write_memory` 时会解析进 Inbox（`file_chunk` / `transcript` / `image_caption`），不直写 Memory；仅 `chat` 权限时附件只挂在消息上。需要 `chat`。GET 历史只回 `filename`；下载走 `GET /v1/threads/{thread_id}/attachments/{filename}`。配置了视觉描述时，检索与 LLM 上下文会附带图片摘要，消息正文仍为用户输入的文字。
 
 响应：
 
@@ -217,6 +217,8 @@ Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100�
 
 `multipart/form-data`：file + 可选 `hint`。需要 `write_memory`。  
 立即返回 `job_id` 与 `status`。配置了 `REDIS_URL` 时任务为真异步（`pending` → worker 解析后进 Inbox）；未配置时在 API 进程内同步完成（`completed`）。不直写 Memory。
+
+完成后的任务含 `parser`（如 `plain_text`、`pypdf`、`reasoner`、`faster_whisper`）、`media_kind`（`text` / `document` / `image` / `audio`）、`chunks_parsed` 与 `inbox_created`。
 
 ### `GET /v1/imports/{job_id}`
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from arbor.application.memory.media_to_inbox import MediaInboxResult
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
@@ -77,7 +78,7 @@ class SubmitImportJob:
 class RunImportJob:
     """Worker: read stored bytes, parse into Inbox, finalize job status."""
 
-    def __init__(self, *, import_jobs, storage: ObjectStorage, process_import) -> None:
+    def __init__(self, *, import_jobs, storage, process_import) -> None:
         self.import_jobs = import_jobs
         self.storage = storage
         self.process_import = process_import
@@ -89,6 +90,8 @@ class RunImportJob:
         object_uri = str(payload["object_uri"])
         filename = str(payload.get("filename") or "upload.bin")
         hint = payload.get("hint")
+        from arbor.domain.shared.ids import UserId
+
         user_id = UserId(str(payload["user_id"]))
 
         job = self.import_jobs.get(tenant_id, job_id)
@@ -105,7 +108,10 @@ class RunImportJob:
         )
         data = self.storage.get(object_uri) or b""
         try:
-            inbox_created = self.process_import(
+            from arbor.domain.persona.authorization import Capability
+            from arbor.domain.shared.ids import PersonaId, TenantId
+
+            result = self.process_import(
                 tenant_id=TenantId(tenant_id),
                 user_id=user_id,
                 persona_id=PersonaId(persona_id),
@@ -114,6 +120,16 @@ class RunImportJob:
                 hint=hint,
                 capabilities=list(Capability),
             )
+            if isinstance(result, MediaInboxResult):
+                inbox_created = result.inbox_created
+                parser = result.parser
+                media_kind = result.media_kind
+                chunks_parsed = result.chunks_parsed
+            else:
+                inbox_created = int(result)
+                parser = None
+                media_kind = None
+                chunks_parsed = inbox_created
             self.import_jobs.update(
                 job_id,
                 tenant_id,
@@ -121,6 +137,9 @@ class RunImportJob:
                 inbox_created=inbox_created,
                 error=None,
                 finished=True,
+                parser=parser,
+                media_kind=media_kind,
+                chunks_parsed=chunks_parsed,
             )
         except Exception as exc:
             self.import_jobs.update(

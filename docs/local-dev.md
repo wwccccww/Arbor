@@ -84,6 +84,29 @@ arbor-worker
 
 显式强制同步（即使配了 Redis）：`ARBOR_JOB_QUEUE=sync`。
 
+## 多模态解析（文档 / 语音 / 图片，可选）
+
+导入与聊天附件（在具备 `write_memory` 时）会经 `MediaToInbox` 解析为待确认 Inbox，**不直写 Memory**。纯文本 `.txt` 导入在有 DeepSeek reasoner 时仍走「抽取事实」短路；PDF/DOCX/PPTX、图片、音频走多模态适配器。
+
+安装可选依赖：
+
+```bash
+python3 -m pip install -e ".[api,documents,speech,worker]"
+```
+
+| 类型 | 扩展名示例 | Inbox `memory_type` | 依赖 |
+|---|---|---|---|
+| 纯文本 / Markdown | `.txt` `.md` | `file_chunk`（或 reasoner 抽取 `fact`） | 内置 |
+| 文档 | `.pdf` `.docx` `.pptx` | `file_chunk` | `documents`（pypdf、python-docx、python-pptx） |
+| 图片 | `.png` `.jpg` `.webp` | `image_caption` | `DEEPSEEK_API_KEY`（视觉描述 API） |
+| 音频 | `.mp3` `.wav` `.m4a` | `transcript` | `speech`（faster-whisper） |
+
+未装对应依赖时，适配器会降级为 stub（空块或占位），任务仍可能 `completed` 但 `chunks_parsed=0`。工作台导入面板会显示 `parser` 与块数（`GET /v1/imports/{job_id}`）。
+
+聊天里带附件且有人设 `write_memory` 时，附件同样解析进 Inbox（不走 reasoner 抽取，保留 `file_chunk` / `transcript` / `image_caption`）。助手回复仍用用户文字；若配置了视觉描述，检索上下文会附带图片摘要（`vision_enrich`）。
+
+Redis 异步导入时，**worker 进程也需安装相同 extras**（`arbor-worker` 与 API 同一套 `pip install`）。
+
 ## 对象存储（上传与聊天附件）
 
 导入文件、聊天附件不进 Postgres 业务表，由 `ObjectStorage` 出站端口保存。通过 `.env` 的 `ARBOR_OBJECT_STORE` 选择后端（详见 `.env.example`）：

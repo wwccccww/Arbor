@@ -5,7 +5,10 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryPersonaRepository,
     SeqIdGenerator,
 )
-from arbor.application.memory.commands import ImportArtifact, ProcessImportJob
+from arbor.application.memory.commands import ImportArtifact
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
+from arbor.application.memory.media_to_inbox import MediaToInbox
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId
 from tests.unit.application.test_send_message import USER, _stack, test_import_requires_write_memory
@@ -34,12 +37,14 @@ def test_process_import_writes_inbox_not_memory():
         data="导入待确认abc".encode(),
         capabilities=list(Capability),
     )
-    created = ProcessImportJob(
+    media = MediaToInbox(
         personas=InMemoryPersonaRepository(stores),
         inbox=inbox,
         ids=SeqIdGenerator(),
         auth=AuthorizationPolicy(),
-    )(
+        parse_media=parse_media_bytes,
+    )
+    result = ProcessImportJob(media_to_inbox=media)(
         tenant_id=tenant,
         user_id=USER,
         persona_id=persona,
@@ -47,7 +52,7 @@ def test_process_import_writes_inbox_not_memory():
         data="导入待确认abc".encode(),
         capabilities=list(Capability),
     )
-    assert created == 1
+    assert result.inbox_created == 1
     pending = inbox.list_pending(tenant, persona)
     assert [item.payload["text"] for item in pending] == ["导入待确认abc"]
     after = {item.id for item in memories.list_active(tenant, persona)}

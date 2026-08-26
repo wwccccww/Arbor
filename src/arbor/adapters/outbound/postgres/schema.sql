@@ -168,6 +168,9 @@ CREATE TABLE IF NOT EXISTS import_jobs (
     status text NOT NULL DEFAULT 'completed',
     inbox_created int NOT NULL DEFAULT 0,
     error text,
+    parser text,
+    media_kind text,
+    chunks_parsed int NOT NULL DEFAULT 0,
     created_at timestamptz NOT NULL DEFAULT now(),
     finished_at timestamptz
 );

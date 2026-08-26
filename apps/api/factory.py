@@ -63,7 +63,10 @@ from arbor.application.identity.commands import (
     ListTenants,
     PatchTenantMember,
 )
-from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem, ProcessImportJob
+from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
+from arbor.application.memory.media_to_inbox import MediaToInbox
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
@@ -71,7 +74,7 @@ from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
-from arbor.env import data_dir
+from arbor.env import chat_api_key, data_dir
 from arbor.paths import repo_root
 
 from .demo_auth import (
@@ -90,6 +93,26 @@ from .rate_limit import (
 )
 
 DEFAULT_MAX_UPLOAD_BYTES = 32 * 1024 * 1024
+
+
+def _enrich_chat_with_vision(text: str, attachments: list[dict], storage) -> str:
+    from arbor.adapters.outbound.multimodal.factory import build_vision_describer
+    from arbor.domain.shared.media_kinds import MediaKind, media_kind_for_filename
+
+    describer = build_vision_describer()
+    enriched = text or ""
+    for att in attachments:
+        uri = att.get("uri") or ""
+        filename = att.get("filename") or ""
+        if not uri or media_kind_for_filename(filename) is not MediaKind.IMAGE:
+            continue
+        blob = storage.get(uri)
+        if not blob:
+            continue
+        parsed = describer.describe(blob, filename)
+        if parsed.chunks:
+            enriched = f"{enriched}\n[图片 {filename}: {parsed.chunks[0].text}]".strip()
+    return enriched or text
 
 
 def _reject_oversize(data: bytes, limit: int) -> None:
@@ -471,6 +494,12 @@ def create_app(
         auth_sessions = InMemoryAuthSessionStore(TOKENS)
     ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
+    storage = build_object_storage(session=session, stores=stores)
+    vision_enrich = (
+        (lambda text, attachments: _enrich_chat_with_vision(text, attachments, storage))
+        if chat_api_key()
+        else None
+    )
     send = SendMessage(
         personas=personas,
         memories=memories,
@@ -483,6 +512,8 @@ def create_app(
         embed=resolved_embed,
         ids=ids,
         auth=AuthorizationPolicy(),
+        storage=storage,
+        vision_enrich=vision_enrich,
     )
     confirm = ConfirmInboxItem(
         personas=personas,
@@ -506,17 +537,18 @@ def create_app(
     list_threads = ListThreads(personas=personas, threads=threads, auth=AuthorizationPolicy())
     list_messages = ListMessages(personas=personas, threads=threads, auth=AuthorizationPolicy())
     export_thread = ExportThread(personas=personas, threads=threads, auth=AuthorizationPolicy(), audit=record_audit)
-    storage = build_object_storage(session=session, stores=stores)
     get_chat_attachment = GetChatAttachment(
         personas=personas, threads=threads, storage=storage, auth=AuthorizationPolicy()
     )
-    process_import = ProcessImportJob(
+    media_to_inbox = MediaToInbox(
         personas=personas,
         inbox=inbox,
         ids=ids,
         auth=AuthorizationPolicy(),
         reasoner=reasoner or ScriptedReasoner(),
+        parse_media=parse_media_bytes,
     )
+    process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
     run_import = RunImportJob(
         import_jobs=import_jobs,
         storage=storage,
@@ -959,6 +991,9 @@ def create_app(
             "persona_id": job["persona_id"],
             "inbox_created": job.get("inbox_created", 0),
             "error": job.get("error"),
+            "parser": job.get("parser"),
+            "media_kind": job.get("media_kind"),
+            "chunks_parsed": job.get("chunks_parsed", 0),
         }
 
     @app.post("/v1/eval/runs", status_code=202)
@@ -1167,6 +1202,29 @@ def create_app(
         text, attachments = await _read_chat_payload(
             request, storage, tenant, thread_id, max_upload_bytes
         )
+        chat_media_added = 0
+        if Capability.WRITE_MEMORY in caps and attachments:
+            for att in attachments:
+                uri = att.get("uri") or ""
+                fn = att.get("filename") or ""
+                if not uri or not fn:
+                    continue
+                blob = storage.get(uri)
+                if not blob:
+                    continue
+                try:
+                    added = media_to_inbox(
+                        tenant_id=tenant,
+                        user_id=UserId(user["user_id"]),
+                        persona_id=thread.persona_id,
+                        filename=fn,
+                        data=blob,
+                        capabilities=caps,
+                        use_reasoner_for_facts=False,
+                    )
+                    chat_media_added += added.inbox_created
+                except DomainError:
+                    continue
         if stream:
             streamer = send.stream_reply(
                 tenant_id=tenant,
@@ -1193,7 +1251,7 @@ def create_app(
             "text": result["text"],
             "citations": result.get("citation_items") or [],
             "injected_memory_ids": result["injected_memory_ids"],
-            "inbox_created": result.get("inbox_added") or 0,
+            "inbox_created": (result.get("inbox_added") or 0) + chat_media_added,
             "attachments": result.get("attachments") or [],
         }
 

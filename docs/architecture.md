@@ -191,7 +191,7 @@ src/arbor/
     outbound/ragas/                # FaithfulnessScorer，仅评测 generation
     outbound/embedding_bge/
     outbound/s3/
-    outbound/whisper/
+    outbound/multimodal/          # 文档 / 语音 / 图片解析 → Inbox payload
     outbound/arq/
 eval/
 infra/compose/

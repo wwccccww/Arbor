@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
 from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
     InMemoryObjectStorage,
@@ -8,7 +9,8 @@ from arbor.adapters.outbound.inmemory import (
     SeqIdGenerator,
 )
 from arbor.adapters.outbound.postgres.import_jobs import InMemoryImportJobRepository
-from arbor.application.memory.commands import ProcessImportJob
+from arbor.application.memory.media_to_inbox import MediaInboxResult, MediaToInbox
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId
@@ -32,10 +34,13 @@ def test_submit_and_run_import_job():
         auth=AuthorizationPolicy(),
     )
     process = ProcessImportJob(
-        personas=personas,
-        inbox=inbox,
-        ids=ids,
-        auth=AuthorizationPolicy(),
+        media_to_inbox=MediaToInbox(
+            personas=personas,
+            inbox=inbox,
+            ids=ids,
+            auth=AuthorizationPolicy(),
+            parse_media=parse_media_bytes,
+        ),
     )
     run = RunImportJob(import_jobs=import_jobs, storage=storage, process_import=process)
     job = submit(
