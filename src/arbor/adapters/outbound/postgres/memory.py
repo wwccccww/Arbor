@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from psycopg.types.json import Jsonb
+
 from arbor.adapters.outbound.postgres.mapping import memory_from_row
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId
@@ -12,7 +14,7 @@ class PgMemoryRepository:
     def get(self, tenant_id: TenantId, memory_id: MemoryId) -> MemoryItem | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
             FROM memory_items
             WHERE id = %s::uuid AND tenant_id = %s::uuid
             """,
@@ -23,7 +25,7 @@ class PgMemoryRepository:
     def list_active(self, tenant_id: TenantId, persona_id: PersonaId) -> list[MemoryItem]:
         rows = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
             FROM memory_items
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid AND status = 'active'
             """,
@@ -42,7 +44,7 @@ class PgMemoryRepository:
     ) -> list[MemoryItem]:
         sql = [
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
             FROM memory_items
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
             """
@@ -65,10 +67,10 @@ class PgMemoryRepository:
         self.conn.execute(
             """
             INSERT INTO memory_items (
-                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes
+                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes, source
             )
             VALUES (
-                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s
+                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s
             )
             ON CONFLICT (id) DO UPDATE SET
                 text = EXCLUDED.text,
@@ -76,7 +78,8 @@ class PgMemoryRepository:
                 status = EXCLUDED.status,
                 event_id = EXCLUDED.event_id,
                 thread_id = EXCLUDED.thread_id,
-                supersedes = EXCLUDED.supersedes
+                supersedes = EXCLUDED.supersedes,
+                source = EXCLUDED.source
             """,
             (
                 item.id.value,
@@ -88,6 +91,7 @@ class PgMemoryRepository:
                 item.text,
                 item.status.value,
                 item.supersedes.value if item.supersedes else None,
+                Jsonb(item.source) if item.source else None,
             ),
         )
 

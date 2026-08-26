@@ -184,6 +184,7 @@ class SendMessage:
                 summary=thread.summary,
                 event_hits=event_payload,
                 memory_hits=hits,
+                tool_policy=persona.tool_policy,
             )
             extra_ids = [m.id.value for m in hits]
             for mid in extra_ids:
@@ -192,6 +193,7 @@ class SendMessage:
 
         prompt_slots = {
             "profile": slots.profile,
+            "tool_policy": slots.tool_policy,
             "thread_summary": slots.thread_summary,
             "event_hits": slots.event_hits,
             "memory_hits": [m.text for m in slots.memory_hits],

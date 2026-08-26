@@ -26,6 +26,7 @@ class CreatePersona:
         taboos: list[str] | None = None,
         relationships: list[dict] | None = None,
         template: str | None = None,
+        avatar: str | None = None,
     ) -> Persona:
         if not workspace_admin:
             raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
@@ -51,6 +52,7 @@ class CreatePersona:
                 personality=merged.get("personality"),
                 taboos=list(merged.get("taboos") or []),
                 relationships=list(merged.get("relationships") or []),
+                avatar=(avatar or "").strip(),
             ),
             grants=[Grant(user_id=user_id, capabilities=list(Capability))],
         )
@@ -78,6 +80,7 @@ class PatchPersona:
         relationships: list[dict] | None = None,
         skin: str | None = None,
         tool_policy: dict | None = None,
+        avatar: str | None = None,
     ) -> Persona:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
@@ -100,6 +103,8 @@ class PatchPersona:
             persona.profile.relationships = list(relationships)
         if skin is not None:
             persona.skin = skin
+        if avatar is not None:
+            persona.profile.avatar = avatar.strip()
         if tool_policy is not None:
             allowed = tool_policy.get("allowed_tools") or []
             persona.tool_policy = ToolPolicy(
@@ -116,6 +121,7 @@ class PatchPersona:
                 ("taboos", taboos),
                 ("relationships", relationships),
                 ("skin", skin),
+                ("avatar", avatar),
                 ("tool_policy", tool_policy),
             )
             if value is not None

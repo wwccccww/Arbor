@@ -113,6 +113,25 @@ class S3ObjectStorage:
             return bytes(body) if body is not None else None
         return None
 
+    def delete(self, name: str) -> bool:
+        raw = (name or "").replace("\\", "/").lstrip("/")
+        candidates = [raw]
+        keyed = self._key(name)
+        if keyed not in candidates:
+            candidates.append(keyed)
+        deleted = False
+        for key in candidates:
+            try:
+                self.client.delete_object(Bucket=self.bucket, Key=key)
+                deleted = True
+            except Exception as exc:
+                if ClientError is not None and isinstance(exc, ClientError):
+                    code = exc.response.get("Error", {}).get("Code", "")
+                    if code in {"NoSuchKey", "404", "NotFound"}:
+                        continue
+                raise
+        return deleted
+
     def count(self) -> int:
         total = 0
         prefix = self.prefix or ""

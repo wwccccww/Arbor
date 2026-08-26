@@ -33,5 +33,16 @@ class LocalFileObjectStorage:
                 return None
         return path.read_bytes()
 
+    def delete(self, name: str) -> bool:
+        path = self._path_for(name)
+        if not path.is_file():
+            alt = self.root / name
+            if alt.is_file():
+                path = alt
+            else:
+                return False
+        path.unlink(missing_ok=True)
+        return True
+
     def count(self) -> int:
         return sum(1 for _ in self.root.rglob("*") if _.is_file())

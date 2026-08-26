@@ -12,6 +12,6 @@ def test_context_policy():
         event_hits=[{"title": "e"}],
         memory_hits=[],
     )
-    assert slots.slot_order() == ["profile", "thread_summary", "event_hits", "memory_hits"]
+    assert slots.slot_order() == ["profile", "tool_policy", "thread_summary", "event_hits", "memory_hits"]
     assert slots.thread_summary == "摘要"
     assert "taboos" in slots.profile

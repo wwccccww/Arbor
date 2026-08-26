@@ -130,10 +130,10 @@ suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模�
 **用户自己的人设**
 
 - 不拿 suite-v1 的题去考用户隐私
-- 只提供轻量体检：从该人设档案和关键事件自动生成 5～8 题（实现后期再做）
-- v1 可以只做演示套件，仍够简历
+- 提供轻量体检：`POST /v1/personas/{persona_id}/eval/runs` 从档案与关键事件自动生成 5～8 题（已实现）
+- 演示套件仍用 suite-v1；用户人设走单人设 API
 
-API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generation }`，见 [api.md](api.md)。
+API：`POST /v1/eval/runs` `{ strategy, suite_version, mode: retrieval|generation }`；单人设 `POST /v1/personas/{persona_id}/eval/runs`，见 [api.md](api.md)。
 
 ## 7. 日常怎么用（你的工作流）
 

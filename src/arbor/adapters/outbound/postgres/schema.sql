@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS personas (
     taboos jsonb NOT NULL DEFAULT '[]'::jsonb,
     relationships jsonb NOT NULL DEFAULT '[]'::jsonb,
     tool_policy jsonb,
+    avatar text NOT NULL DEFAULT '',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

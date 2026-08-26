@@ -15,6 +15,9 @@
 | 登录会话 | 演示 token + Postgres `auth_sessions` 表 |
 | 导入任务 / 评测运行 | Postgres 表 + 内存回退 |
 | 人设创建模板 | 伴侣 / 导师 / 客服 / 面试官 |
+| 首页头像 + 聊天导入初稿 | 头像字段；首页独立导入 + Inbox bootstrap |
+| 人设轻量体检 API | `POST /v1/personas/{id}/eval/runs` |
+| tool_policy 注入 prompt | `ContextPolicy` 槽位 |
 | 导入 reasoner 抽取 | 有 DeepSeek 时走 reasoner，否则原文进 Inbox |
 | Redis ARQ（导入异步） | 已实现；`REDIS_URL` + `arbor-worker` |
 | 多模态文档 | pypdf/docx/pptx；可选 Docling；`.doc` 经 LibreOffice 转换 |

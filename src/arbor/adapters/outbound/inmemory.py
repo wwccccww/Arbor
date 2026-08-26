@@ -334,6 +334,12 @@ class InMemoryObjectStorage:
     def get(self, name: str) -> bytes | None:
         return self.stores.objects.get(name)
 
+    def delete(self, name: str) -> bool:
+        if name in self.stores.objects:
+            del self.stores.objects[name]
+            return True
+        return False
+
     def count(self) -> int:
         return len(self.stores.objects)
 

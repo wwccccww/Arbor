@@ -36,6 +36,14 @@ class PgBlobObjectStorage:
             return None
         return bytes(blob)
 
+    def delete(self, name: str) -> bool:
+        key = self._key(name)
+        row = self.conn.execute(
+            "DELETE FROM object_blobs WHERE key = %s RETURNING key",
+            (key,),
+        ).fetchone()
+        return row is not None
+
     def count(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) AS n FROM object_blobs").fetchone()
         return int(row["n"] if row else 0)

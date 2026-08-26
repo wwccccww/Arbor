@@ -14,7 +14,7 @@ class PgPersonaRepository:
     def get(self, tenant_id: TenantId, persona_id: PersonaId) -> Persona | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy
+            SELECT id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy, avatar
             FROM personas
             WHERE id = %s::uuid AND tenant_id = %s::uuid
             """,
@@ -46,10 +46,10 @@ class PgPersonaRepository:
         self.conn.execute(
             """
             INSERT INTO personas (
-                id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy, updated_at
+                id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy, avatar, updated_at
             )
             VALUES (
-                %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, now()
+                %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, now()
             )
             ON CONFLICT (id) DO UPDATE SET
                 skin = EXCLUDED.skin,
@@ -59,6 +59,7 @@ class PgPersonaRepository:
                 taboos = EXCLUDED.taboos,
                 relationships = EXCLUDED.relationships,
                 tool_policy = EXCLUDED.tool_policy,
+                avatar = EXCLUDED.avatar,
                 updated_at = now()
             """,
             (
@@ -76,6 +77,7 @@ class PgPersonaRepository:
                         "notes": persona.tool_policy.notes,
                     }
                 ),
+                persona.profile.avatar or "",
             ),
         )
         self.conn.execute(

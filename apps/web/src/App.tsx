@@ -59,6 +59,7 @@ export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [canCreate, setCanCreate] = useState(false)
   const [creatingPersona, setCreatingPersona] = useState(false)
+  const [importingChat, setImportingChat] = useState(false)
   const [creatingTenant, setCreatingTenant] = useState(false)
   const [deletingTenant, setDeletingTenant] = useState(false)
   const [members, setMembers] = useState<TenantMember[]>([])
@@ -209,7 +210,9 @@ export default function App() {
     try {
       const created = await client.createPersona(draft)
       if (bootstrapFile) {
-        await client.importFile(created.id, bootstrapFile, '从创建向导导入')
+        const imported = await client.importFile(created.id, bootstrapFile, '从创建向导导入')
+        await client.pollImport(imported.job_id)
+        await client.bootstrapInbox(created.id)
       }
       setPersonas((current) => [...current, created])
       window.location.hash = `#/personas/${created.id}`
@@ -217,6 +220,24 @@ export default function App() {
       setError((err as Error).message)
     } finally {
       setCreatingPersona(false)
+    }
+  }
+
+  async function importChatToPersona(personaId: string, file: File) {
+    if (!client) return
+    setImportingChat(true)
+    setError(undefined)
+    try {
+      const imported = await client.importFile(personaId, file, '从首页聊天导入')
+      await client.pollImport(imported.job_id)
+      await client.bootstrapInbox(personaId)
+      const refreshed = await client.listPersonas()
+      setPersonas(refreshed)
+      window.location.hash = `#/personas/${personaId}`
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setImportingChat(false)
     }
   }
 
@@ -342,7 +363,7 @@ export default function App() {
       runtime={runtime}
       error={error}
       canCreate={canCreate}
-      creating={creatingPersona || creatingTenant || deletingTenant}
+      creating={creatingPersona || creatingTenant || deletingTenant || importingChat}
       members={members}
       tenants={tenants}
       currentTenantId={session.tenantId}
@@ -359,7 +380,8 @@ export default function App() {
       onAudit={() => {
         window.location.hash = '#/audit'
       }}
-      onCreate={(draft) => void createPersona(draft)}
+      onCreate={(draft, bootstrapFile) => void createPersona(draft, bootstrapFile)}
+      onImportChat={(personaId, file) => void importChatToPersona(personaId, file)}
       onInvite={(email, role) => void inviteMember(email, role)}
       onChangeRole={(userId, role) => void changeMemberRole(userId, role)}
       onSwitchTenant={(tenantId) => {

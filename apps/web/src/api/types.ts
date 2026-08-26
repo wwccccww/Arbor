@@ -15,6 +15,7 @@ export type Persona = {
   personality?: { traits?: string[] }
   grants?: PersonaGrant[]
   tool_policy?: { allowed_tools?: string[]; notes?: string }
+  avatar?: string
   stats?: {
     memory_count?: number
     last_interaction?: string
@@ -30,6 +31,7 @@ export type PersonaPatch = {
   relationships?: { name: string; kind: string }[]
   skin?: 'companion' | 'employee'
   tool_policy?: { allowed_tools?: string[]; notes?: string }
+  avatar?: string
 }
 
 export type PersonaDraft = {
@@ -37,6 +39,7 @@ export type PersonaDraft = {
   display_name: string
   one_liner?: string
   template?: string
+  avatar?: string
 }
 
 export type PersonaTemplate = {
