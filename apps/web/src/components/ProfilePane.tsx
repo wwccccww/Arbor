@@ -47,6 +47,8 @@ export function ProfilePane({
   const [taboos, setTaboos] = useState(linesText(persona.taboos))
   const [traits, setTraits] = useState(linesText(persona.personality?.traits))
   const [relationships, setRelationships] = useState(relationshipsText(persona.relationships))
+  const [allowedTools, setAllowedTools] = useState(linesText(persona.tool_policy?.allowed_tools))
+  const [toolNotes, setToolNotes] = useState(persona.tool_policy?.notes ?? '')
 
   useEffect(() => {
     setSkin(persona.skin === 'employee' ? 'employee' : 'companion')
@@ -55,6 +57,8 @@ export function ProfilePane({
     setTaboos(linesText(persona.taboos))
     setTraits(linesText(persona.personality?.traits))
     setRelationships(relationshipsText(persona.relationships))
+    setAllowedTools(linesText(persona.tool_policy?.allowed_tools))
+    setToolNotes(persona.tool_policy?.notes ?? '')
   }, [persona])
 
   function submit(event: FormEvent) {
@@ -68,6 +72,10 @@ export function ProfilePane({
       taboos: parseLines(taboos),
       personality: { traits: parseLines(traits) },
       relationships: parseRelationships(relationships),
+      tool_policy: {
+        allowed_tools: parseLines(allowedTools),
+        notes: toolNotes.trim(),
+      },
     })
   }
 
@@ -130,6 +138,24 @@ export function ProfilePane({
               rows={3}
               disabled={Boolean(busy)}
               onChange={(event) => setRelationships(event.target.value)}
+            />
+          </label>
+          <label>
+            工具权限（每行一个，如 calendar、ticket）
+            <textarea
+              value={allowedTools}
+              rows={2}
+              disabled={Boolean(busy)}
+              onChange={(event) => setAllowedTools(event.target.value)}
+            />
+          </label>
+          <label>
+            工具说明
+            <textarea
+              value={toolNotes}
+              rows={2}
+              disabled={Boolean(busy)}
+              onChange={(event) => setToolNotes(event.target.value)}
             />
           </label>
           <button type="submit" disabled={Boolean(busy) || !displayName.trim()}>

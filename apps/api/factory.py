@@ -54,7 +54,7 @@ from arbor.application.conversation.threads import (
     ListMessages,
     ListThreads,
 )
-from arbor.application.evaluation.commands import StartEvalRun
+from arbor.application.evaluation.commands import StartEvalRun, StartPersonaEvalRun
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.identity.commands import (
@@ -234,6 +234,11 @@ class PersonaPatchIn(BaseModel):
     personality: dict | None = None
     taboos: list[str] | None = None
     relationships: list[dict] | None = None
+    tool_policy: dict | None = None
+
+
+class PersonaEvalIn(BaseModel):
+    strategy: str = "layered_tree"
 
 
 class MemberPatchIn(BaseModel):
@@ -305,6 +310,10 @@ def _persona_json(persona, caps: list[Capability]) -> dict:
         body["personality"] = persona.profile.personality
     if Capability.ADMIN in caps:
         body["grants"] = [_grant_json(grant) for grant in persona.grants]
+        body["tool_policy"] = {
+            "allowed_tools": list(persona.tool_policy.allowed_tools),
+            "notes": persona.tool_policy.notes,
+        }
     return body
 
 
@@ -638,6 +647,68 @@ def create_app(
         ids=ids,
     )
 
+    def _summary_for_persona(tenant: TenantId, persona: PersonaId) -> str:
+        if hasattr(threads, "summary_for"):
+            return threads.summary_for(persona)
+        listed = threads.list(tenant, persona)
+        for thread in listed:
+            if thread.summary:
+                return thread.summary
+        return ""
+
+    def run_persona_retrieval_eval_fn(
+        tenant_id: TenantId,
+        user_id: UserId,
+        persona_id: PersonaId,
+        strategy: str,
+    ) -> dict:
+        from arbor.application.evaluation.persona_cases import build_persona_eval_cases
+        from arbor.application.evaluation.persona_eval import run_persona_retrieval_eval
+
+        persona = personas.get(tenant_id, persona_id)
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        tenant_memories: list = []
+        memory_catalog: list[dict] = []
+        for listed in personas.list(tenant_id):
+            active = memories.list_active(tenant_id, listed.id)
+            tenant_memories.extend(active)
+            for item in active:
+                memory_catalog.append(
+                    {
+                        "id": item.id.value,
+                        "tenant_id": item.tenant_id.value,
+                        "status": item.status.value,
+                    }
+                )
+        ev_nodes = events.list_nodes(tenant_id, persona_id)
+        cases = build_persona_eval_cases(
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            user_id=user_id.value,
+            memories=tenant_memories,
+            events=ev_nodes,
+        )
+        if not cases:
+            raise DomainError("VALIDATION_ERROR", "not enough memories or events for persona eval")
+        return run_persona_retrieval_eval(
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            strategy=strategy,
+            cases=cases,
+            list_active=memories.list_active,
+            list_events=events.list_nodes,
+            summary_for=lambda p: _summary_for_persona(tenant_id, p),
+            vector_search=vectors.search,
+            embed=resolved_embed.embed,
+            memory_catalog=memory_catalog,
+        )
+
+    start_persona_eval = StartPersonaEvalRun(
+        run_persona_retrieval=run_persona_retrieval_eval_fn,
+        ids=ids,
+    )
+
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
         raw = (x_tenant_id or user.get("tenant_id") or "").strip()
         if not raw:
@@ -673,6 +744,14 @@ def create_app(
         allow_headers=["*"],
     )
     limiter = InMemoryRateLimiter(limit=rate_limit_per_window, window_seconds=rate_window_seconds)
+
+    @app.middleware("http")
+    async def pg_tenant_rls(request: Request, call_next):
+        if session is not None and request.headers.get("x-tenant-id"):
+            from arbor.adapters.outbound.postgres.sql import set_app_tenant
+
+            set_app_tenant(session.conn, request.headers.get("x-tenant-id"))
+        return await call_next(request)
 
     @app.middleware("http")
     async def enforce_rate_limit(request: Request, call_next):
@@ -951,8 +1030,32 @@ def create_app(
             taboos=payload.taboos,
             relationships=payload.relationships,
             skin=payload.skin,
+            tool_policy=payload.tool_policy,
         )
         return _persona_json(updated, caps)
+
+    @app.post("/v1/personas/{persona_id}/eval/runs", status_code=202)
+    def post_persona_eval_run(
+        persona_id: str,
+        payload: PersonaEvalIn,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        tenant = resolve_tenant(user, x_tenant_id)
+        persona = personas.get(tenant, PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        result = start_persona_eval(
+            workspace_admin=workspace_admin_for(user, x_tenant_id),
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            strategy=payload.strategy,
+        )
+        result["tenant_id"] = tenant.value
+        eval_runs.save(result)
+        return {"id": result["id"]}
 
     @app.get("/v1/personas/{persona_id}/memories")
     def get_memories(
@@ -1533,6 +1636,7 @@ def create_app(
                     "type": node.type,
                     "importance": node.importance,
                     "summary": node.summary,
+                    "confidence": node.confidence,
                     "memory_ids": memory_ids.get(node.id.value, []),
                 }
                 for node in tree["nodes"]
@@ -1577,6 +1681,11 @@ def create_app(
             "type": node.type,
             "importance": node.importance,
             "summary": node.summary,
+            "confidence": node.confidence,
+            "participants": list(card.get("participants") or []),
+            "causal_in": list(card.get("causal_in") or []),
+            "causal_out": list(card.get("causal_out") or []),
+            "verbatim": [{"id": item.id.value, "text": item.text} for item in card.get("verbatim") or []],
             "attachments": [
                 {"id": item.id.value, "type": item.type.value, "text": item.text}
                 for item in card["attachments"]

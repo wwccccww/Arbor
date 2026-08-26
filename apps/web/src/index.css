@@ -910,6 +910,64 @@ td:first-child {
   min-height: 0;
 }
 
+.biography-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: min(420px, 42vh);
+  overflow: auto;
+  padding: 0.25rem 0;
+}
+
+.biography-tree__filter select {
+  margin-left: 0.35rem;
+}
+
+.biography-tree__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.biography-tree__node {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: var(--surface);
+}
+
+.biography-tree__item--conflict .biography-tree__node {
+  border-color: color-mix(in srgb, var(--fail) 45%, var(--line));
+}
+
+.biography-tree__item--milestone .biography-tree__node,
+.biography-tree__item--promise .biography-tree__node {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.biography-tree__when {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.biography-tree__summary {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.biography-tree__list--daily {
+  margin-top: 0.35rem;
+}
+
 .event-flow {
   height: min(420px, 42vh);
   min-height: 280px;

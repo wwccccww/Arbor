@@ -147,8 +147,9 @@ def _load_events(session, world: dict) -> None:
                 summary=event.get("summary", ""),
                 type=event.get("type", "daily"),
                 importance=int(event.get("importance") or 3),
-                happened_at=event.get("happened_at"),
-            )
+            happened_at=event.get("happened_at"),
+            confidence=float(event["confidence"]) if event.get("confidence") is not None else None,
+        )
         )
     edges = list(world.get("event_edges") or [])
     if not edges:

@@ -3,12 +3,22 @@ from __future__ import annotations
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
-from arbor.domain.persona.authorization import Capability, Grant, Persona, Profile
+from arbor.domain.persona.authorization import Capability, Grant, Persona, Profile, ToolPolicy
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 
 
 def _text(value) -> str:
     return "" if value is None else str(value)
+
+
+def _tool_policy_from_row(raw) -> ToolPolicy:
+    if not raw or not isinstance(raw, dict):
+        return ToolPolicy()
+    allowed = raw.get("allowed_tools") or []
+    return ToolPolicy(
+        allowed_tools=[str(item) for item in allowed],
+        notes=_text(raw.get("notes")),
+    )
 
 
 def persona_from_row(row: dict, grants: list[Grant]) -> Persona:
@@ -26,6 +36,7 @@ def persona_from_row(row: dict, grants: list[Grant]) -> Persona:
             relationships=list(relationships),
         ),
         grants=grants,
+        tool_policy=_tool_policy_from_row(row.get("tool_policy")),
     )
 
 
@@ -64,6 +75,7 @@ def event_from_row(row: dict) -> EventNode:
         type=_text(row.get("type")) or "daily",
         importance=int(row.get("importance") or 3),
         happened_at=happened.isoformat() if hasattr(happened, "isoformat") else happened,
+        confidence=float(row["confidence"]) if row.get("confidence") is not None else None,
     )
 
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
 import type { ApiError, EvalCase, EvalRun } from '../api/types'
 import { MetricBar } from '../components/MetricBar'
@@ -71,9 +71,11 @@ function CaseRow({ row, index }: { row: EvalCase; index: number }) {
 
 export function Checkup({
   client,
+  personas = [],
   onBack,
 }: {
   client: ArborClient
+  personas?: { id: string; display_name: string }[]
   onBack: () => void
 }) {
   const [run, setRun] = useState<EvalRun | null>(null)
@@ -83,6 +85,11 @@ export function Checkup({
   const [forbidden, setForbidden] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [personaId, setPersonaId] = useState(personas[0]?.id ?? '')
+
+  useEffect(() => {
+    if (!personaId && personas.length) setPersonaId(personas[0].id)
+  }, [personas, personaId])
 
   async function fetchRun(
     strategy: string,
@@ -95,6 +102,25 @@ export function Checkup({
   function asForbidden(err: unknown): boolean {
     const api = err as ApiError
     return api.status === 403 || api.code === 'FORBIDDEN_WORKSPACE'
+  }
+
+  async function runPersonaSmoke() {
+    if (!personaId) return
+    setBusy(true)
+    setBusyLabel('正在为人设生成轻量体检题…')
+    setError(null)
+    setForbidden(false)
+    try {
+      const started = await client.startPersonaEvalRun(personaId, 'layered_tree')
+      setRun(await client.getEvalRun(started.id))
+      setRows([])
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
   }
 
   async function runDefault() {
@@ -194,6 +220,23 @@ export function Checkup({
         {busyLabel ? <p className="checkup-progress">{busyLabel}</p> : null}
 
         <div className="checkup-actions">
+          {personas.length ? (
+            <label>
+              当前人设
+              <select value={personaId} onChange={(e) => setPersonaId(e.target.value)}>
+                {personas.map((p) => (
+                  <option key={p.id} value={p.id}>{p.display_name}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          <button
+            type="button"
+            disabled={busy || forbidden || !personaId}
+            onClick={() => void runPersonaSmoke()}
+          >
+            人设轻量体检
+          </button>
           <button type="button" className="btn--primary" disabled={busy || forbidden} onClick={() => void runDefault()}>
             跑 suite-v1 检索
           </button>

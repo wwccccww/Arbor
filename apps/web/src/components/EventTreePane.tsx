@@ -9,10 +9,11 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { EventNode } from '../api/types'
+import { BiographyTreePane } from './BiographyTreePane'
 import { EventFlowNode } from './EventFlowNode'
 import { type EventEdge, toFlowGraph } from './eventTreeLayout'
 
-export type EventView = 'tree' | 'timeline'
+export type EventView = 'tree' | 'timeline' | 'biography'
 
 const nodeTypes: NodeTypes = { event: EventFlowNode }
 
@@ -31,7 +32,7 @@ function EventFlowCanvas({
 }) {
   const { fitView } = useReactFlow()
   const graph = useMemo(
-    () => toFlowGraph(nodes, edges, view, highlightedId),
+    () => toFlowGraph(nodes, edges, view === 'timeline' ? 'timeline' : 'tree', highlightedId),
     [nodes, edges, view, highlightedId],
   )
 
@@ -92,6 +93,9 @@ export function EventTreePane({
     <section className="event-tree-pane">
       <section className="event-pane-head">
         <div className="view-toggle" role="group" aria-label="生命线视图">
+          <button type="button" aria-pressed={view === 'biography'} onClick={() => onChangeView?.('biography')}>
+            传记目录
+          </button>
           <button type="button" aria-pressed={view === 'tree'} onClick={() => onChangeView?.('tree')}>
             事件树
           </button>
@@ -111,17 +115,27 @@ export function EventTreePane({
         ) : null}
       </section>
       {nodes.length ? (
-        <div className="event-flow" data-view={view}>
-          <ReactFlowProvider>
-            <EventFlowCanvas
-              nodes={nodes}
-              edges={edges}
-              view={view}
-              highlightedId={highlightedId}
-              onSelect={onSelect}
-            />
-          </ReactFlowProvider>
-        </div>
+        view === 'biography' ? (
+          <BiographyTreePane
+            nodes={nodes}
+            edges={edges}
+            keyOnly={keyOnly}
+            highlightedId={highlightedId}
+            onSelect={onSelect}
+          />
+        ) : (
+          <div className="event-flow" data-view={view}>
+            <ReactFlowProvider>
+              <EventFlowCanvas
+                nodes={nodes}
+                edges={edges}
+                view={view}
+                highlightedId={highlightedId}
+                onSelect={onSelect}
+              />
+            </ReactFlowProvider>
+          </div>
+        )
       ) : (
         <p className="empty-state">{keyOnly ? '暂无关键事件' : '暂无事件'}</p>
       )}

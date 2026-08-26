@@ -91,6 +91,7 @@ describe('ProfilePane', () => {
       taboos: ['香菜', '冷场'],
       personality: { traits: ['冷静'] },
       relationships: [{ name: '用户', kind: 'partner' }],
+      tool_policy: { allowed_tools: [], notes: '' },
     })
   })
 })

@@ -35,12 +35,19 @@ class Grant:
 
 
 @dataclass
+class ToolPolicy:
+    allowed_tools: list[str] = field(default_factory=list)
+    notes: str = ""
+
+
+@dataclass
 class Persona:
     id: PersonaId
     tenant_id: TenantId
     skin: str
     profile: Profile
     grants: list[Grant] = field(default_factory=list)
+    tool_policy: ToolPolicy = field(default_factory=ToolPolicy)
 
     def change_tenant(self, new_tenant: TenantId) -> None:
         if new_tenant != self.tenant_id:
