@@ -11,13 +11,21 @@ from arbor.domain.persona.persona import Profile
 class ContextSlots:
     profile: dict = field(default_factory=dict)
     thread_summary: str = ""
+    recent_turns: list[dict] = field(default_factory=list)
     event_hits: list[dict] = field(default_factory=list)
     memory_hits: list[MemoryItem] = field(default_factory=list)
     injected_memory_ids: list[str] = field(default_factory=list)
     tool_policy: dict = field(default_factory=dict)
 
     def slot_order(self) -> list[str]:
-        return ["profile", "tool_policy", "thread_summary", "event_hits", "memory_hits"]
+        return [
+            "profile",
+            "tool_policy",
+            "thread_summary",
+            "recent_turns",
+            "event_hits",
+            "memory_hits",
+        ]
 
 
 class ContextPolicy:

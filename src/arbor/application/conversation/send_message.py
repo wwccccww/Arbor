@@ -4,10 +4,10 @@ import json
 from dataclasses import dataclass
 
 from arbor.application.conversation.compress_thread_summary import compress_thread_summary
-from arbor.application.retrieval import retrieve
+from arbor.application.conversation.context_compiler import ContextCompiler
 from arbor.application.tools.execute import execute_tool_calls
 from arbor.application.tools.run_tools import allowed_tool_names, run_persona_tools
-from arbor.domain.conversation.context_policy import ContextPolicy
+from arbor.domain.conversation.context_policy import ContextSlots
 from arbor.domain.conversation.stream import StreamFinished, parse_model_out
 from arbor.domain.conversation.thread import Citation, Message, Thread
 from arbor.domain.errors import DomainError
@@ -47,6 +47,7 @@ class SendMessage:
     vision_enrich: object | None = None
     calendar_tool: object | None = None
     ticket_tool: object | None = None
+    context_compiler: ContextCompiler | None = None
 
     def __call__(
         self,
@@ -144,6 +145,11 @@ class SendMessage:
         result = self._finish(ctx, merged)
         yield StreamFinished(json.dumps(result, ensure_ascii=False))
 
+    def _compiler(self) -> ContextCompiler:
+        if self.context_compiler is not None:
+            return self.context_compiler
+        return ContextCompiler(strategy=self.strategy)
+
     def _prepare(
         self,
         *,
@@ -165,57 +171,26 @@ class SendMessage:
         if not self.auth.can_chat(persona, user_id) and Capability.CHAT not in caps:
             raise DomainError("FORBIDDEN_CHAT", "chat grant required")
 
-        policy = ContextPolicy()
-        event_nodes = self.events.list_nodes(tenant_id, persona_id)
-        active = self.memories.list_active(tenant_id, persona_id)
         stored_attachments = _normalize_attachments(attachments)
         llm_text = self._enrich_text_with_attachments(text, stored_attachments)
-        retrieved = retrieve(
-            strategy=self.strategy if Capability.READ_MEMORY in caps else "summary_only",
+        active = self.memories.list_active(tenant_id, persona_id)
+        event_nodes = self.events.list_nodes(tenant_id, persona_id)
+
+        compiled = self._compiler().compile(
+            persona=persona,
+            thread=thread,
             query=llm_text,
+            capabilities=caps,
             tenant_id=tenant_id,
             persona_id=persona_id,
-            k=5,
             memories=active,
-            events=event_nodes,
-            summary=thread.summary,
+            event_nodes=event_nodes,
             vector_search=self.vectors.search,
             embed=self.embed.embed,
+            user_text=llm_text,
         )
-        if Capability.READ_MEMORY not in caps:
-            slots = policy.build_without_memory(persona.profile, summary="")
-            event_payload = []
-            hits: list[MemoryItem] = []
-        else:
-            hits = retrieved["hits"]
-            event_payload = [
-                {"id": e.id.value, "title": e.title, "summary": e.summary} for e in retrieved["event_nodes"]
-            ]
-            slots = policy.assemble(
-                profile=persona.profile,
-                capabilities=caps,
-                summary=thread.summary,
-                event_hits=event_payload,
-                memory_hits=hits,
-                tool_policy=persona.tool_policy,
-            )
-            extra_ids = [m.id.value for m in hits]
-            for mid in extra_ids:
-                if mid not in slots.injected_memory_ids:
-                    slots.injected_memory_ids.append(mid)
-
-        prompt_slots = {
-            "profile": slots.profile,
-            "tool_policy": slots.tool_policy,
-            "tool_results": [],
-            "thread_summary": slots.thread_summary,
-            "event_hits": slots.event_hits,
-            "memory_hits": [m.text for m in slots.memory_hits],
-            "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
-            "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
-        }
         if tool_mode() in {"keywords", "both"}:
-            prompt_slots["tool_results"] = run_persona_tools(
+            tool_results = run_persona_tools(
                 llm_text,
                 persona.tool_policy,
                 tenant_id=tenant_id,
@@ -223,6 +198,8 @@ class SendMessage:
                 calendar_tool=self.calendar_tool,
                 ticket_tool=self.ticket_tool,
             )
+            compiled = self._compiler().apply_tool_results(compiled, tool_results)
+
         extracted = self.reasoner.extract(text) if self.reasoner else None
         inbox_added = 0
         if extracted and extracted.get("text"):
@@ -243,12 +220,14 @@ class SendMessage:
             text=text,
             llm_text=llm_text,
             caps=caps,
-            slots=slots,
-            prompt_slots=prompt_slots,
-            hits=hits,
+            slots=compiled.slots,
+            prompt_slots=compiled.prompt_slots,
+            hits=compiled.hits,
+            injected_contexts=compiled.injected_contexts,
             stored_attachments=stored_attachments,
             inbox_added=inbox_added,
             persona=persona,
+            compiled=compiled,
         )
 
     def _maybe_llm_tool_round(self, ctx: _Context, llm_out: dict) -> dict:
@@ -270,7 +249,11 @@ class SendMessage:
         if not extra:
             return llm_out
         merged_results = list(ctx.prompt_slots.get("tool_results") or []) + extra
-        ctx.prompt_slots["tool_results"] = merged_results
+        compiled = self._compiler().apply_tool_results(ctx.compiled, merged_results)
+        ctx.compiled = compiled
+        ctx.prompt_slots = compiled.prompt_slots
+        ctx.slots = compiled.slots
+        ctx.injected_contexts = compiled.injected_contexts
         follow_up = self.llm.complete(
             prompt_slots=ctx.prompt_slots,
             text=ctx.llm_text,
@@ -325,19 +308,11 @@ class SendMessage:
             "citations": citations,
             "citation_items": citation_items,
             "injected_memory_ids": list(ctx.slots.injected_memory_ids),
-            "injected_contexts": [
-                "档案: " + " ".join(f"{k}={v}" for k, v in (ctx.prompt_slots.get("profile") or {}).items() if v),
-                *(["摘要: " + ctx.prompt_slots["thread_summary"]] if ctx.prompt_slots.get("thread_summary") else []),
-                *[
-                    f"事件: {event.get('title', '')} {event.get('summary', '')}".strip()
-                    if isinstance(event, dict)
-                    else f"事件: {event}"
-                    for event in ctx.prompt_slots.get("event_hits") or []
-                ],
-                *[str(memory) for memory in ctx.prompt_slots.get("memory_hits") or [] if memory],
-            ],
+            "injected_contexts": list(ctx.injected_contexts),
             "slot_order": ctx.slots.slot_order(),
             "prompt_slots": ctx.prompt_slots,
+            "context_token_budget": ctx.compiled.token_budget,
+            "context_token_estimate": ctx.compiled.token_estimate,
             "inbox_added": ctx.inbox_added,
             "attachments": [{"filename": item["filename"]} for item in ctx.stored_attachments],
         }
@@ -352,12 +327,14 @@ class _Context:
     text: str
     llm_text: str
     caps: list[Capability]
-    slots: object
+    slots: ContextSlots
     prompt_slots: dict
     hits: list[MemoryItem]
+    injected_contexts: list[str]
     stored_attachments: list[dict]
     inbox_added: int
     persona: object
+    compiled: object
 
 
 def _normalize_attachments(raw) -> list[dict]:
