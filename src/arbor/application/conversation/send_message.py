@@ -43,6 +43,7 @@ class SendMessage:
     storage: object | None = None
     enrich_with_vision: bool = True
     vision_enrich: object | None = None
+    calendar_tool: object | None = None
 
     def __call__(
         self,
@@ -195,7 +196,13 @@ class SendMessage:
         prompt_slots = {
             "profile": slots.profile,
             "tool_policy": slots.tool_policy,
-            "tool_results": run_persona_tools(llm_text, persona.tool_policy),
+            "tool_results": run_persona_tools(
+                llm_text,
+                persona.tool_policy,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                calendar_tool=self.calendar_tool,
+            ),
             "thread_summary": slots.thread_summary,
             "event_hits": slots.event_hits,
             "memory_hits": [m.text for m in slots.memory_hits],
