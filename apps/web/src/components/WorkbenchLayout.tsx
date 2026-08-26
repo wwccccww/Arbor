@@ -50,7 +50,7 @@ export function WorkbenchLayout({
               className={leftTab === 'tools' ? 'is-active' : undefined}
               onClick={() => setLeftTab('tools')}
             >
-              工具
+              授权与导入
             </button>
           </div>
         ) : null}

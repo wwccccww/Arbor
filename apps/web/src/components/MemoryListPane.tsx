@@ -30,6 +30,8 @@ export function MemoryListPane({
   onToggleEventFilter,
   onPage,
   onSelect,
+  onDelete,
+  deleteBusyId,
 }: {
   items: MemoryItem[]
   total?: number
@@ -45,6 +47,8 @@ export function MemoryListPane({
   onToggleEventFilter?: (next: boolean) => void
   onPage?: (offset: number) => void
   onSelect?: (eventId: string) => void
+  onDelete?: (memoryId: string) => void
+  deleteBusyId?: string
 }) {
   if (forbidden) {
     return (
@@ -122,6 +126,17 @@ export function MemoryListPane({
               <li key={item.id}>
                 <div className="memory-list__tag">
                   <span className="eyebrow">{meta}</span>
+                  {onDelete ? (
+                    <button
+                      type="button"
+                      className="memory-list__delete"
+                      aria-label={`删除记忆 ${item.id}`}
+                      disabled={deleteBusyId === item.id}
+                      onClick={() => onDelete(item.id)}
+                    >
+                      删除
+                    </button>
+                  ) : null}
                 </div>
                 {item.event_id ? (
                   <button type="button" onClick={() => onSelect?.(item.event_id!)}>

@@ -17,7 +17,19 @@ class RagasFaithfulnessScorer:
             from ragas.metrics import faithfulness
         except Exception:
             return None
-        # Judge wiring is opt-in via ARBOR_JUDGE_API_KEY. Without it we skip rather
-        # than score generation with the same DeepSeek model.
-        _ = (evaluate, faithfulness, Dataset, question)
-        return None
+        try:
+            dataset = Dataset.from_dict(
+                {
+                    "question": [question],
+                    "answer": [answer],
+                    "contexts": [contexts],
+                }
+            )
+            result = evaluate(dataset, metrics=[faithfulness])
+            row = result.to_pandas().iloc[0]
+            value = row.get("faithfulness")
+            if value is None:
+                return None
+            return float(value)
+        except Exception:
+            return None

@@ -86,9 +86,18 @@ export default function App() {
             let lastInteraction: string | undefined
             if (threads.length) {
               try {
-                const page = await api.listMessages(threads[threads.length - 1].id, { limit: 1, offset: 0 })
-                const last = page.items[page.items.length - 1]
-                if (last?.id) lastInteraction = last.id
+                const threadId = threads[threads.length - 1].id
+                const head = await api.listMessages(threadId, { limit: 1, offset: 0 })
+                if (head.total > 0) {
+                  const tail = await api.listMessages(threadId, {
+                    limit: 1,
+                    offset: head.total - 1,
+                  })
+                  const last = tail.items[tail.items.length - 1]
+                  if (last?.text) {
+                    lastInteraction = last.text.length > 48 ? `${last.text.slice(0, 47)}…` : last.text
+                  }
+                }
               } catch {
                 /* ignore per-persona message errors */
               }
@@ -193,12 +202,15 @@ export default function App() {
     }
   }
 
-  async function createPersona(draft: PersonaDraft) {
+  async function createPersona(draft: PersonaDraft, bootstrapFile?: File) {
     if (!client) return
     setCreatingPersona(true)
     setError(undefined)
     try {
       const created = await client.createPersona(draft)
+      if (bootstrapFile) {
+        await client.importFile(created.id, bootstrapFile, '从创建向导导入')
+      }
       setPersonas((current) => [...current, created])
       window.location.hash = `#/personas/${created.id}`
     } catch (err) {

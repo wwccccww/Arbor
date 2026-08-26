@@ -39,10 +39,11 @@ def _case_view(row: dict) -> dict:
 
 
 class StartEvalRun:
-    """Run frozen-fixture retrieval. Generation is not started from HTTP in this slice."""
+    """Run frozen-fixture retrieval or generation (suite-v1)."""
 
-    def __init__(self, *, run_retrieval, ids) -> None:
+    def __init__(self, *, run_retrieval, run_generation=None, ids) -> None:
         self.run_retrieval = run_retrieval
+        self.run_generation = run_generation
         self.ids = ids
 
     def __call__(
@@ -55,12 +56,28 @@ class StartEvalRun:
     ) -> dict:
         if not workspace_admin:
             raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
-        if mode != "retrieval":
-            raise DomainError("VALIDATION_ERROR", "only retrieval mode is available")
+        if mode not in {"retrieval", "generation"}:
+            raise DomainError("VALIDATION_ERROR", "unknown mode")
         if strategy not in STRATEGIES:
             raise DomainError("VALIDATION_ERROR", "unknown strategy")
         if suite_version not in SUITES:
             raise DomainError("VALIDATION_ERROR", "unknown suite_version")
+        if mode == "generation":
+            if suite_version != "v1":
+                raise DomainError("VALIDATION_ERROR", "generation only supports suite v1")
+            if self.run_generation is None:
+                raise DomainError("VALIDATION_ERROR", "generation not configured")
+            report = self.run_generation(strategy=strategy, suite_version=suite_version)
+            return {
+                "id": self.ids.new_id(),
+                "status": "completed",
+                "strategy": strategy,
+                "suite_version": suite_version,
+                "mode": "generation",
+                "metrics": report.get("metrics") or {},
+                "p0_tenant_leak_zero": bool(report.get("p0_tenant_leak_zero")),
+                "cases": list(report.get("cases") or []),
+            }
         report = self.run_retrieval(strategy=strategy, suite_version=suite_version)
         cases = [_case_view(row) for row in report.get("cases") or []]
         return {

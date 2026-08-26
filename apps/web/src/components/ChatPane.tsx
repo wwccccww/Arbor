@@ -35,7 +35,7 @@ export function ChatPane({
   total?: number
   pageSize?: number
   error?: string | null
-  onSend: (text: string, file?: File) => void
+  onSend: (text: string, files?: File[]) => void
   onJump: (eventId?: string) => void
   onOpenAttachment?: (filename: string) => void
   onExport?: () => void
@@ -44,7 +44,7 @@ export function ChatPane({
   onNewThread?: () => void
 }) {
   const [draft, setDraft] = useState('')
-  const [file, setFile] = useState<File | null>(null)
+  const [files, setFiles] = useState<File[]>([])
   const [fileKey, setFileKey] = useState(0)
   const transcriptRef = useRef<HTMLOListElement>(null)
   const disabled = !ready || Boolean(sending) || Boolean(switchingThread)
@@ -58,10 +58,10 @@ export function ChatPane({
   function submit(event: FormEvent) {
     event.preventDefault()
     const text = draft.trim()
-    if ((!text && !file) || disabled) return
-    onSend(text, file ?? undefined)
+    if ((!text && files.length === 0) || disabled) return
+    onSend(text, files.length ? files : undefined)
     setDraft('')
-    setFile(null)
+    setFiles([])
     setFileKey((current) => current + 1)
   }
 
@@ -166,15 +166,17 @@ export function ChatPane({
           />
         </label>
         <label>
-          选择附件
+          附件（可多选，含图片/语音/文档）
           <input
             key={fileKey}
             type="file"
+            multiple
             disabled={disabled}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a"
+            onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
           />
         </label>
-        <button type="submit" disabled={disabled || (!draft.trim() && !file)}>
+        <button type="submit" disabled={disabled || (!draft.trim() && files.length === 0)}>
           发送
         </button>
       </form>

@@ -59,5 +59,5 @@ def test_eval_run_hidden_from_other_tenant():
     )
     assert started.status_code == 202
     other = client.get(f"/v1/eval/runs/{started.json()['id']}", headers=_headers(tenant=OTHER_TENANT))
-    assert other.status_code == 404
-    assert other.json()["error"]["code"] == "NOT_FOUND"
+    assert other.status_code == 403
+    assert other.json()["error"]["code"] == "FORBIDDEN_WORKSPACE"

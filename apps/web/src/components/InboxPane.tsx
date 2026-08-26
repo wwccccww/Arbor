@@ -34,10 +34,13 @@ export function InboxPane({
         <ul className="inbox-list">
           {items.map((item) => {
             const text = item.payload?.text || item.id
+            const isConflict = item.kind === 'conflict' || Boolean(item.conflicts_with)
             const disabled = busyId === item.id
             return (
-              <li key={item.id}>
+              <li key={item.id} className={isConflict ? 'inbox-conflict' : undefined}>
+                {isConflict ? <span className="badge badge--fail">冲突</span> : null}
                 <p>{text}</p>
+                {item.conflicts_with ? <p className="form-hint">与已有记忆冲突：{item.conflicts_with}</p> : null}
                 <label>
                   <input
                     type="checkbox"

@@ -156,6 +156,9 @@ export function Home({
                       <span>
                         {memoryCount != null ? `${memoryCount} 条记忆` : '— 记忆'}
                         {threadCount != null ? (memoryCount != null ? ' · ' : ' · ') + `${threadCount} 段会话` : ''}
+                        {persona.stats?.last_interaction
+                          ? ` · 最近：${persona.stats.last_interaction}`
+                          : ''}
                       </span>
                       <span className="cta">打开 →</span>
                     </span>

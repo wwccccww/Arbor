@@ -126,4 +126,4 @@ docs/
 
 ## 许可
 
-尚未指定许可证。
+MIT License — 见 [LICENSE](LICENSE)。

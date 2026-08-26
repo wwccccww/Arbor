@@ -930,6 +930,28 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
+  /personas/{persona_id}/memories/{memory_id}:
+    delete:
+      tags: [Memory]
+      summary: 删除记忆
+      description: 需要 persona 的 admin 能力；软删除记忆并移除向量索引。
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: memory_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 已删除
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /personas/{persona_id}/imports:
     post:
       tags: [Memory]

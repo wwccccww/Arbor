@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 import json
+import logging
 import os
 import time
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.concurrency import iterate_in_threadpool
@@ -67,14 +69,16 @@ from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
 from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
+from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
+from arbor.domain.identity.tenant import Role
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import EventId, PersonaId, TenantId, ThreadId, UserId
-from arbor.env import chat_api_key, data_dir
+from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, strict_tenant_membership
 from arbor.paths import repo_root
 
 from .demo_auth import (
@@ -145,6 +149,15 @@ def _mount_web_ui(app: FastAPI) -> None:
     dist = repo_root() / "apps" / "web" / "dist"
     index = dist / "index.html"
     if not index.is_file():
+        logging.getLogger("arbor.api").warning(
+            "Web UI not built (missing %s). GET / explains how to build it.",
+            index,
+        )
+
+        @app.get("/")
+        def web_index_missing():
+            return HTMLResponse(_WEB_UI_MISSING_HTML, status_code=503)
+
         return
 
     @app.get("/")
@@ -161,6 +174,21 @@ def _mount_web_ui(app: FastAPI) -> None:
     assets = dist / "assets"
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=str(assets)), name="web-assets")
+
+
+_WEB_UI_MISSING_HTML = """<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <title>Arbor — 工作台未构建</title>
+</head>
+<body>
+  <h1>工作台还没有构建</h1>
+  <p>仓库根目录执行 <code>scripts/run.sh</code> 或 <code>scripts/run.ps1</code>，会先构建 <code>apps/web/dist</code>。</p>
+  <p>开发模式：API 8000 + <code>cd apps/web && npm run dev</code> 打开 http://localhost:5173</p>
+</body>
+</html>
+"""
 
 
 class MessageIn(BaseModel):
@@ -249,7 +277,7 @@ def _error(code: str, message: str, status: int, request_id: str | None = None) 
 
 
 def _caps_for(persona, user: dict) -> list[Capability]:
-    if user["role"] in {"owner", "admin"}:
+    if not strict_tenant_membership() and user["role"] in {"owner", "admin"}:
         return list(Capability)
     for grant in persona.grants:
         if grant.user_id.value == user["user_id"]:
@@ -364,8 +392,15 @@ async def _read_chat_payload(
         form = await request.form()
         text = str(form.get("text") or "")
         attachments: list[dict] = []
-        upload = form.get("file")
-        if upload is not None and hasattr(upload, "read"):
+        uploads: list = []
+        if hasattr(form, "getlist"):
+            uploads.extend(form.getlist("file"))
+        single = form.get("file")
+        if single is not None and single not in uploads:
+            uploads.append(single)
+        for upload in uploads:
+            if upload is None or not hasattr(upload, "read"):
+                continue
             data = await upload.read()
             _reject_oversize(data, max_upload_bytes)
             filename = str(getattr(upload, "filename", None) or "upload.bin")
@@ -484,14 +519,15 @@ def create_app(
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
     _ensure_demo_member(tenants, users)
+    static_tokens = {} if demo_tokens_disabled() else TOKENS
     if session is not None:
         import_jobs = PgImportJobRepository(session.conn)
         eval_runs = PgEvalRunRepository(session.conn)
-        auth_sessions = PgAuthSessionStore(session.conn, TOKENS)
+        auth_sessions = PgAuthSessionStore(session.conn, static_tokens)
     else:
         import_jobs = InMemoryImportJobRepository()
         eval_runs = InMemoryEvalRunRepository()
-        auth_sessions = InMemoryAuthSessionStore(TOKENS)
+        auth_sessions = InMemoryAuthSessionStore(static_tokens)
     ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     storage = build_object_storage(session=session, stores=stores)
@@ -527,6 +563,12 @@ def create_app(
         audit=record_audit,
     )
     dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
+    delete_memory = DeleteMemory(
+        personas=personas,
+        memories=memories,
+        vectors=vectors,
+        auth=AuthorizationPolicy(),
+    )
     get_tree = GetEventTree(events, memories=memories)
     get_card = GetEventCard(events=events, memories=memories, personas=personas, auth=AuthorizationPolicy())
     list_personas = ListPersonas(personas)
@@ -582,7 +624,32 @@ def create_app(
         except FileNotFoundError as exc:
             raise DomainError("VALIDATION_ERROR", "suite files missing") from exc
 
-    start_eval = StartEvalRun(run_retrieval=run_retrieval, ids=ids)
+    def run_generation_eval(*, strategy: str, suite_version: str) -> dict:
+        from arbor.adapters.inbound.eval_runner import run_generation
+
+        if not chat_api_key():
+            raise DomainError("VALIDATION_ERROR", "DEEPSEEK_API_KEY required for generation eval")
+        suite_dir = ROOT / "eval" / "fixtures" / "suite-v1"
+        return run_generation(strategy=strategy, suite_dir=suite_dir, backend=eval_backend)
+
+    start_eval = StartEvalRun(
+        run_retrieval=run_retrieval,
+        run_generation=run_generation_eval,
+        ids=ids,
+    )
+
+    def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
+        raw = (x_tenant_id or user.get("tenant_id") or "").strip()
+        if not raw:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        tenant_id = TenantId(raw)
+        if strict_tenant_membership():
+            tenant = tenants.get(tenant_id)
+            if tenant is None:
+                raise DomainError("NOT_FOUND", "not found")
+            if tenant.member(UserId(user["user_id"])) is None:
+                raise DomainError("FORBIDDEN_WORKSPACE", "not a member")
+        return tenant_id
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -598,6 +665,13 @@ def create_app(
             await pool.close()
 
     app = FastAPI(lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=os.environ.get("ARBOR_CORS_ORIGINS", "*").split(","),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     limiter = InMemoryRateLimiter(limit=rate_limit_per_window, window_seconds=rate_window_seconds)
 
     @app.middleware("http")
@@ -667,14 +741,17 @@ def create_app(
         return user
 
     def workspace_admin_for(user: dict, tenant_id: str) -> bool:
-        """Workspace-admin intent: allow tenant membership owners/admins, and keep
-        global token owners/admins as an escape hatch for cross-tenant visibility."""
-        if user["role"] in {"owner", "admin"}:
-            return True
         tenant = tenants.get(TenantId(tenant_id))
         if tenant is None:
             return False
-        return tenant.can_admin_workspace(UserId(user["user_id"]))
+        member = tenant.member(UserId(user["user_id"]))
+        if member is not None and member.role in {Role.OWNER, Role.ADMIN}:
+            return True
+        if strict_tenant_membership():
+            return False
+        if user["role"] in {"owner", "admin"} and user.get("tenant_id") == tenant_id:
+            return True
+        return False
 
     @app.post("/v1/auth/login")
     def login(payload: LoginIn):
@@ -918,6 +995,27 @@ def create_app(
             ],
             "total": page.total,
         }
+
+    @app.delete("/v1/personas/{persona_id}/memories/{memory_id}", status_code=204)
+    def remove_memory(
+        persona_id: str,
+        memory_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        tenant = resolve_tenant(user, x_tenant_id)
+        persona = personas.get(tenant, PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        delete_memory(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            memory_id=MemoryId(memory_id),
+            capabilities=_caps_for(persona, user),
+        )
+        return Response(status_code=204)
 
     @app.post("/v1/personas/{persona_id}/imports", status_code=202)
     async def post_import(
@@ -1189,7 +1287,7 @@ def create_app(
         stream: bool = Query(default=False),
     ):
         user = current_user(authorization)
-        tenant = TenantId(x_tenant_id or user["tenant_id"])
+        tenant = resolve_tenant(user, x_tenant_id)
         thread = threads.get(tenant, ThreadId(thread_id))
         if thread is None:
             raise DomainError("NOT_FOUND", "thread not found")
@@ -1345,6 +1443,7 @@ def create_app(
                     "kind": item.kind,
                     "status": item.status,
                     "payload": item.payload,
+                    "conflicts_with": item.payload.get("conflicts_with"),
                 }
                 for item in items
             ]

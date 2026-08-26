@@ -40,7 +40,12 @@ class PostgresSession:
         return cls(connect(url), url, embed=embed)
 
     def migrate(self) -> None:
+        # Close before Alembic. 0001 opens a second connection to apply
+        # schema.sql; keeping this session open across that can deadlock.
+        if self.conn is not None and not self.conn.closed:
+            self.conn.close()
         upgrade_head(self.url)
+        self.conn = connect(self.url)
         self._bind()
 
     def reset(self) -> None:
