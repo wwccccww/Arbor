@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.embedding import embedding_client_from_env, FixtureEmbeddingClient
+from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
 from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
     InMemoryPersonaRepository,
@@ -13,14 +13,14 @@ from arbor.adapters.outbound.inmemory import (
     ScriptedReasoner,
     SeqIdGenerator,
 )
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
 from arbor.adapters.outbound.object_storage import build_object_storage
 from arbor.adapters.outbound.postgres.import_jobs import (
     InMemoryImportJobRepository,
     PgImportJobRepository,
 )
-from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
-from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.import_jobs import RunImportJob
+from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId

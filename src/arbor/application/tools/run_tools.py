@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from arbor.domain.persona.authorization import ToolPolicy
 from arbor.domain.shared.ids import TenantId, UserId
@@ -16,8 +16,8 @@ _TOOL_ALIASES = {
 }
 
 _TOOL_TRIGGERS: dict[str, re.Pattern[str]] = {
-    "calendar": re.compile(r"日程|日历|会议|约会|几点|什么时候|安排", re.I),
-    "ticket": re.compile(r"工单|报修|故障|维修|投诉|ticket", re.I),
+    "calendar": re.compile(r"日程|日历|会议|约会|几点|什么时候|安排", re.IGNORECASE),
+    "ticket": re.compile(r"工单|报修|故障|维修|投诉|ticket", re.IGNORECASE),
 }
 
 
@@ -41,7 +41,7 @@ def _stub_ticket_result(text: str) -> dict:
 
 
 def _stub_calendar_result() -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return {
         "tool": "calendar",
         "status": "ok",

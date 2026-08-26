@@ -12,6 +12,7 @@ __all__ = [
     "register_audit_routes",
     "register_auth_routes",
     "register_eval_routes",
+    "register_feishu_routes",
     "register_persona_routes",
     "register_tenant_routes",
     "register_thread_routes",

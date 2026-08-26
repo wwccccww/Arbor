@@ -1,6 +1,11 @@
 import pytest
 
-from arbor.adapters.outbound.inmemory import InMemoryMemoryRepository, InMemoryPersonaRepository, InMemoryVectorIndex
+from arbor.adapters.outbound.inmemory import (
+    InMemoryMemoryRepository,
+    InMemoryObjectStorage,
+    InMemoryPersonaRepository,
+    InMemoryVectorIndex,
+)
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
@@ -32,6 +37,34 @@ def test_delete_memory_requires_admin():
             capabilities=[Capability.CHAT, Capability.READ_MEMORY, Capability.WRITE_MEMORY],
         )
     assert denied.value.code == "FORBIDDEN_MEMORY_WRITE"
+
+
+def test_delete_memory_removes_linked_object_blob():
+    stores, _send = _stack()
+    personas = InMemoryPersonaRepository(stores)
+    memories = InMemoryMemoryRepository(stores)
+    vectors = InMemoryVectorIndex(stores, memories)
+    storage = InMemoryObjectStorage(stores)
+    uri = storage.put("imports/test.bin", b"blob")
+    item = memories.get(TENANT, OLD_CAT)
+    assert item is not None
+    item.source = {"object_uri": uri}
+    memories.save(item)
+    delete = DeleteMemory(
+        personas=personas,
+        memories=memories,
+        vectors=vectors,
+        auth=AuthorizationPolicy(),
+        storage=storage,
+    )
+    delete(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        memory_id=OLD_CAT,
+        capabilities=list(Capability),
+    )
+    assert storage.get(uri) is None
 
 
 def test_delete_memory_marks_deleted_and_removes_vectors():

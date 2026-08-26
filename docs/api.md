@@ -1,6 +1,6 @@
 # HTTP 接口
 
-入站适配器：`apps/api`（FastAPI）。路径与错误码以本文和 [openapi.yaml](openapi.yaml) 为准。Router 只做 HTTP ↔ 命令/查询对象，业务在应用层。
+入站适配器：`src/arbor/adapters/inbound/http/`（`register_*.py` 注册路由）。组合根：`apps/api/factory.py`。路径与错误码以本文和 [openapi.yaml](openapi.yaml) 为准。Router 只做 HTTP ↔ 命令/查询对象，业务在应用层。
 
 生产入口 `create_app_from_env()`：有 `DEEPSEEK_API_KEY` 时用 DeepSeek Chat + Reasoner，否则 ScriptedLLM / ScriptedReasoner。单测调用 `create_app()` 始终用假适配器，即使环境里有密钥。抽取进 Inbox，确认后才写记忆。
 

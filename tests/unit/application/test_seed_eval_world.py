@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from arbor.application.evaluation.seed_world import SeedEvalWorld
-from arbor.adapters.outbound.inmemory import InMemoryStores
 from arbor.adapters.inbound.eval_runner import load_world as load_inmemory_world
+from arbor.adapters.outbound.inmemory import InMemoryStores
 from arbor.adapters.outbound.postgres.world import clear_inmemory_tenant_scope
+from arbor.application.evaluation.seed_world import SeedEvalWorld
 from arbor.domain.errors import DomainError
 from arbor.paths import repo_root
 

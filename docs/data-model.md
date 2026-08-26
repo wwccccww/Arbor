@@ -224,7 +224,13 @@ POLICY: tenant_id = current_setting('app.tenant_id')::uuid
 
 ## 4. 对象存储
 
-原图、音频、PDF 不进 Postgres 业务表。实现上由 `ObjectStorage` 适配器写入本地盘、`object_blobs` 表或 S3 兼容存储；`source.uri` / 消息 `attachments.uri` 保存返回的 key。本地开发可用 `infra/compose/minio.yml` 起 MinIO（见 [local-dev.md](local-dev.md)）。删除 MemoryItem 时由应用层发出站端口删对象（或标记 GC）。
+原图、音频、PDF 不进 Postgres 业务表。实现上由 `ObjectStorage` 适配器写入本地盘、`object_blobs` 表或 S3 兼容存储；`source.uri` / 消息 `attachments.uri` 保存返回的 key。本地开发可用 `infra/compose/minio.yml` 起 MinIO（见 [local-dev.md](local-dev.md)）。
+
+**对象清理（v1）**
+
+- 删除 `MemoryItem`：`DeleteMemory` 删除 `source` 中的 `object_uri` / `uri` / `chunk_meta.object_uri`
+- 导入任务：`RunImportJob` 在成功或失败后删除 `import_jobs.object_uri` 对应 blob（正文已进 Inbox）
+- 聊天附件：随消息 `attachments.uri` 保留，直至会话记录删除（v1 无删会话 API）
 
 ## 5. 迁移原则
 

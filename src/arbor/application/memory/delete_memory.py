@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from arbor.application.storage.object_gc import delete_stored_object, object_uris_from_memory_source
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
@@ -33,9 +34,6 @@ class DeleteMemory:
             raise DomainError("NOT_FOUND", "not found")
         self.memories.delete(tenant_id, memory_id)
         self.vectors.delete(tenant_id, memory_id)
-        if self.storage is not None and item.source:
-            object_uri = item.source.get("object_uri")
-            if object_uri:
-                delete = getattr(self.storage, "delete", None)
-                if callable(delete):
-                    delete(str(object_uri))
+        if self.storage is not None:
+            for uri in object_uris_from_memory_source(item.source):
+                delete_stored_object(self.storage, uri)

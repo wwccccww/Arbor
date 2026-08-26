@@ -1,4 +1,3 @@
-import pytest
 
 from arbor.application.retrieval import rerank_memories
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType

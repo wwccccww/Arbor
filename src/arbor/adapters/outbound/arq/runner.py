@@ -6,7 +6,8 @@ import logging
 
 from arbor.adapters.outbound.arq.import_runtime import build_import_job_runtime
 from arbor.adapters.outbound.deepseek import DeepSeekReasoner
-from arbor.env import chat_api_key, database_url as env_database_url
+from arbor.env import chat_api_key
+from arbor.env import database_url as env_database_url
 
 logger = logging.getLogger("arbor.worker")
 

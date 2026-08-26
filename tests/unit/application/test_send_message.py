@@ -98,7 +98,7 @@ def _stack(extra_citation=None, proposed_fact=None):
 
 
 def test_send_message_context_order():
-    stores, send = _stack()
+    _stores, send = _stack()
     out = send(
         tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
         user_id=USER,
@@ -111,7 +111,7 @@ def test_send_message_context_order():
 
 
 def test_send_message_no_memory_without_grant():
-    stores, send = _stack()
+    _stores, send = _stack()
     out = send(
         tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
         user_id=USER,
@@ -127,7 +127,7 @@ def test_send_message_no_memory_without_grant():
 
 
 def test_send_message_drop_hallucinated_citation():
-    stores, send = _stack(extra_citation="0a000000-0000-4000-a000-000000000401")
+    _stores, send = _stack(extra_citation="0a000000-0000-4000-a000-000000000401")
     out = send(
         tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
         user_id=USER,
@@ -158,7 +158,7 @@ def test_send_message_extract_goes_to_inbox():
 
 
 def test_confirm_inbox_makes_searchable():
-    stores, send = _stack()
+    stores, _send = _stack()
     memories = InMemoryMemoryRepository(stores)
     inbox = InMemoryInboxRepository(stores)
     vectors = InMemoryVectorIndex(stores, memories)

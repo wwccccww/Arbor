@@ -250,24 +250,24 @@ eval/
 - Inbox 确认/忽略会调对应 API
 - 三栏在窄屏不丢右栏入口（可改为抽屉）
 
-E2E（Playwright）只保留 1 条烟雾：登录 → 打开人设 → 发一句 → 看到回复。记忆正确性不靠 E2E。
+E2E（Playwright）保留 1 条烟雾：`apps/web/e2e/smoke.spec.ts`（登录 → 打开人设 → 发一句 → 看到回复）。CI `web` job 在 vitest 之后执行。记忆正确性不靠 E2E。
 
 ## 8. CI 门禁
 
-PR 流水线建议分 job，失败信息要对分层：
+PR 流水线（`.github/workflows/ci.yml`）分 job，失败信息要对分层：
 
 ```text
-lint          ruff + mypy + import-linter
-unit          tests/unit + tests/architecture
-contract      Postgres service + DATABASE_URL → tests/contract/postgres
-api           无库时内存组合根；有 DATABASE_URL 时 create_app_from_env 连真库。有 DEEPSEEK_API_KEY 时走 DeepSeek Chat/Reasoner，单测 create_app() 仍用 ScriptedLLM / ScriptedReasoner。
-eval-fixture  suite-v1 / ragas-v1 检索（CI 在 pgvector 上跑，泄漏必须为 0）
-eval-nightly  pytest -m llm：suite-v1 generation（需 DEEPSEEK_API_KEY）
-web           apps/web：vitest（适配器行为；不测检索）
+unit          ruff（src + tests）+ validate_openapi + pytest unit/architecture/eval/api/contract（-m "not llm"）+ arbor-eval 检索
+web           oxlint + vitest + build + Playwright 烟雾（e2e/smoke.spec.ts）
+nightly       可选：.github/workflows/nightly.yml（generation + pytest -m llm，需 DEEPSEEK_API_KEY）
 ```
 
-合并条件：上述全绿。  
-`tenant_leak_count` 在 eval-fixture 中必须为 0。
+**架构 import 方向** 由 `tests/architecture/test_import_rules.py` 守护（等同 import-linter 目标，未单独装 import-linter）。
+
+**mypy** 尚未接入 CI；端口 Protocol 类型靠 ruff + 单测覆盖。
+
+合并条件：`unit` 与 `web` 全绿。  
+`tenant_leak_count` 在 eval-fixture（unit job 内 arbor-eval）中必须为 0。
 
 覆盖率：领域 + 应用层行覆盖建议 ≥ 80%。适配器不追求数字，靠契约清单。不要为覆盖率测 DeepSeek SDK。
 

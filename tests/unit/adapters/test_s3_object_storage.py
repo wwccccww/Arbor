@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 from arbor.adapters.outbound.s3 import S3ObjectStorage
 
 

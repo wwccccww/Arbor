@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from arbor.application.memory.media_to_inbox import MediaInboxResult
+from arbor.application.storage.object_gc import delete_stored_object
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
@@ -149,3 +150,5 @@ class RunImportJob:
                 error=str(exc),
                 finished=True,
             )
+        finally:
+            delete_stored_object(self.storage, object_uri)

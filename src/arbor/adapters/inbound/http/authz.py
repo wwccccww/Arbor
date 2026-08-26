@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from arbor.adapters.inbound.http.serialization import caps_for
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import Capability
-
-from arbor.adapters.inbound.http.serialization import caps_for
 
 
 def require_read(persona, user: dict) -> list[Capability]:

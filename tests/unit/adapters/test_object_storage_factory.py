@@ -1,4 +1,3 @@
-import pytest
 
 from arbor.adapters.outbound.object_storage import build_object_storage, object_store_label
 from arbor.adapters.outbound.postgres.blobs import PgBlobObjectStorage

@@ -4,8 +4,6 @@ import os
 
 from psycopg.rows import dict_row
 
-from arbor.adapters.outbound.postgres.connection import connect
-
 
 def pool_size_from_env() -> int:
     raw = (os.environ.get("ARBOR_PG_POOL_SIZE") or "").strip()

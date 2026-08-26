@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 from arbor.application.tools.run_tools import run_persona_tools
 from arbor.domain.persona.authorization import ToolPolicy
 

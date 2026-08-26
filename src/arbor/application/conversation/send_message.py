@@ -7,7 +7,6 @@ from arbor.application.conversation.compress_thread_summary import compress_thre
 from arbor.application.retrieval import retrieve
 from arbor.application.tools.execute import execute_tool_calls
 from arbor.application.tools.run_tools import allowed_tool_names, run_persona_tools
-from arbor.env import tool_mode
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.stream import StreamFinished, parse_model_out
 from arbor.domain.conversation.thread import Citation, Message, Thread
@@ -15,6 +14,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import InboxItem, MemoryItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.env import tool_mode
 from arbor.ports.outbound import (
     EmbeddingClient,
     EventGraphRepository,

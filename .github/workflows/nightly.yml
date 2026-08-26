@@ -1,0 +1,39 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  generation-llm:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: arbor
+          POSTGRES_PASSWORD: arbor
+          POSTGRES_DB: arbor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arbor -d arbor"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://arbor:arbor@localhost:5432/arbor
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api,postgres]"
+      - name: Generation pytest (skipped without API key)
+        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        run: python3 -m pytest tests/eval -q -m llm
+      - name: arbor-eval generation suite-v1
+        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy layered_tree --mode generation --backend postgres
