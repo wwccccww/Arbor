@@ -1250,6 +1250,34 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /eval/seed-world:
+    post:
+      tags: [Eval]
+      summary: 装载 suite-v1 冻结演示世界
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 已装载
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suite_version:
+                    type: string
+                  tenant_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+                  persona_count:
+                    type: integer
+                  memory_count:
+                    type: integer
+        "403":
+          $ref: "#/components/responses/Error"
+
   /eval/runs:
     post:
       tags: [Eval]

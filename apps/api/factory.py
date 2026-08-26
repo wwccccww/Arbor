@@ -1,19 +1,21 @@
 from contextlib import asynccontextmanager
-import json
 import logging
 import os
-import time
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
-from starlette.concurrency import iterate_in_threadpool
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
+from arbor.adapters.inbound.http.errors import error_response
+from arbor.adapters.inbound.http.register_audit import AuditHttpDeps, register_audit_routes
+from arbor.adapters.inbound.http.register_auth import AuthHttpDeps, register_auth_routes
 from arbor.adapters.inbound.http.register_eval import EvalHttpDeps, register_eval_routes
+from arbor.adapters.inbound.http.register_personas import PersonaHttpDeps, register_persona_routes
+from arbor.adapters.inbound.http.register_tenants import TenantHttpDeps, register_tenant_routes
+from arbor.adapters.inbound.http.register_threads import ThreadHttpDeps, register_thread_routes
 from arbor.adapters.outbound.auth_sessions import InMemoryAuthSessionStore
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.adapters.outbound.embedding import EmbeddingUnavailable, embedding_client_from_env
@@ -81,7 +83,7 @@ from arbor.application.persona.queries import ListPersonas
 from arbor.domain.identity.tenant import Role
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
+from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, strict_tenant_membership
 from arbor.paths import repo_root
 
@@ -195,256 +197,10 @@ _WEB_UI_MISSING_HTML = """<!doctype html>
 """
 
 
-class MessageIn(BaseModel):
-    text: str = ""
-    attachments: list = Field(default_factory=list)
+def _reject_oversize(data: bytes, limit: int) -> None:
+    from arbor.adapters.inbound.http.chat import reject_oversize
 
-
-class GrantsIn(BaseModel):
-    grants: list = Field(default_factory=list)
-
-
-class ConfirmIn(BaseModel):
-    mark_key_event: bool = False
-
-
-class LoginIn(BaseModel):
-    email: str
-    password: str
-
-
-class RefreshIn(BaseModel):
-    refresh_token: str
-
-
-class LogoutIn(BaseModel):
-    refresh_token: str = ""
-
-
-class PersonaIn(BaseModel):
-    skin: str = "companion"
-    display_name: str = ""
-    one_liner: str = ""
-    personality: dict | None = None
-    taboos: list[str] = Field(default_factory=list)
-    relationships: list[dict] = Field(default_factory=list)
-    template: str | None = None
-    avatar: str = ""
-
-
-class PersonaPatchIn(BaseModel):
-    skin: str | None = None
-    display_name: str | None = None
-    one_liner: str | None = None
-    personality: dict | None = None
-    taboos: list[str] | None = None
-    relationships: list[dict] | None = None
-    tool_policy: dict | None = None
-    avatar: str | None = None
-
-
-class PersonaEvalIn(BaseModel):
-    strategy: str = "layered_tree"
-
-
-class MemberPatchIn(BaseModel):
-    role: str
-
-
-class TenantIn(BaseModel):
-    name: str = ""
-
-
-class MemberIn(BaseModel):
-    email: str
-    role: str = "member"
-
-
-class EvalRunIn(BaseModel):
-    strategy: str
-    suite_version: str
-    mode: str = "retrieval"
-
-
-_CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-
-
-def new_request_id() -> str:
-    ms = int(time.time() * 1000) & ((1 << 48) - 1)
-    rand = int.from_bytes(os.urandom(10), "big")
-    n = (ms << 80) | rand
-    chars = ["0"] * 26
-    for i in range(25, -1, -1):
-        chars[i] = _CROCKFORD[n & 31]
-        n >>= 5
-    return "".join(chars)
-
-
-def _error(code: str, message: str, status: int, request_id: str | None = None) -> JSONResponse:
-    return JSONResponse(
-        status_code=status,
-        content={"error": {"code": code, "message": message, "request_id": request_id or new_request_id()}},
-    )
-
-
-def _caps_for(persona, user: dict) -> list[Capability]:
-    if not strict_tenant_membership() and user["role"] in {"owner", "admin"}:
-        return list(Capability)
-    for grant in persona.grants:
-        if grant.user_id.value == user["user_id"]:
-            return list(grant.capabilities)
-    return []
-
-
-def _grant_json(grant) -> dict:
-    return {
-        "user_id": grant.user_id.value,
-        "capabilities": [cap.value for cap in grant.capabilities],
-    }
-
-
-def _persona_json(persona, caps: list[Capability]) -> dict:
-    body = {
-        "id": persona.id.value,
-        "skin": persona.skin,
-        "display_name": persona.profile.display_name,
-        "one_liner": persona.profile.one_liner,
-        "avatar": persona.profile.avatar or "",
-    }
-    if Capability.READ_MEMORY in caps:
-        body["taboos"] = list(persona.profile.taboos)
-        body["relationships"] = list(persona.profile.relationships)
-        body["personality"] = persona.profile.personality
-    if Capability.ADMIN in caps:
-        body["grants"] = [_grant_json(grant) for grant in persona.grants]
-        body["tool_policy"] = {
-            "allowed_tools": list(persona.tool_policy.allowed_tools),
-            "notes": persona.tool_policy.notes,
-        }
-    return body
-
-
-def _public_attachments(items) -> list[dict]:
-    return [
-        {"filename": item["filename"]}
-        for item in items or []
-        if isinstance(item, dict) and item.get("filename")
-    ]
-
-
-def _citation_json(memories, tenant: TenantId, citation) -> dict:
-    """Project a stored citation into the same shape post_message returns, so the
-    frontend can show readable previews and jump to the related event."""
-    body: dict = {}
-    if citation.memory_id:
-        body["memory_id"] = citation.memory_id.value
-        item = memories.get(tenant, citation.memory_id)
-        if item is not None:
-            body["preview"] = (item.text or "")[:40]
-            if item.event_id:
-                body["event_id"] = item.event_id.value
-    if citation.event_id:
-        body["event_id"] = citation.event_id.value
-    return body
-
-
-async def _sse_stream(streamer, extra_inbox_created: int = 0):
-    """Turn a sync ``stream_reply`` generator into an SSE event stream.
-
-    Emits ``data: {"type":"delta","text":...}`` for each text chunk and a final
-    ``data: {"type":"done", ...}`` carrying the persisted message id, citations
-    and metadata. ``iter_in_threadpool`` keeps the blocking model calls off the
-    event loop.
-    """
-    from arbor.domain.conversation.stream import StreamFinished
-
-    final: dict | None = None
-    async for chunk in iterate_in_threadpool(streamer):
-        if isinstance(chunk, StreamFinished):
-            final = _parse_stream_finished(chunk.raw)
-            continue
-        if isinstance(chunk, str) and chunk:
-            yield _sse_event({"type": "delta", "text": chunk})
-    if final is None:
-        final = {"text": ""}
-    yield _sse_event(
-        {
-            "type": "done",
-            "message_id": final.get("message_id"),
-            "text": final.get("text", ""),
-            "citations": final.get("citation_items") or [],
-            "injected_memory_ids": final.get("injected_memory_ids") or [],
-            "inbox_created": (final.get("inbox_added") or 0) + int(extra_inbox_created or 0),
-            "attachments": final.get("attachments") or [],
-        }
-    )
-
-
-def _sse_event(payload: dict) -> str:
-    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
-
-
-def _parse_stream_finished(raw: str) -> dict:
-    """Convert the streamed-final envelope (already the post-message payload
-    produced by SendMessage.stream_reply) back into a dict for the SSE ``done``
-    event. The ``stream_reply`` generator yields a model JSON envelope, so we
-    parse it here."""
-    try:
-        data = json.loads(raw)
-        return data if isinstance(data, dict) else {}
-    except json.JSONDecodeError:
-        return {"text": raw}
-
-
-async def _read_chat_payload(
-    request: Request,
-    storage,
-    tenant: TenantId,
-    thread_id: str,
-    max_upload_bytes: int,
-) -> tuple[str, list]:
-    content_type = request.headers.get("content-type") or ""
-    if content_type.startswith("multipart/form-data"):
-        form = await request.form()
-        text = str(form.get("text") or "")
-        attachments: list[dict] = []
-        uploads: list = []
-        if hasattr(form, "getlist"):
-            uploads.extend(form.getlist("file"))
-        single = form.get("file")
-        if single is not None and single not in uploads:
-            uploads.append(single)
-        for upload in uploads:
-            if upload is None or not hasattr(upload, "read"):
-                continue
-            data = await upload.read()
-            _reject_oversize(data, max_upload_bytes)
-            filename = str(getattr(upload, "filename", None) or "upload.bin")
-            filename = filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1].strip() or "upload.bin"
-            uri = storage.put(f"chat/{tenant.value}/{thread_id}/{filename}", data)
-            attachments.append({"filename": filename, "uri": uri})
-        return text, attachments
-    try:
-        body = await request.json()
-    except Exception as exc:
-        raise DomainError("VALIDATION_ERROR", "invalid json") from exc
-    if not isinstance(body, dict):
-        raise DomainError("VALIDATION_ERROR", "invalid body")
-    payload = MessageIn.model_validate(body)
-    return payload.text, list(payload.attachments or [])
-
-
-def _ensure_demo_member(tenants, users) -> None:
-    ensure_demo_member(tenants, users)
-
-
-def _tenant_json(tenant, user_id: UserId) -> dict:
-    membership = tenant.member(user_id)
-    return {
-        "id": tenant.id.value,
-        "name": tenant.name,
-        "role": membership.role.value if membership else None,
-    }
+    reject_oversize(data, limit)
 
 
 def _highest_seq_id(session) -> int:
@@ -534,7 +290,7 @@ def create_app(
         audit_logs = InMemoryAuditLogRepository(stores)
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
-    _ensure_demo_member(tenants, users)
+    ensure_demo_member(tenants, users)
     static_tokens = {} if demo_tokens_disabled() else TOKENS
     if session is not None:
         import_jobs = PgImportJobRepository(session.conn)
@@ -798,7 +554,7 @@ def create_app(
                 limiter.check(key)
             except DomainError as exc:
                 if exc.code == "RATE_LIMITED":
-                    return _error(exc.code, str(exc), 429)
+                    return error_response(exc.code, str(exc), 429)
                 raise
         return await call_next(request)
 
@@ -837,15 +593,15 @@ def create_app(
             status = 429
         elif exc.code == "UPSTREAM_UNAVAILABLE":
             status = 503
-        return _error(exc.code, str(exc), status)
+        return error_response(exc.code, str(exc), status)
 
     @app.exception_handler(DeepSeekUnavailable)
     async def deepseek_error(_, exc: DeepSeekUnavailable):
-        return _error("UPSTREAM_UNAVAILABLE", "chat model unavailable", 503)
+        return error_response("UPSTREAM_UNAVAILABLE", "chat model unavailable", 503)
 
     @app.exception_handler(EmbeddingUnavailable)
     async def embedding_error(_, exc: EmbeddingUnavailable):
-        return _error("UPSTREAM_UNAVAILABLE", "embedding model unavailable", 503)
+        return error_response("UPSTREAM_UNAVAILABLE", "embedding model unavailable", 503)
 
     def current_user(authorization: str | None):
         if not authorization or not authorization.lower().startswith("bearer "):
@@ -885,821 +641,84 @@ def create_app(
         ),
     )
 
-    @app.post("/v1/auth/login")
-    def login(payload: LoginIn):
-        email = (payload.email or "").strip().lower()
-        profile = authenticate_user(users, tenants, email, payload.password)
-        if profile is None:
-            profile = profile_for_demo_email(email)
-            if profile is None or not demo_password_ok(email, payload.password):
-                raise DomainError("UNAUTHENTICATED", "bad credentials")
-        return app.state.auth_sessions.issue(profile)
-
-    @app.post("/v1/auth/refresh")
-    def refresh(payload: RefreshIn):
-        tokens = app.state.auth_sessions.refresh_session(payload.refresh_token)
-        if tokens is None:
-            raise DomainError("UNAUTHENTICATED", "bad refresh token")
-        return tokens
-
-    @app.post("/v1/auth/logout")
-    def logout(payload: LogoutIn | None = None):
-        token = (payload.refresh_token if payload else "") or ""
-        app.state.auth_sessions.logout(token)
-        return {"ok": True}
-
-    @app.get("/v1/me")
-    def me(authorization: str | None = Header(default=None)):
-        user = current_user(authorization)
-        actor = UserId(user["user_id"])
-        return {
-            "user": {"id": user["user_id"], "email": user["email"]},
-            "tenants": [_tenant_json(item, actor) for item in list_tenants(user_id=actor)],
-            "runtime": app.state.runtime,
-        }
-
-    @app.get("/v1/tenants")
-    def get_tenants(authorization: str | None = Header(default=None)):
-        user = current_user(authorization)
-        actor = UserId(user["user_id"])
-        return {"items": [_tenant_json(item, actor) for item in list_tenants(user_id=actor)]}
-
-    @app.post("/v1/tenants", status_code=201)
-    def post_tenant(
-        payload: TenantIn,
-        authorization: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        actor = UserId(user["user_id"])
-        tenant = create_tenant(user_id=actor, name=payload.name)
-        return _tenant_json(tenant, actor)
-
-    @app.delete("/v1/tenants/{tenant_id}", status_code=204)
-    def remove_tenant(
-        tenant_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if x_tenant_id and x_tenant_id != tenant_id:
-            raise DomainError("NOT_FOUND", "not found")
-        delete_tenant(tenant_id=TenantId(tenant_id), actor_id=UserId(user["user_id"]))
-
-    @app.get("/v1/tenants/{tenant_id}/members")
-    def get_members(
-        tenant_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if x_tenant_id != tenant_id:
-            raise DomainError("NOT_FOUND", "not found")
-        return {
-            "items": list_members(tenant_id=TenantId(tenant_id), actor_id=UserId(user["user_id"]))
-        }
-
-    @app.post("/v1/tenants/{tenant_id}/members", status_code=201)
-    def post_member(
-        tenant_id: str,
-        payload: MemberIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if x_tenant_id != tenant_id:
-            raise DomainError("NOT_FOUND", "not found")
-        return add_member(
-            tenant_id=TenantId(tenant_id),
-            actor_id=UserId(user["user_id"]),
-            email=payload.email,
-            role=payload.role,
-        )
-
-    @app.patch("/v1/tenants/{tenant_id}/members/{user_id}")
-    def patch_member_route(
-        tenant_id: str,
-        user_id: str,
-        payload: MemberPatchIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if x_tenant_id != tenant_id:
-            raise DomainError("NOT_FOUND", "not found")
-        return patch_member(
-            tenant_id=TenantId(tenant_id),
-            actor_id=UserId(user["user_id"]),
-            user_id=UserId(user_id),
-            role=payload.role,
-        )
-
-    @app.get("/v1/personas")
-    def get_personas(
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        items = list_personas(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            workspace_admin=workspace_admin_for(user, x_tenant_id),
-        )
-        return {
-            "items": [_persona_json(persona, _caps_for(persona, user)) for persona in items]
-        }
-
-    @app.post("/v1/personas", status_code=201)
-    def post_persona(
-        payload: PersonaIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = create_persona(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            workspace_admin=workspace_admin_for(user, x_tenant_id),
-            skin=payload.skin,
-            display_name=payload.display_name,
-            one_liner=payload.one_liner,
-            personality=payload.personality,
-            taboos=payload.taboos,
-            relationships=payload.relationships,
-            template=payload.template,
-            avatar=payload.avatar,
-        )
-        return _persona_json(persona, list(Capability))
-
-    @app.get("/v1/personas/{persona_id}")
-    def get_persona(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None or x_tenant_id != persona.tenant_id.value:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
-        if not caps:
-            raise DomainError("NOT_FOUND", "not found")
-        return _persona_json(persona, caps)
-
-    @app.patch("/v1/personas/{persona_id}")
-    def patch_persona_route(
-        persona_id: str,
-        payload: PersonaPatchIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
-        if not caps:
-            raise DomainError("NOT_FOUND", "not found")
-        updated = patch_persona(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            capabilities=caps,
-            display_name=payload.display_name,
-            one_liner=payload.one_liner,
-            personality=payload.personality,
-            taboos=payload.taboos,
-            relationships=payload.relationships,
-            skin=payload.skin,
-            tool_policy=payload.tool_policy,
-            avatar=payload.avatar,
-        )
-        return _persona_json(updated, caps)
-
-    @app.get("/v1/personas/{persona_id}/memories")
-    def get_memories(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-        type: str | None = Query(default=None),
-        event_id: str | None = Query(default=None),
-        status: str | None = Query(default="active"),
-        limit: int = Query(default=50),
-        offset: int = Query(default=0),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        page = list_memories(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            capabilities=_caps_for(persona, user),
-            memory_type=type,
-            event_id=event_id,
-            status=status,
-            limit=limit,
-            offset=offset,
-        )
-        return {
-            "items": [
-                {
-                    "id": item.id.value,
-                    "text": item.text,
-                    "type": item.type.value,
-                    "status": item.status.value,
-                    "event_id": item.event_id.value if item.event_id else None,
-                }
-                for item in page.items
-            ],
-            "total": page.total,
-        }
-
-    @app.delete("/v1/personas/{persona_id}/memories/{memory_id}", status_code=204)
-    def remove_memory(
-        persona_id: str,
-        memory_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        tenant = resolve_tenant(user, x_tenant_id)
-        persona = personas.get(tenant, PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        delete_memory(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            memory_id=MemoryId(memory_id),
-            capabilities=_caps_for(persona, user),
-        )
-        return Response(status_code=204)
-
-    @app.post("/v1/personas/{persona_id}/imports", status_code=202)
-    async def post_import(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-        file: UploadFile = File(...),
-        hint: str | None = Form(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _require_write(persona, user)
-        data = await file.read()
-        _reject_oversize(data, max_upload_bytes)
-        job = submit_import(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            filename=file.filename or "upload.bin",
-            data=data,
-            hint=hint,
-            capabilities=caps,
-        )
-        payload = {
-            "job_id": job["id"],
-            "tenant_id": x_tenant_id,
-            "persona_id": persona_id,
-            "object_uri": job["object_uri"],
-            "filename": job["filename"],
-            "hint": hint,
-            "user_id": user["user_id"],
-        }
-        await job_queue_holder.enqueue_import_job(payload)
-        if job_queue_holder.is_async:
-            return {
-                "job_id": job["id"],
-                "status": "pending",
-                "inbox_created": 0,
-            }
-        updated = import_jobs.get(x_tenant_id, job["id"]) or job
-        return {
-            "job_id": updated["id"],
-            "status": updated.get("status", "completed"),
-            "inbox_created": int(updated.get("inbox_created") or 0),
-        }
-
-    @app.get("/v1/imports/{job_id}")
-    def get_import(
-        job_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        job = import_jobs.get(x_tenant_id, job_id)
-        if job is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(job["persona_id"]))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        _require_write(persona, user)
-        return {
-            "id": job["id"],
-            "status": job["status"],
-            "filename": job["filename"],
-            "persona_id": job["persona_id"],
-            "inbox_created": job.get("inbox_created", 0),
-            "error": job.get("error"),
-            "parser": job.get("parser"),
-            "media_kind": job.get("media_kind"),
-            "chunks_parsed": job.get("chunks_parsed", 0),
-        }
-
-    @app.get("/v1/audit-logs")
-    def get_audit_logs(
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-        action: str | None = Query(default=None),
-        persona_id: str | None = Query(default=None),
-        since: str | None = Query(default=None),
-        until: str | None = Query(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        items = list_audit_logs(
-            tenant_id=TenantId(x_tenant_id),
-            workspace_admin=workspace_admin_for(user, x_tenant_id),
-            action=action,
-            persona_id=PersonaId(persona_id) if persona_id else None,
-            since=since,
-            until=until,
-        )
-        return {
-            "items": [
-                {
-                    "id": entry.id,
-                    "actor_user_id": entry.actor_user_id.value,
-                    "action": entry.action,
-                    "resource_type": entry.resource_type,
-                    "resource_id": entry.resource_id,
-                    "persona_id": entry.persona_id.value if entry.persona_id else None,
-                    "payload": entry.payload,
-                    "created_at": entry.created_at,
-                }
-                for entry in items
-            ]
-        }
-
-    @app.put("/v1/personas/{persona_id}/grants")
-    def put_grants(
-        persona_id: str,
-        payload: GrantsIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        persona = personas.get(TenantId(x_tenant_id or ""), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _caps_for(persona, user)
-        if not caps:
-            raise DomainError("NOT_FOUND", "not found")
-        updated = replace_grants(
-            tenant_id=TenantId(x_tenant_id or user["tenant_id"]),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            grants=payload.grants,
-            capabilities=caps,
-        )
-        return {
-            "ok": True,
-            "grants": [_grant_json(grant) for grant in updated.grants],
-        }
-
-    @app.get("/v1/personas/{persona_id}/threads")
-    def get_threads(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        items = list_threads(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            capabilities=_caps_for(persona, user),
-        )
-        return {"items": [{"id": thread.id.value, "persona_id": thread.persona_id.value} for thread in items]}
-
-    @app.post("/v1/personas/{persona_id}/threads", status_code=201)
-    def post_thread(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        thread = create_thread(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            capabilities=_caps_for(persona, user),
-        )
-        return {"id": thread.id.value, "persona_id": thread.persona_id.value}
-
-    @app.get("/v1/threads/{thread_id}/messages")
-    def get_messages(
-        thread_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-        limit: int = Query(default=50),
-        offset: int = Query(default=0),
-    ):
-        user = current_user(authorization)
-        tenant = TenantId(x_tenant_id or user["tenant_id"])
-        thread = threads.get(tenant, ThreadId(thread_id))
-        if thread is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(tenant, thread.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        page = list_messages(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            thread_id=ThreadId(thread_id),
-            capabilities=_caps_for(persona, user),
-            limit=limit,
-            offset=offset,
-        )
-        return {
-            "items": [
-                {
-                    "id": message.id,
-                    "role": message.role,
-                    "content": message.content,
-                    "citations": [_citation_json(memories, tenant, c) for c in message.citations],
-                    "attachments": _public_attachments(message.attachments),
-                }
-                for message in page.items
-            ],
-            "total": page.total,
-        }
-
-    @app.post("/v1/threads/{thread_id}/messages")
-    async def post_message(
-        thread_id: str,
-        request: Request,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-        stream: bool = Query(default=False),
-    ):
-        user = current_user(authorization)
-        tenant = resolve_tenant(user, x_tenant_id)
-        thread = threads.get(tenant, ThreadId(thread_id))
-        if thread is None:
-            raise DomainError("NOT_FOUND", "thread not found")
-        persona = personas.get(tenant, thread.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "persona not found")
-        caps = _caps_for(persona, user)
-        if Capability.CHAT not in caps:
-            raise DomainError("FORBIDDEN_CHAT", "no grant")
-        text, attachments = await _read_chat_payload(
-            request, storage, tenant, thread_id, max_upload_bytes
-        )
-        chat_media_added = 0
-        if Capability.WRITE_MEMORY in caps and attachments:
-            for att in attachments:
-                uri = att.get("uri") or ""
-                fn = att.get("filename") or ""
-                if not uri or not fn:
-                    continue
-                blob = storage.get(uri)
-                if not blob:
-                    continue
-                try:
-                    added = media_to_inbox(
-                        tenant_id=tenant,
-                        user_id=UserId(user["user_id"]),
-                        persona_id=thread.persona_id,
-                        filename=fn,
-                        data=blob,
-                        capabilities=caps,
-                        use_reasoner_for_facts=False,
-                    )
-                    chat_media_added += added.inbox_created
-                except DomainError:
-                    continue
-        if stream:
-            streamer = send.stream_reply(
-                tenant_id=tenant,
-                user_id=UserId(user["user_id"]),
-                thread_id=ThreadId(thread_id),
-                persona_id=thread.persona_id,
-                text=text,
-                capabilities=caps,
-                attachments=attachments,
-            )
-            return StreamingResponse(
-                _sse_stream(streamer, extra_inbox_created=chat_media_added),
-                media_type="text/event-stream",
-            )
-        result = send(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            thread_id=ThreadId(thread_id),
-            persona_id=thread.persona_id,
-            text=text,
-            capabilities=caps,
-            attachments=attachments,
-        )
-        return {
-            "message_id": result.get("message_id"),
-            "role": "assistant",
-            "text": result["text"],
-            "citations": result.get("citation_items") or [],
-            "injected_memory_ids": result["injected_memory_ids"],
-            "inbox_created": (result.get("inbox_added") or 0) + chat_media_added,
-            "attachments": result.get("attachments") or [],
-        }
-
-    @app.get("/v1/threads/{thread_id}/attachments/{filename}")
-    def get_chat_file(
-        thread_id: str,
-        filename: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        tenant = TenantId(x_tenant_id)
-        thread = threads.get(tenant, ThreadId(thread_id))
-        if thread is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(tenant, thread.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        result = get_chat_attachment(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            thread_id=ThreadId(thread_id),
-            filename=filename,
-            capabilities=_caps_for(persona, user),
-        )
-        safe_name = result["filename"].replace('"', "")
-        return Response(
-            content=result["data"],
-            media_type="application/octet-stream",
-            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
-        )
-
-    @app.post("/v1/threads/{thread_id}/export")
-    def post_thread_export(
-        thread_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        tenant = TenantId(x_tenant_id)
-        thread = threads.get(tenant, ThreadId(thread_id))
-        if thread is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(tenant, thread.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        return export_thread(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            thread_id=ThreadId(thread_id),
-            capabilities=_caps_for(persona, user),
-        )
-
-    def _require_read(persona, user):
-        caps = _caps_for(persona, user)
-        if Capability.READ_MEMORY not in caps:
-            raise DomainError("NOT_FOUND", "not found")
-        return caps
-
-    def _require_write(persona, user):
-        caps = _caps_for(persona, user)
-        if Capability.WRITE_MEMORY not in caps and Capability.ADMIN not in caps:
-            raise DomainError("NOT_FOUND", "not found")
-        return caps
-
-    @app.get("/v1/personas/{persona_id}/inbox")
-    def list_inbox(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        _require_write(persona, user)
-        items = inbox.list_pending(TenantId(x_tenant_id), PersonaId(persona_id))
-        return {
-            "items": [
-                {
-                    "id": item.id,
-                    "kind": item.kind,
-                    "status": item.status,
-                    "payload": item.payload,
-                    "conflicts_with": item.payload.get("conflicts_with"),
-                }
-                for item in items
-            ]
-        }
-
-    @app.post("/v1/personas/{persona_id}/inbox/bootstrap")
-    def bootstrap_persona_inbox(
-        persona_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _require_write(persona, user)
-        return bootstrap_inbox(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            capabilities=caps,
-        )
-
-    @app.post("/v1/inbox/{inbox_id}/confirm")
-    def confirm_inbox(
-        inbox_id: str,
-        payload: ConfirmIn | None = None,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        tenant = TenantId(x_tenant_id or user["tenant_id"])
-        item = inbox.get(tenant, inbox_id)
-        if item is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(tenant, item.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _require_write(persona, user)
-        memory = confirm(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            persona_id=item.persona_id,
-            inbox_id=inbox_id,
-            capabilities=caps,
-            mark_key_event=bool(payload.mark_key_event) if payload else False,
-        )
-        body = {"id": memory.id.value, "text": memory.text}
-        if memory.event_id:
-            body["event_id"] = memory.event_id.value
-        return body
-
-    @app.post("/v1/inbox/{inbox_id}/dismiss")
-    def dismiss_inbox(
-        inbox_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        tenant = TenantId(x_tenant_id or user["tenant_id"])
-        item = inbox.get(tenant, inbox_id)
-        if item is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(tenant, item.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        caps = _require_write(persona, user)
-        dismiss(
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            persona_id=item.persona_id,
-            inbox_id=inbox_id,
-            capabilities=caps,
-        )
-        return {"ok": True}
-
-    @app.get("/v1/personas/{persona_id}/events/tree")
-    def list_event_tree(
-        persona_id: str,
-        view: str = Query(default="tree"),
-        key_only: bool = Query(default=True),
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        _require_read(persona, user)
-        tree = get_tree(
-            tenant_id=TenantId(x_tenant_id),
-            persona_id=PersonaId(persona_id),
-            view=view,
-            key_only=key_only,
-        )
-        memory_ids = tree.get("memory_ids") or {}
-        return {
-            "nodes": [
-                {
-                    "id": node.id.value,
-                    "title": node.title,
-                    "happened_at": node.happened_at,
-                    "type": node.type,
-                    "importance": node.importance,
-                    "summary": node.summary,
-                    "confidence": node.confidence,
-                    "memory_ids": memory_ids.get(node.id.value, []),
-                }
-                for node in tree["nodes"]
-            ],
-            "edges": [
-                {
-                    "from_id": edge.from_id.value,
-                    "to_id": edge.to_id.value,
-                    "kind": edge.kind,
-                }
-                for edge in tree["edges"]
-            ],
-        }
-
-    @app.get("/v1/events/{event_id}")
-    def get_event_card(
-        event_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        preview = events.get(TenantId(x_tenant_id), EventId(event_id))
-        if preview is None:
-            raise DomainError("NOT_FOUND", "not found")
-        persona = personas.get(TenantId(x_tenant_id), preview.persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        card = get_card(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
-            event_id=EventId(event_id),
-            capabilities=_caps_for(persona, user),
-        )
-        node = card["node"]
-        return {
-            "id": node.id.value,
-            "persona_id": node.persona_id.value,
-            "title": node.title,
-            "happened_at": node.happened_at,
-            "type": node.type,
-            "importance": node.importance,
-            "summary": node.summary,
-            "confidence": node.confidence,
-            "participants": list(card.get("participants") or []),
-            "causal_in": list(card.get("causal_in") or []),
-            "causal_out": list(card.get("causal_out") or []),
-            "verbatim": [{"id": item.id.value, "text": item.text} for item in card.get("verbatim") or []],
-            "attachments": [
-                {"id": item.id.value, "type": item.type.value, "text": item.text}
-                for item in card["attachments"]
-            ],
-            "memories": [{"id": item.id.value, "text": item.text} for item in card["memories"]],
-        }
+    register_auth_routes(
+        app,
+        AuthHttpDeps(
+            users=users,
+            tenants=tenants,
+            list_tenants=list_tenants,
+            authenticate_user=authenticate_user,
+            profile_for_demo_email=profile_for_demo_email,
+            demo_password_ok=demo_password_ok,
+            current_user=current_user,
+        ),
+    )
+    register_tenant_routes(
+        app,
+        TenantHttpDeps(
+            list_tenants=list_tenants,
+            create_tenant=create_tenant,
+            delete_tenant=delete_tenant,
+            list_members=list_members,
+            add_member=add_member,
+            patch_member=patch_member,
+            current_user=current_user,
+        ),
+    )
+    register_persona_routes(
+        app,
+        PersonaHttpDeps(
+            personas=personas,
+            memories=memories,
+            inbox=inbox,
+            events=events,
+            import_jobs=import_jobs,
+            job_queue_holder=job_queue_holder,
+            list_personas=list_personas,
+            create_persona=create_persona,
+            patch_persona=patch_persona,
+            replace_grants=replace_grants,
+            list_memories=list_memories,
+            delete_memory=delete_memory,
+            submit_import=submit_import,
+            bootstrap_inbox=bootstrap_inbox,
+            confirm=confirm,
+            dismiss=dismiss,
+            get_tree=get_tree,
+            get_card=get_card,
+            max_upload_bytes=max_upload_bytes,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+            resolve_tenant=resolve_tenant,
+        ),
+    )
+    register_thread_routes(
+        app,
+        ThreadHttpDeps(
+            personas=personas,
+            threads=threads,
+            memories=memories,
+            storage=storage,
+            send=send,
+            media_to_inbox=media_to_inbox,
+            create_thread=create_thread,
+            list_threads=list_threads,
+            list_messages=list_messages,
+            export_thread=export_thread,
+            get_chat_attachment=get_chat_attachment,
+            max_upload_bytes=max_upload_bytes,
+            current_user=current_user,
+            resolve_tenant=resolve_tenant,
+        ),
+    )
+    register_audit_routes(
+        app,
+        AuditHttpDeps(
+            list_audit_logs=list_audit_logs,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+        ),
+    )
 
     _mount_web_ui(app)
     return app
