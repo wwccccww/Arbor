@@ -213,6 +213,10 @@ Owner/Admin。
 
 Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100，默认 50）、`offset`。需要 `read_memory`。无权限 404。响应含 `items` 与过滤后、分页前的 `total`。每条含 `id`、`text`、`type`、`status`、`event_id`。
 
+### `DELETE /v1/personas/{persona_id}/memories/{memory_id}`
+
+软删除一条记忆并移除向量索引。需要 persona 的 `admin` 能力；无权限 403 `FORBIDDEN_MEMORY_WRITE`，不存在 404。成功 204。
+
 ### `POST /v1/personas/{persona_id}/imports`
 
 `multipart/form-data`：file + 可选 `hint`。需要 `write_memory`。  

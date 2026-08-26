@@ -249,12 +249,14 @@ export function createClient(
       }
     },
 
-    async sendMessage(threadId: string, text: string, file?: File): Promise<ChatMessage> {
-      const init: RequestInit = file
+    async sendMessage(threadId: string, text: string, files?: File[]): Promise<ChatMessage> {
+      const init: RequestInit = files?.length
         ? (() => {
             const body = new FormData()
             body.append('text', text)
-            body.append('file', file)
+            for (const file of files) {
+              body.append('file', file)
+            }
             return { method: 'POST', body }
           })()
         : {
@@ -546,15 +548,22 @@ export function createClient(
       }
     },
 
-    async startEvalRun(strategy = 'layered_tree'): Promise<{ id: string }> {
+    async startEvalRun(
+      strategy = 'layered_tree',
+      opts?: { suite_version?: string; mode?: string },
+    ): Promise<{ id: string }> {
       return (await request('/eval/runs', {
         method: 'POST',
         body: JSON.stringify({
           strategy,
-          suite_version: 'v1',
-          mode: 'retrieval',
+          suite_version: opts?.suite_version ?? 'v1',
+          mode: opts?.mode ?? 'retrieval',
         }),
       })) as { id: string }
+    },
+
+    async deleteMemory(personaId: string, memoryId: string): Promise<void> {
+      await request(`/personas/${personaId}/memories/${memoryId}`, { method: 'DELETE' })
     },
 
     async getEvalRun(runId: string): Promise<EvalRun> {

@@ -56,6 +56,9 @@ function CaseRow({ row, index }: { row: EvalCase; index: number }) {
           <span className="badge">召回 {row.recall.toFixed(2)}</span>
         </p>
         {row.expected_behavior ? <p className="case-row__behavior">期望：{row.expected_behavior}</p> : null}
+        {row.hit_ids.length ? (
+          <p className="case-row__meta">命中 ID：{row.hit_ids.join(', ')}</p>
+        ) : null}
         {missReasons.length ? (
           <p className="case-row__reason">
             未达标：{missReasons.join('、')}
@@ -81,8 +84,11 @@ export function Checkup({
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
 
-  async function fetchRun(strategy: string): Promise<EvalRun> {
-    const started = await client.startEvalRun(strategy)
+  async function fetchRun(
+    strategy: string,
+    opts?: { suite_version?: string; mode?: string },
+  ): Promise<EvalRun> {
+    const started = await client.startEvalRun(strategy, opts)
     return await client.getEvalRun(started.id)
   }
 
@@ -126,6 +132,36 @@ export function Checkup({
     }
   }
 
+  async function runRagas() {
+    setBusy(true)
+    setBusyLabel('正在跑 ragas-v1…')
+    setError(null)
+    try {
+      setRun(await fetchRun('layered_tree', { suite_version: 'ragas-v1' }))
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
+  async function runGeneration() {
+    setBusy(true)
+    setBusyLabel('正在跑生成评测…')
+    setError(null)
+    try {
+      setRun(await fetchRun('layered_tree', { mode: 'generation' }))
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
   const cases = (run?.cases ?? []).filter((row) => {
     if (filter === 'all') return true
     return filter === 'passed' ? row.passed : !row.passed
@@ -149,9 +185,9 @@ export function Checkup({
       <main>
         <div className="home-bar">
           <h1>记忆体检</h1>
-          <span className="badge">suite-v1 检索</span>
+          <span className="badge">suite 检索 / 生成</span>
         </div>
-        <p className="form-hint">只跑 suite-v1 检索，不调用生成模型。逐题红绿由检索结果逐题判定。</p>
+        <p className="form-hint">检索模式不调用生成模型；生成模式需配置 DEEPSEEK_API_KEY。</p>
 
         {forbidden ? <p role="alert">没有评测权限</p> : null}
         {error ? <p role="alert">{error}</p> : null}
@@ -160,6 +196,20 @@ export function Checkup({
         <div className="checkup-actions">
           <button type="button" className="btn--primary" disabled={busy || forbidden} onClick={() => void runDefault()}>
             跑 suite-v1 检索
+          </button>
+          <button
+            type="button"
+            disabled={busy || forbidden}
+            onClick={() => void runRagas()}
+          >
+            跑 ragas-v1 检索
+          </button>
+          <button
+            type="button"
+            disabled={busy || forbidden}
+            onClick={() => void runGeneration()}
+          >
+            suite-v1 生成评测
           </button>
           <button type="button" disabled={busy || forbidden} onClick={() => void runComparison()}>
             四策略对比

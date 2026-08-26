@@ -55,8 +55,8 @@ describe('ChatPane', () => {
       return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'not found' } }), { status: 404 })
     }) as unknown as typeof fetch
     const client = createClient(DEMO_OWNER, fetchImpl)
-    const onSend = vi.fn(async (text: string, file?: File) => {
-      await client.sendMessage('0a000000-0000-4000-a000-000000000030', text, file)
+    const onSend = vi.fn(async (text: string, files?: File[]) => {
+      await client.sendMessage('0a000000-0000-4000-a000-000000000030', text, files)
     })
     const onOpen = vi.fn(async (filename: string) => {
       await client.downloadAttachment('0a000000-0000-4000-a000-000000000030', filename)
@@ -80,7 +80,7 @@ describe('ChatPane', () => {
       />,
     )
 
-    await user.upload(screen.getByLabelText('选择附件'), file)
+    await user.upload(screen.getByLabelText('附件（可多选，含图片/语音/文档）'), file)
     await user.type(screen.getByLabelText('发送消息'), '看看这个')
     await user.click(screen.getByRole('button', { name: '发送' }))
 

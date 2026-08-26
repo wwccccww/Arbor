@@ -21,12 +21,14 @@ export function CreatePersonaPane({
 }: {
   forbidden?: boolean
   busy?: boolean
-  onCreate: (draft: PersonaDraft) => void
+  onCreate: (draft: PersonaDraft, bootstrapFile?: File) => void
 }) {
   const [templateId, setTemplateId] = useState('')
   const [skin, setSkin] = useState<PersonaDraft['skin']>('companion')
   const [displayName, setDisplayName] = useState('')
   const [oneLiner, setOneLiner] = useState('')
+  const [bootstrapFile, setBootstrapFile] = useState<File | null>(null)
+  const [fileKey, setFileKey] = useState(0)
 
   if (forbidden) return null
 
@@ -42,18 +44,23 @@ export function CreatePersonaPane({
     event.preventDefault()
     const name = displayName.trim()
     if (!name || busy) return
-    onCreate({
-      skin,
-      display_name: name,
-      one_liner: oneLiner.trim() || undefined,
-      template: templateId || undefined,
-    })
+    onCreate(
+      {
+        skin,
+        display_name: name,
+        one_liner: oneLiner.trim() || undefined,
+        template: templateId || undefined,
+      },
+      bootstrapFile ?? undefined,
+    )
+    setBootstrapFile(null)
+    setFileKey((k) => k + 1)
   }
 
   return (
     <section className="create-persona">
       <h2>创建人设</h2>
-      <p>可从模板起步，或空白填写。新建后进入工作台。</p>
+      <p>可从模板起步，或附带聊天记录/文档导入进收件箱。</p>
       <form onSubmit={submit}>
         <label>
           模板
@@ -90,6 +97,15 @@ export function CreatePersonaPane({
             value={oneLiner}
             disabled={Boolean(busy)}
             onChange={(event) => setOneLiner(event.target.value)}
+          />
+        </label>
+        <label>
+          导入聊天记录/文档（可选）
+          <input
+            key={fileKey}
+            type="file"
+            disabled={Boolean(busy)}
+            onChange={(event) => setBootstrapFile(event.target.files?.[0] ?? null)}
           />
         </label>
         <button type="submit" disabled={Boolean(busy) || !displayName.trim()}>

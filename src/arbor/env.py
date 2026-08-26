@@ -104,6 +104,21 @@ def object_store_backend() -> str:
     return "local"
 
 
+def demo_tokens_disabled() -> bool:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_DISABLE_DEMO_TOKENS") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def strict_tenant_membership() -> bool:
+    """When set, bearer tokens must belong to X-Tenant-Id membership (no cross-tenant owner bypass)."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_STRICT_TENANT_MEMBERSHIP") or "").strip().lower()
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return raw in {"1", "true", "yes", "on"} or demo_tokens_disabled()
+
+
 def document_parser_backend() -> str:
     """light (pypdf/docx/pptx), docling (prefer Docling), auto (Docling when installed)."""
     load_dotenv()

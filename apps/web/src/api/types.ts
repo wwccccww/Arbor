@@ -163,7 +163,8 @@ export type InboxItem = {
   id: string
   kind?: string
   status?: string
-  payload?: { text?: string }
+  payload?: { text?: string; conflicts_with?: string }
+  conflicts_with?: string
 }
 
 export type InboxList = {

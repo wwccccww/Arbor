@@ -20,8 +20,23 @@ depends_on = None
 
 def upgrade() -> None:
     url = psycopg_url(op.get_bind().engine.url.render_as_string(hide_password=False))
-    with psycopg.connect(url, autocommit=True, cursor_factory=psycopg.ClientCursor) as conn:
-        apply_schema_sql(conn)
+    ctx = op.get_context()
+
+    def apply() -> None:
+        with psycopg.connect(
+            url,
+            autocommit=True,
+            cursor_factory=psycopg.ClientCursor,
+            connect_timeout=10,
+            options="-c lock_timeout=15s -c statement_timeout=60s",
+        ) as conn:
+            apply_schema_sql(conn)
+
+    if ctx.as_sql:
+        apply()
+        return
+    with ctx.autocommit_block():
+        apply()
 
 
 def downgrade() -> None:

@@ -72,6 +72,7 @@ export function Workbench({
   const [grantsForbidden, setGrantsForbidden] = useState(true)
   const [grantsBusy, setGrantsBusy] = useState(false)
   const [profileBusy, setProfileBusy] = useState(false)
+  const [memoryDeleteBusy, setMemoryDeleteBusy] = useState<string | undefined>()
   const [highlightedId, setHighlightedId] = useState<string | undefined>()
   const [card, setCard] = useState<EventCard | null>(null)
   const [sending, setSending] = useState(false)
@@ -274,7 +275,7 @@ export function Workbench({
     }
   }
 
-  async function send(text: string, file?: File) {
+  async function send(text: string, files?: File[]) {
     if (!threadId) {
       setChatError('会话尚未就绪，请稍后再试。')
       return
@@ -283,6 +284,7 @@ export function Workbench({
     setChatError(null)
     const userMessageId = `local-${Date.now()}`
     const placeholderId = `stream-${Date.now()}`
+    const firstFile = files?.[0]
     try {
       const baseMessages = await ensureLatestMessagePage(threadId, messageTotal)
       const userMessage: ChatMessage = {
@@ -290,7 +292,7 @@ export function Workbench({
         role: 'user',
         text,
         citations: [],
-        attachments: file ? [{ filename: file.name }] : [],
+        attachments: files?.map((f) => ({ filename: f.name })) ?? [],
       }
       setMessages([...baseMessages, userMessage, { id: placeholderId, role: 'assistant', text: '', citations: [] }])
       const patchLast = (patch: (msg: ChatMessage) => ChatMessage) =>
@@ -321,10 +323,10 @@ export function Workbench({
               }
             },
           },
-          file,
+          firstFile,
         )
       } else {
-        const reply = await client.sendMessage(threadId, text, file)
+        const reply = await client.sendMessage(threadId, text, files)
         setMessages((current) => current.map((m) => (m.id === placeholderId ? reply : m)))
         setMessageTotal((current) => current + 2)
         if (reply.inbox_created) {
@@ -380,6 +382,19 @@ export function Workbench({
       setChatError((err as Error).message)
     } finally {
       setExporting(false)
+    }
+  }
+
+  async function deleteMemory(memoryId: string) {
+    setMemoryDeleteBusy(memoryId)
+    setSidebarError(null)
+    try {
+      await client.deleteMemory(personaId, memoryId)
+      await loadMemories(memoryType, memoryStatus, memoryOffset, memoryByEvent ? highlightedId : undefined)
+    } catch (err) {
+      setSidebarError((err as Error).message)
+    } finally {
+      setMemoryDeleteBusy(undefined)
     }
   }
 
@@ -605,6 +620,8 @@ export function Workbench({
                   onToggleEventFilter={(next) => void changeMemoryByEvent(next)}
                   onPage={(next) => void pageMemories(next)}
                   onSelect={(eventId) => void openCard(eventId)}
+                  onDelete={workspaceAdmin ? (id) => void deleteMemory(id) : undefined}
+                  deleteBusyId={memoryDeleteBusy}
                 />
               </div>
               <div data-left-panel="tools">
@@ -648,7 +665,7 @@ export function Workbench({
             total={messageTotal}
             pageSize={messagePageSize}
             error={chatError}
-            onSend={(text, file) => void send(text, file)}
+            onSend={(text, files) => void send(text, files)}
             onJump={jump}
             onOpenAttachment={(filename) => void openAttachment(filename)}
             onExport={() => void exportThread()}

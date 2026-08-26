@@ -301,6 +301,14 @@ class ScriptedReasoner:
             return None
         return {"kind": "fact", "text": self.proposed_fact, "source_text": text}
 
+    def summarize(self, dialogue: str, prior: str = "") -> str | None:
+        blob = (dialogue or "").strip().replace("\n", " ")
+        if not blob:
+            return None
+        if len(blob) <= 200:
+            return blob
+        return blob[:199] + "…"
+
 
 def _scripted_reply(text: str, citations: list[str]) -> str:
     """Deterministic reply for the scripted LLM that mirrors ``complete``'s

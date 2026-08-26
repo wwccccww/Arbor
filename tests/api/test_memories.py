@@ -62,3 +62,31 @@ def test_list_memories_hidden_without_read_memory():
     client = TestClient(create_app(), raise_server_exceptions=False)
     r = client.get(f"/v1/personas/{LINXIA}/memories", headers=_headers("token-member"))
     assert r.status_code in {403, 404}
+
+
+def test_delete_memory_requires_admin_and_hides_from_active_list():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    denied = client.delete(
+        f"/v1/personas/{LINXIA}/memories/{OLD_CAT}",
+        headers=_headers("token-member"),
+    )
+    assert denied.status_code == 403
+    assert denied.json()["error"]["code"] == "FORBIDDEN_MEMORY_WRITE"
+
+    removed = client.delete(
+        f"/v1/personas/{LINXIA}/memories/{OLD_CAT}",
+        headers=_headers(),
+    )
+    assert removed.status_code == 204
+    superseded = client.get(
+        f"/v1/personas/{LINXIA}/memories",
+        headers=_headers(),
+        params={"status": "superseded"},
+    )
+    assert OLD_CAT not in {item["id"] for item in superseded.json()["items"]}
+    deleted = client.get(
+        f"/v1/personas/{LINXIA}/memories",
+        headers=_headers(),
+        params={"status": "deleted"},
+    )
+    assert OLD_CAT in {item["id"] for item in deleted.json()["items"]}

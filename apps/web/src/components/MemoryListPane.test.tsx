@@ -200,4 +200,38 @@ describe('MemoryListPane', () => {
       '/v1/personas/linxia/memories?event_id=evt-meet',
     )
   })
+
+  it('deletes a memory when admin callback is provided', async () => {
+    const user = userEvent.setup()
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'DELETE') {
+        return new Response(null, { status: 204 })
+      }
+      return new Response(
+        JSON.stringify({
+          items: [{ id: 'mem-del', text: '待删记忆', type: 'fact' }],
+          total: 1,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      )
+    }) as unknown as typeof fetch
+    const client = createClient(DEMO_OWNER, fetchImpl)
+    const onDelete = vi.fn(async (memoryId: string) => {
+      await client.deleteMemory('linxia', memoryId)
+    })
+
+    render(
+      <MemoryListPane
+        items={[{ id: 'mem-del', text: '待删记忆', type: 'fact' }]}
+        onDelete={(id) => void onDelete(id)}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '删除记忆 mem-del' }))
+    const deleteCall = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.find(
+      (call) => (call[1] as RequestInit | undefined)?.method === 'DELETE',
+    )
+    expect(deleteCall?.[0]).toBe('/v1/personas/linxia/memories/mem-del')
+    expect(onDelete).toHaveBeenCalledWith('mem-del')
+  })
 })

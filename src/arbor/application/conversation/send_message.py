@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
+from arbor.application.conversation.compress_thread_summary import compress_thread_summary
 from arbor.application.retrieval import retrieve
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.stream import StreamFinished, parse_model_out
@@ -256,6 +257,9 @@ class SendMessage:
             ),
             can_chat=True,
         )
+        summary = compress_thread_summary(ctx.thread, self.reasoner)
+        if summary:
+            ctx.thread.summary = summary
         self.threads.save(ctx.thread)
         return {
             "message_id": assistant_message_id,
