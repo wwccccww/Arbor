@@ -32,6 +32,7 @@ class MemoryItem:
     event_id: EventId | None = None
     thread_id: ThreadId | None = None
     supersedes: MemoryId | None = None
+    source: dict | None = None
 
     def __post_init__(self) -> None:
         if not self.tenant_id or not self.persona_id:

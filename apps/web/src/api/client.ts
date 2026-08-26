@@ -457,6 +457,20 @@ export function createClient(
       return job
     },
 
+    async bootstrapInbox(personaId: string): Promise<{
+      profile_updated: boolean
+      events_created: number
+      memories_created: number
+      inbox_processed: number
+    }> {
+      return (await request(`/personas/${personaId}/inbox/bootstrap`, { method: 'POST' })) as {
+        profile_updated: boolean
+        events_created: number
+        memories_created: number
+        inbox_processed: number
+      }
+    },
+
     async listMemories(
       personaId: string,
       opts: { type?: string; status?: string; event_id?: string; limit?: number; offset?: number } = {},

@@ -65,6 +65,7 @@ from arbor.application.identity.commands import (
     ListTenants,
     PatchTenantMember,
 )
+from arbor.application.memory.bootstrap_from_inbox import BootstrapFromInbox
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
 from arbor.application.memory.media_to_inbox import MediaToInbox
@@ -225,6 +226,7 @@ class PersonaIn(BaseModel):
     taboos: list[str] = Field(default_factory=list)
     relationships: list[dict] = Field(default_factory=list)
     template: str | None = None
+    avatar: str = ""
 
 
 class PersonaPatchIn(BaseModel):
@@ -235,6 +237,7 @@ class PersonaPatchIn(BaseModel):
     taboos: list[str] | None = None
     relationships: list[dict] | None = None
     tool_policy: dict | None = None
+    avatar: str | None = None
 
 
 class PersonaEvalIn(BaseModel):
@@ -303,6 +306,7 @@ def _persona_json(persona, caps: list[Capability]) -> dict:
         "skin": persona.skin,
         "display_name": persona.profile.display_name,
         "one_liner": persona.profile.one_liner,
+        "avatar": persona.profile.avatar or "",
     }
     if Capability.READ_MEMORY in caps:
         body["taboos"] = list(persona.profile.taboos)
@@ -577,6 +581,13 @@ def create_app(
         memories=memories,
         vectors=vectors,
         auth=AuthorizationPolicy(),
+        storage=storage,
+    )
+    bootstrap_inbox = BootstrapFromInbox(
+        personas=personas,
+        inbox=inbox,
+        confirm=confirm,
+        auth=AuthorizationPolicy(),
     )
     get_tree = GetEventTree(events, memories=memories)
     get_card = GetEventCard(events=events, memories=memories, personas=personas, auth=AuthorizationPolicy())
@@ -750,7 +761,10 @@ def create_app(
         if session is not None and request.headers.get("x-tenant-id"):
             from arbor.adapters.outbound.postgres.sql import set_app_tenant
 
-            set_app_tenant(session.conn, request.headers.get("x-tenant-id"))
+            tenant_id = request.headers.get("x-tenant-id")
+            with session.conn.transaction():
+                set_app_tenant(session.conn, tenant_id, local=True)
+                return await call_next(request)
         return await call_next(request)
 
     @app.middleware("http")
@@ -983,6 +997,7 @@ def create_app(
             taboos=payload.taboos,
             relationships=payload.relationships,
             template=payload.template,
+            avatar=payload.avatar,
         )
         return _persona_json(persona, list(Capability))
 
@@ -1031,6 +1046,7 @@ def create_app(
             relationships=payload.relationships,
             skin=payload.skin,
             tool_policy=payload.tool_policy,
+            avatar=payload.avatar,
         )
         return _persona_json(updated, caps)
 
@@ -1551,6 +1567,26 @@ def create_app(
                 for item in items
             ]
         }
+
+    @app.post("/v1/personas/{persona_id}/inbox/bootstrap")
+    def bootstrap_persona_inbox(
+        persona_id: str,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        persona = personas.get(TenantId(x_tenant_id), PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        caps = _require_write(persona, user)
+        return bootstrap_inbox(
+            tenant_id=TenantId(x_tenant_id),
+            user_id=UserId(user["user_id"]),
+            persona_id=PersonaId(persona_id),
+            capabilities=caps,
+        )
 
     @app.post("/v1/inbox/{inbox_id}/confirm")
     def confirm_inbox(

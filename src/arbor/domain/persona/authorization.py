@@ -26,6 +26,7 @@ class Profile:
     taboos: list[str] = field(default_factory=list)
     relationships: list[dict] = field(default_factory=list)
     locale: str = "zh-CN"
+    avatar: str = ""
 
 
 @dataclass

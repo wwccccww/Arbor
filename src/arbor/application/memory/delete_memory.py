@@ -6,11 +6,12 @@ from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
 
 
 class DeleteMemory:
-    def __init__(self, *, personas, memories, vectors, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, memories, vectors, auth: AuthorizationPolicy, storage=None) -> None:
         self.personas = personas
         self.memories = memories
         self.vectors = vectors
         self.auth = auth
+        self.storage = storage
 
     def __call__(
         self,
@@ -32,3 +33,9 @@ class DeleteMemory:
             raise DomainError("NOT_FOUND", "not found")
         self.memories.delete(tenant_id, memory_id)
         self.vectors.delete(tenant_id, memory_id)
+        if self.storage is not None and item.source:
+            object_uri = item.source.get("object_uri")
+            if object_uri:
+                delete = getattr(self.storage, "delete", None)
+                if callable(delete):
+                    delete(str(object_uri))

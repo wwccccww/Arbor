@@ -7,6 +7,19 @@ from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 
 
+def _source_from_inbox_payload(payload: dict) -> dict | None:
+    source: dict = {}
+    filename = payload.get("source")
+    if filename:
+        source["filename"] = str(filename)
+    object_uri = payload.get("object_uri")
+    if not object_uri and isinstance(payload.get("chunk_meta"), dict):
+        object_uri = payload["chunk_meta"].get("object_uri")
+    if object_uri:
+        source["object_uri"] = str(object_uri)
+    return source or None
+
+
 class ConfirmInboxItem:
     def __init__(
         self,
@@ -64,6 +77,7 @@ class ConfirmInboxItem:
         except ValueError:
             mem_type = MemoryType.FACT
         event_id = self._maybe_key_event(tenant_id, persona_id, text) if mark_key_event else None
+        source = _source_from_inbox_payload(item.payload)
         new_mem = MemoryItem(
             id=MemoryId(self.ids.new_id()),
             tenant_id=tenant_id,
@@ -72,6 +86,7 @@ class ConfirmInboxItem:
             type=mem_type,
             status=MemoryStatus.ACTIVE,
             event_id=event_id,
+            source=source,
         )
         item.confirm(new_mem, old)
         self.memories.save(new_mem)

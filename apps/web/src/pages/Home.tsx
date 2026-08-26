@@ -1,7 +1,9 @@
 import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from '../api/types'
 import { CreatePersonaPane } from '../components/CreatePersonaPane'
+import { ImportFromChatPane } from '../components/ImportFromChatPane'
 import { InviteMemberPane } from '../components/InviteMemberPane'
 import { TenantPane } from '../components/TenantPane'
+import { personaAvatar, personaAvatarIsEmoji } from '../lib/personaAvatar'
 
 export function Home({
   personas,
@@ -19,6 +21,7 @@ export function Home({
   onCheckup,
   onAudit,
   onCreate,
+  onImportChat,
   onInvite,
   onChangeRole,
   onSwitchTenant,
@@ -40,7 +43,8 @@ export function Home({
   onOpen: (personaId: string) => void
   onCheckup: () => void
   onAudit?: () => void
-  onCreate?: (draft: PersonaDraft) => void
+  onCreate?: (draft: PersonaDraft, bootstrapFile?: File) => void
+  onImportChat?: (personaId: string, file: File) => void
   onInvite?: (email: string, role: string) => void
   onChangeRole?: (userId: string, role: string) => void
   onSwitchTenant?: (tenantId: string) => void
@@ -120,6 +124,11 @@ export function Home({
               <CreatePersonaPane busy={creating} onCreate={onCreate} />
             </div>
           ) : null}
+          {canCreate && onImportChat && personas.length > 0 ? (
+            <div className="section-card">
+              <ImportFromChatPane personas={personas} busy={creating} onImport={onImportChat} />
+            </div>
+          ) : null}
           {canCreate && onInvite ? (
             <div className="section-card">
               <InviteMemberPane
@@ -141,10 +150,18 @@ export function Home({
               const skin = persona.skin === 'employee' ? 'employee' : 'companion'
               const memoryCount = persona.stats?.memory_count ?? null
               const threadCount = persona.stats?.thread_count ?? null
+              const avatar = personaAvatar(persona)
+              const avatarEmoji = personaAvatarIsEmoji(avatar)
               return (
                 <li key={persona.id}>
                   <button type="button" onClick={() => onOpen(persona.id)}>
                     <span className="persona-grid__head">
+                      <span
+                        className={`persona-grid__avatar${avatarEmoji ? ' persona-grid__avatar--emoji' : ''}`}
+                        aria-hidden
+                      >
+                        {avatar}
+                      </span>
                       <span className={`badge badge--${skin}`}>
                         {skin === 'employee' ? '数字员工' : '陪伴'}
                       </span>

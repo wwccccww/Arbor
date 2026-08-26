@@ -34,6 +34,7 @@ def persona_from_row(row: dict, grants: list[Grant]) -> Persona:
             personality=row.get("personality"),
             taboos=list(taboos),
             relationships=list(relationships),
+            avatar=_text(row.get("avatar")),
         ),
         grants=grants,
         tool_policy=_tool_policy_from_row(row.get("tool_policy")),
@@ -51,6 +52,7 @@ def memory_from_row(row: dict) -> MemoryItem:
     event_id = row.get("event_id")
     thread_id = row.get("thread_id")
     supersedes = row.get("supersedes")
+    source = row.get("source")
     return MemoryItem(
         id=MemoryId(str(row["id"])),
         tenant_id=TenantId(str(row["tenant_id"])),
@@ -61,6 +63,7 @@ def memory_from_row(row: dict) -> MemoryItem:
         event_id=EventId(str(event_id)) if event_id else None,
         thread_id=ThreadId(str(thread_id)) if thread_id else None,
         supersedes=MemoryId(str(supersedes)) if supersedes else None,
+        source=dict(source) if source else None,
     )
 
 

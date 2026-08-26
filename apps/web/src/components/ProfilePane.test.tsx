@@ -92,6 +92,7 @@ describe('ProfilePane', () => {
       personality: { traits: ['冷静'] },
       relationships: [{ name: '用户', kind: 'partner' }],
       tool_policy: { allowed_tools: [], notes: '' },
+      avatar: '',
     })
   })
 })

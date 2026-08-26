@@ -47,6 +47,7 @@ export function ProfilePane({
   const [taboos, setTaboos] = useState(linesText(persona.taboos))
   const [traits, setTraits] = useState(linesText(persona.personality?.traits))
   const [relationships, setRelationships] = useState(relationshipsText(persona.relationships))
+  const [avatar, setAvatar] = useState(persona.avatar ?? '')
   const [allowedTools, setAllowedTools] = useState(linesText(persona.tool_policy?.allowed_tools))
   const [toolNotes, setToolNotes] = useState(persona.tool_policy?.notes ?? '')
 
@@ -57,6 +58,7 @@ export function ProfilePane({
     setTaboos(linesText(persona.taboos))
     setTraits(linesText(persona.personality?.traits))
     setRelationships(relationshipsText(persona.relationships))
+    setAvatar(persona.avatar ?? '')
     setAllowedTools(linesText(persona.tool_policy?.allowed_tools))
     setToolNotes(persona.tool_policy?.notes ?? '')
   }, [persona])
@@ -76,6 +78,7 @@ export function ProfilePane({
         allowed_tools: parseLines(allowedTools),
         notes: toolNotes.trim(),
       },
+      avatar: avatar.trim(),
     })
   }
 
@@ -102,6 +105,15 @@ export function ProfilePane({
               value={displayName}
               disabled={Boolean(busy)}
               onChange={(event) => setDisplayName(event.target.value)}
+            />
+          </label>
+          <label>
+            头像（emoji 或单字）
+            <input
+              value={avatar}
+              disabled={Boolean(busy)}
+              placeholder="🌿"
+              onChange={(event) => setAvatar(event.target.value)}
             />
           </label>
           <label>

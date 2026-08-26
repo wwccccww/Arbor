@@ -132,6 +132,7 @@ Owner/Admin。
   "skin": "companion",
   "display_name": "林夏",
   "one_liner": "住在杭州的陪伴助手",
+  "avatar": "🌿",
   "personality": { "traits": ["冷静"] },
   "taboos": ["香菜"],
   "relationships": [{ "name": "用户", "kind": "partner" }]
@@ -144,7 +145,7 @@ Owner/Admin。
 
 ### `PATCH /v1/personas/{persona_id}`
 
-改档案。需要人设 `admin`。
+改档案。需要人设 `admin`。可更新 `tool_policy`（`allowed_tools`、`notes`）与 `avatar`（emoji 或单字）。
 
 ### `PUT /v1/personas/{persona_id}/grants`
 
@@ -242,6 +243,21 @@ Query：`type`、`event_id`、`status`（默认 `active`）、`limit`（1–100�
 
 ### `POST /v1/inbox/{inbox_id}/dismiss`
 
+### `POST /v1/personas/{persona_id}/inbox/bootstrap`
+
+将待确认 Inbox 批量落成记忆：启发式补全档案（`one_liner`、禁忌），并为事件类条目创建关键事件节点。需要 `write_memory`。响应：
+
+```json
+{
+  "profile_updated": true,
+  "events_created": 2,
+  "memories_created": 8,
+  "inbox_processed": 8
+}
+```
+
+创建向导或首页「从聊天导入」在 `imports` 完成后应调用本接口。
+
 ## 7. 事件树
 
 ### `GET /v1/personas/{persona_id}/events/tree`
@@ -258,6 +274,7 @@ Query：`view=tree|timeline`、`key_only=true`。
       "type": "milestone",
       "importance": 5,
       "summary": "…",
+      "confidence": 0.92,
       "memory_ids": ["…"]
     }
   ],
@@ -270,9 +287,19 @@ Query：`view=tree|timeline`、`key_only=true`。
 ### `GET /v1/events/{event_id}`
 
 事件卡：节点 + 附件 + 相关记忆预览。需要 `read_memory`。无权限 404。  
-附件来自该事件上 active 的 `image_caption` / `file_chunk` / `transcript`；其余类型留在 `memories`。
+响应含 `confidence`、`participants`、`causal_in`、`causal_out`、`verbatim`（原话类记忆）与 `attachments`。
 
 ## 8. 评测
+
+### `POST /v1/personas/{persona_id}/eval/runs`
+
+单人设轻量体检：从该人设档案与关键事件自动生成 5～8 道检索题（不跑 suite-v1 隐私题）。需要空间 Admin 或对该人设的 `admin`。
+
+```json
+{ "strategy": "layered_tree" }
+```
+
+响应 `202`：`{ "id": "…" }`。结果写入 `eval_runs`，与全局评测共用 `GET /v1/eval/runs/{run_id}`。
 
 ### `POST /v1/eval/runs`
 

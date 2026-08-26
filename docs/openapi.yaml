@@ -111,6 +111,11 @@ components:
           items:
             type: object
             additionalProperties: true
+        avatar:
+          type: string
+          description: emoji 或单字头像
+        tool_policy:
+          $ref: "#/components/schemas/ToolPolicy"
         grants:
           type: array
           description: 仅人设 admin 可见；无 admin 时省略该键。
@@ -128,6 +133,15 @@ components:
           items:
             type: string
             enum: [chat, read_memory, write_memory, admin]
+    ToolPolicy:
+      type: object
+      properties:
+        allowed_tools:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
     Citation:
       type: object
       properties:
@@ -181,6 +195,9 @@ components:
           type: integer
         summary:
           type: string
+        confidence:
+          type: number
+          format: float
         memory_ids:
           type: array
           items:
@@ -1027,6 +1044,66 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
+  /personas/{persona_id}/inbox/bootstrap:
+    post:
+      tags: [Memory]
+      summary: 从待确认 Inbox 生成档案初稿与首批事件节点
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: 处理结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profile_updated:
+                    type: boolean
+                  events_created:
+                    type: integer
+                  memories_created:
+                    type: integer
+                  inbox_processed:
+                    type: integer
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/eval/runs:
+    post:
+      tags: [Eval]
+      summary: 启动单人设轻量体检（从档案与事件自动生成题）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                strategy:
+                  type: string
+                  default: layered_tree
+      responses:
+        "202":
+          description: 已启动
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /inbox/{inbox_id}/confirm:
     post:
       tags: [Memory]
@@ -1128,6 +1205,26 @@ paths:
                     format: uuid
                   title:
                     type: string
+                  summary:
+                    type: string
+                  confidence:
+                    type: number
+                  participants:
+                    type: array
+                    items:
+                      type: string
+                  causal_in:
+                    type: array
+                    items:
+                      type: object
+                  causal_out:
+                    type: array
+                    items:
+                      type: object
+                  verbatim:
+                    type: array
+                    items:
+                      type: object
                   attachments:
                     type: array
                     items:

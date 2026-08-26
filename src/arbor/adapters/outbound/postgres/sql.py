@@ -12,9 +12,9 @@ def vector_literal(vector: list[float]) -> str:
     return "[" + ",".join(str(float(x)) for x in vector) + "]"
 
 
-def set_app_tenant(conn, tenant_id: str | None) -> None:
+def set_app_tenant(conn, tenant_id: str | None, *, local: bool = True) -> None:
     if tenant_id:
-        conn.execute("SELECT set_config('app.tenant_id', %s, false)", (tenant_id,))
+        conn.execute("SELECT set_config('app.tenant_id', %s, %s)", (tenant_id, local))
 
 
 def tenant_matches_policy_sql(column: str = "tenant_id") -> str:

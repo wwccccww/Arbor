@@ -377,6 +377,16 @@ label {
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
+.import-chat-pane h3 {
+  margin: 0 0 0.35rem;
+}
+
+.import-chat-pane .muted {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 0 0 0.75rem;
+}
+
 .persona-grid button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lift);
@@ -389,6 +399,24 @@ label {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.persona-grid__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--surface-2, #1a2332);
+  font-size: 0.95rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.persona-grid__avatar--emoji {
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .persona-grid button > strong {
