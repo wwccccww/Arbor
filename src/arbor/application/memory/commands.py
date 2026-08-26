@@ -58,13 +58,18 @@ class ConfirmInboxItem:
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)
         text = item.payload.get("text", "")
+        memory_type_raw = item.payload.get("memory_type") or "fact"
+        try:
+            mem_type = MemoryType(memory_type_raw)
+        except ValueError:
+            mem_type = MemoryType.FACT
         event_id = self._maybe_key_event(tenant_id, persona_id, text) if mark_key_event else None
         new_mem = MemoryItem(
             id=MemoryId(self.ids.new_id()),
             tenant_id=tenant_id,
             persona_id=persona_id,
             text=text,
-            type=MemoryType.FACT,
+            type=mem_type,
             status=MemoryStatus.ACTIVE,
             event_id=event_id,
         )
@@ -167,74 +172,3 @@ class ImportArtifact:
             )
 
 
-def _import_text(data: bytes) -> str:
-    try:
-        return data.decode("utf-8-sig").strip()
-    except UnicodeDecodeError:
-        return ""
-
-
-class ProcessImportJob:
-    """Turn uploaded text into pending Inbox items. Does not write MemoryItem."""
-
-    def __init__(self, *, personas, inbox, ids, auth: AuthorizationPolicy, reasoner=None) -> None:
-        self.personas = personas
-        self.inbox = inbox
-        self.ids = ids
-        self.auth = auth
-        self.reasoner = reasoner
-
-    def __call__(
-        self,
-        *,
-        tenant_id: TenantId,
-        user_id: UserId,
-        persona_id: PersonaId,
-        filename: str,
-        data: bytes = b"",
-        hint: str | None = None,
-        capabilities: list[Capability] | None = None,
-    ) -> int:
-        persona = self.personas.get(tenant_id, persona_id)
-        caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
-        if Capability.WRITE_MEMORY not in caps:
-            raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
-        text = _import_text(data)
-        if not text:
-            return 0
-        created = 0
-        extracted = self.reasoner.extract(text) if self.reasoner is not None else None
-        if extracted and not extracted.get("skip"):
-            kind = extracted.get("kind") or "fact"
-            payload = {
-                "text": extracted.get("text") or text,
-                "source": filename,
-                "source_text": extracted.get("source_text") or text,
-            }
-            if hint:
-                payload["hint"] = hint
-            self.inbox.add(
-                InboxItem(
-                    id=self.ids.new_id(),
-                    tenant_id=tenant_id,
-                    persona_id=persona_id,
-                    kind=kind if kind in {"fact", "event", "conflict"} else "fact",
-                    payload=payload,
-                )
-            )
-            created += 1
-        else:
-            payload = {"text": text, "source": filename}
-            if hint:
-                payload["hint"] = hint
-            self.inbox.add(
-                InboxItem(
-                    id=self.ids.new_id(),
-                    tenant_id=tenant_id,
-                    persona_id=persona_id,
-                    kind="fact",
-                    payload=payload,
-                )
-            )
-            created += 1
-        return created

@@ -178,6 +178,9 @@ export type ImportJob = {
   persona_id?: string
   inbox_created?: number
   error?: string | null
+  parser?: string | null
+  media_kind?: string | null
+  chunks_parsed?: number
   forbidden?: boolean
 }
 

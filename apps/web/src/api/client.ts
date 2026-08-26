@@ -427,6 +427,9 @@ export function createClient(
           persona_id: body.persona_id,
           inbox_created: body.inbox_created ?? 0,
           error: body.error,
+          parser: body.parser,
+          media_kind: body.media_kind,
+          chunks_parsed: body.chunks_parsed,
         }
       } catch (err) {
         const status = (err as ApiError).status

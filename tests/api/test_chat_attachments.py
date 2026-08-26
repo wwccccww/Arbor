@@ -6,7 +6,7 @@ TENANT = "0a000000-0000-4000-a000-000000000001"
 LINXIA = "0a000000-0000-4000-a000-000000000010"
 ZHOU = "0a000000-0000-4000-a000-000000000020"
 THREAD = "0a000000-0000-4000-a000-000000000030"
-FILE_TEXT = "聊天附件不该进记忆也不该进Inbox"
+FILE_TEXT = "聊天附件解析后进Inbox待确认"
 
 
 def _headers(token="token-a"):
@@ -16,7 +16,7 @@ def _headers(token="token-a"):
     }
 
 
-def test_chat_multipart_file_stays_off_memory():
+def test_chat_multipart_file_parsed_to_inbox_not_memory():
     client = TestClient(create_app(), raise_server_exceptions=False)
     before = {
         item["text"]
@@ -43,11 +43,9 @@ def test_chat_multipart_file_stays_off_memory():
     assert FILE_TEXT not in after
     assert after == before
     inbox_after = client.get(f"/v1/personas/{LINXIA}/inbox", headers=_headers())
-    if inbox_after.status_code == 200:
-        for item in inbox_after.json()["items"]:
-            if item["id"] in pending_before:
-                continue
-            assert FILE_TEXT not in str(item.get("payload") or {})
+    assert inbox_after.status_code == 200
+    new_items = [item for item in inbox_after.json()["items"] if item["id"] not in pending_before]
+    assert any(FILE_TEXT in str(item.get("payload") or {}) for item in new_items)
     json_sent = client.post(
         f"/v1/threads/{THREAD}/messages",
         headers=_headers(),

@@ -102,3 +102,17 @@ def object_store_backend() -> str:
     if raw in {"local", "postgres", "s3"}:
         return raw
     return "local"
+
+
+def document_parser_backend() -> str:
+    """light (pypdf/docx/pptx), docling (prefer Docling), auto (Docling when installed)."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_DOCUMENT_PARSER") or "light").strip().lower()
+    if raw in {"light", "docling", "auto"}:
+        return raw
+    return "light"
+
+
+def libreoffice_path() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_LIBREOFFICE_PATH") or "").strip()

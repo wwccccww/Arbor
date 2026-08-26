@@ -100,6 +100,18 @@ class JobQueue(Protocol):
     def enqueue_import_job(self, payload: dict) -> None: ...
 
 
+class DocumentParser(Protocol):
+    def parse(self, data: bytes, filename: str) -> object: ...
+
+
+class SpeechTranscriber(Protocol):
+    def transcribe(self, data: bytes, filename: str) -> object: ...
+
+
+class VisionDescriber(Protocol):
+    def describe(self, data: bytes, filename: str) -> object: ...
+
+
 class AuditLogRepository(Protocol):
     def append(self, entry: AuditLog) -> None: ...
     def list(

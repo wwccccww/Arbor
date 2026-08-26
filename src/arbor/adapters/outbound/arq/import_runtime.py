@@ -18,12 +18,13 @@ from arbor.adapters.outbound.postgres.import_jobs import (
     InMemoryImportJobRepository,
     PgImportJobRepository,
 )
-from arbor.application.memory.commands import ProcessImportJob
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
+from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.import_jobs import RunImportJob
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId
 
-# Demo world ids (same as apps.api.demo_auth)
 LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
 MEMBER_ID = "0a000000-0000-4000-a000-000000000003"
 
@@ -73,13 +74,15 @@ def build_import_job_runtime(
         storage = build_object_storage(session=None, stores=stores)
 
     ids = SeqIdGenerator()
-    process_import = ProcessImportJob(
+    media_to_inbox = MediaToInbox(
         personas=personas,
         inbox=inbox,
         ids=ids,
         auth=AuthorizationPolicy(),
         reasoner=reasoner or ScriptedReasoner(),
+        parse_media=parse_media_bytes,
     )
+    process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
     run_import = RunImportJob(
         import_jobs=import_jobs,
         storage=storage,

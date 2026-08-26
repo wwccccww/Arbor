@@ -51,6 +51,10 @@ export function ImportPane({
       {job && !job.forbidden ? (
         <p>
           {job.filename ?? '导入'} · {job.status}
+          {job.parser ? ` · ${job.parser}` : ''}
+          {typeof job.chunks_parsed === 'number' && job.chunks_parsed > 0
+            ? ` · ${job.chunks_parsed} 块`
+            : ''}
           {typeof job.inbox_created === 'number' ? ` · ${job.inbox_created} 条进收件箱` : ''}
           {job.status === 'failed' && job.error ? ` · ${job.error}` : ''}
         </p>
