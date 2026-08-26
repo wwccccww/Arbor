@@ -29,7 +29,7 @@ apps/web/.vite/
 data/
 .arbor-data/
 *.sqlite
-storage/
+/storage/
 
 # Eval artifacts
 eval/output/
