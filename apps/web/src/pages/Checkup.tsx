@@ -86,6 +86,8 @@ export function Checkup({
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [personaId, setPersonaId] = useState(personas[0]?.id ?? '')
+  const [casePage, setCasePage] = useState(0)
+  const CASE_PAGE_SIZE = 50
 
   useEffect(() => {
     if (!personaId && personas.length) setPersonaId(personas[0].id)
@@ -160,10 +162,27 @@ export function Checkup({
 
   async function runRagas() {
     setBusy(true)
-    setBusyLabel('正在跑 ragas-v1…')
+    setBusyLabel('正在跑 ragas-v1（477 题）…')
     setError(null)
+    setCasePage(0)
     try {
       setRun(await fetchRun('layered_tree', { suite_version: 'ragas-v1' }))
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
+  async function seedFrozenWorld() {
+    setBusy(true)
+    setBusyLabel('正在装载 suite-v1 冻结世界…')
+    setError(null)
+    try {
+      await client.seedEvalWorld()
+      setError(null)
     } catch (err) {
       if (asForbidden(err)) setForbidden(true)
       else setError((err as Error).message)
@@ -192,6 +211,12 @@ export function Checkup({
     if (filter === 'all') return true
     return filter === 'passed' ? row.passed : !row.passed
   })
+  const casePageCount = Math.max(1, Math.ceil(cases.length / CASE_PAGE_SIZE))
+  const safeCasePage = Math.min(casePage, casePageCount - 1)
+  const visibleCases = cases.slice(
+    safeCasePage * CASE_PAGE_SIZE,
+    safeCasePage * CASE_PAGE_SIZE + CASE_PAGE_SIZE,
+  )
 
   return (
     <section className="checkup">
@@ -211,7 +236,9 @@ export function Checkup({
       <main>
         <div className="home-bar">
           <h1>记忆体检</h1>
-          <span className="badge">suite 检索 / 生成</span>
+          <span className="badge">
+            {run?.suite_version === 'ragas-v1' ? 'ragas-v1 · 477 题' : 'suite 检索 / 生成'}
+          </span>
         </div>
         <p className="form-hint">检索模式不调用生成模型；生成模式需配置 DEEPSEEK_API_KEY。</p>
 
@@ -238,14 +265,21 @@ export function Checkup({
             人设轻量体检
           </button>
           <button type="button" className="btn--primary" disabled={busy || forbidden} onClick={() => void runDefault()}>
-            跑 suite-v1 检索
+            跑 suite-v1 检索（13 题）
+          </button>
+          <button
+            type="button"
+            disabled={busy || forbidden}
+            onClick={() => void seedFrozenWorld()}
+          >
+            装载 suite-v1 冻结世界
           </button>
           <button
             type="button"
             disabled={busy || forbidden}
             onClick={() => void runRagas()}
           >
-            跑 ragas-v1 检索
+            跑 ragas-v1 检索（477 题）
           </button>
           <button
             type="button"
@@ -292,22 +326,71 @@ export function Checkup({
         {run?.cases?.length ? (
           <section className="case-section">
             <div className="case-section__head">
-              <h2>逐题结果</h2>
+              <h2>
+                逐题结果
+                {run.cases?.length ? `（${cases.length} / ${run.cases.length}）` : ''}
+              </h2>
               <div className="view-toggle" role="group" aria-label="逐题筛选">
-                <button type="button" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>
+                <button
+                  type="button"
+                  aria-pressed={filter === 'all'}
+                  onClick={() => {
+                    setFilter('all')
+                    setCasePage(0)
+                  }}
+                >
                   全部
                 </button>
-                <button type="button" aria-pressed={filter === 'passed'} onClick={() => setFilter('passed')}>
+                <button
+                  type="button"
+                  aria-pressed={filter === 'passed'}
+                  onClick={() => {
+                    setFilter('passed')
+                    setCasePage(0)
+                  }}
+                >
                   通过
                 </button>
-                <button type="button" aria-pressed={filter === 'failed'} onClick={() => setFilter('failed')}>
+                <button
+                  type="button"
+                  aria-pressed={filter === 'failed'}
+                  onClick={() => {
+                    setFilter('failed')
+                    setCasePage(0)
+                  }}
+                >
                   未通过
                 </button>
               </div>
             </div>
+            {cases.length > CASE_PAGE_SIZE ? (
+              <div className="case-pagination">
+                <button
+                  type="button"
+                  disabled={safeCasePage <= 0}
+                  onClick={() => setCasePage((page) => Math.max(0, page - 1))}
+                >
+                  上一页
+                </button>
+                <span>
+                  第 {safeCasePage + 1} / {casePageCount} 页
+                </span>
+                <button
+                  type="button"
+                  disabled={safeCasePage >= casePageCount - 1}
+                  onClick={() => setCasePage((page) => Math.min(casePageCount - 1, page + 1))}
+                >
+                  下一页
+                </button>
+              </div>
+            ) : null}
             <ul className="case-list" aria-label="逐题红绿清单">
-              {cases.map((row, index) => (
-                <CaseRow key={row.id} row={row} index={index} />
+              {visibleCases.map((row, index) => (
+                <CaseRow
+                  key={row.id}
+                  row={row}
+                  index={safeCasePage * CASE_PAGE_SIZE + index}
+                />
               ))}
             </ul>
           </section>

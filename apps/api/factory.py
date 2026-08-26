@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, File, Form, Header, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,7 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import iterate_in_threadpool
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
+from arbor.adapters.inbound.http.register_eval import EvalHttpDeps, register_eval_routes
 from arbor.adapters.outbound.auth_sessions import InMemoryAuthSessionStore
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.adapters.outbound.embedding import EmbeddingUnavailable, embedding_client_from_env
@@ -55,6 +57,7 @@ from arbor.application.conversation.threads import (
     ListThreads,
 )
 from arbor.application.evaluation.commands import StartEvalRun, StartPersonaEvalRun
+from arbor.application.evaluation.seed_world import SeedEvalWorld
 from arbor.application.eventgraph.get_card import GetEventCard
 from arbor.application.eventgraph.get_tree import GetEventTree
 from arbor.application.identity.commands import (
@@ -657,6 +660,22 @@ def create_app(
         run_generation=run_generation_eval,
         ids=ids,
     )
+    def _eval_fixture_path(suite_version: str) -> Path:
+        if suite_version != "v1":
+            raise DomainError("VALIDATION_ERROR", f"unsupported suite {suite_version}")
+        return ROOT / "eval" / "fixtures" / "suite-v1" / "world.json"
+
+    seed_eval_world = SeedEvalWorld(
+        fixture_path_for=_eval_fixture_path,
+        pg_clear=lambda session, tenant_ids: __import__(
+            "arbor.adapters.outbound.postgres.world", fromlist=["clear_tenant_scope"]
+        ).clear_tenant_scope(session, tenant_ids),
+        pg_load=lambda session, path: session.load_world(path),
+        mem_clear=lambda stores, tenant_ids: __import__(
+            "arbor.adapters.outbound.postgres.world", fromlist=["clear_inmemory_tenant_scope"]
+        ).clear_inmemory_tenant_scope(stores, tenant_ids),
+        mem_load=lambda path, stores: load_world(path, stores),
+    )
 
     def _summary_for_persona(tenant: TenantId, persona: PersonaId) -> str:
         if hasattr(threads, "summary_for"):
@@ -762,9 +781,13 @@ def create_app(
             from arbor.adapters.outbound.postgres.sql import set_app_tenant
 
             tenant_id = request.headers.get("x-tenant-id")
-            with session.conn.transaction():
-                set_app_tenant(session.conn, tenant_id, local=True)
-                return await call_next(request)
+            conn, borrowed = session.checkout()
+            try:
+                with conn.transaction():
+                    set_app_tenant(conn, tenant_id, local=True)
+                    return await call_next(request)
+            finally:
+                session.checkin(conn, borrowed)
         return await call_next(request)
 
     @app.middleware("http")
@@ -845,6 +868,22 @@ def create_app(
         if user["role"] in {"owner", "admin"} and user.get("tenant_id") == tenant_id:
             return True
         return False
+
+    register_eval_routes(
+        app,
+        EvalHttpDeps(
+            eval_runs=eval_runs,
+            start_eval=start_eval,
+            start_persona_eval=start_persona_eval,
+            seed_eval_world=seed_eval_world,
+            personas=personas,
+            session=session,
+            stores=stores,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+            resolve_tenant=resolve_tenant,
+        ),
+    )
 
     @app.post("/v1/auth/login")
     def login(payload: LoginIn):
@@ -1050,29 +1089,6 @@ def create_app(
         )
         return _persona_json(updated, caps)
 
-    @app.post("/v1/personas/{persona_id}/eval/runs", status_code=202)
-    def post_persona_eval_run(
-        persona_id: str,
-        payload: PersonaEvalIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        tenant = resolve_tenant(user, x_tenant_id)
-        persona = personas.get(tenant, PersonaId(persona_id))
-        if persona is None:
-            raise DomainError("NOT_FOUND", "not found")
-        result = start_persona_eval(
-            workspace_admin=workspace_admin_for(user, x_tenant_id),
-            tenant_id=tenant,
-            user_id=UserId(user["user_id"]),
-            persona_id=PersonaId(persona_id),
-            strategy=payload.strategy,
-        )
-        result["tenant_id"] = tenant.value
-        eval_runs.save(result)
-        return {"id": result["id"]}
-
     @app.get("/v1/personas/{persona_id}/memories")
     def get_memories(
         persona_id: str,
@@ -1211,50 +1227,6 @@ def create_app(
             "parser": job.get("parser"),
             "media_kind": job.get("media_kind"),
             "chunks_parsed": job.get("chunks_parsed", 0),
-        }
-
-    @app.post("/v1/eval/runs", status_code=202)
-    def post_eval_run(
-        payload: EvalRunIn,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        result = start_eval(
-            workspace_admin=workspace_admin_for(user, x_tenant_id),
-            strategy=payload.strategy,
-            suite_version=payload.suite_version,
-            mode=payload.mode,
-        )
-        result["tenant_id"] = x_tenant_id
-        eval_runs.save(result)
-        return {"id": result["id"]}
-
-    @app.get("/v1/eval/runs/{run_id}")
-    def get_eval_run(
-        run_id: str,
-        authorization: str | None = Header(default=None),
-        x_tenant_id: str | None = Header(default=None),
-    ):
-        user = current_user(authorization)
-        if not x_tenant_id:
-            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
-        if not workspace_admin_for(user, x_tenant_id):
-            raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
-        run = eval_runs.get(x_tenant_id, run_id)
-        if run is None:
-            raise DomainError("NOT_FOUND", "not found")
-        return {
-            "id": run["id"],
-            "status": run["status"],
-            "strategy": run["strategy"],
-            "suite_version": run["suite_version"],
-            "mode": run["mode"],
-            "metrics": run["metrics"],
-            "p0_tenant_leak_zero": run["p0_tenant_leak_zero"],
-            "cases": run.get("cases", []),
         }
 
     @app.get("/v1/audit-logs")

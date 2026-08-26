@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from arbor.application.conversation.compress_thread_summary import compress_thread_summary
 from arbor.application.retrieval import retrieve
+from arbor.application.tools.run_tools import run_persona_tools
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.stream import StreamFinished, parse_model_out
 from arbor.domain.conversation.thread import Citation, Message, Thread
@@ -194,6 +195,7 @@ class SendMessage:
         prompt_slots = {
             "profile": slots.profile,
             "tool_policy": slots.tool_policy,
+            "tool_results": run_persona_tools(llm_text, persona.tool_policy),
             "thread_summary": slots.thread_summary,
             "event_hits": slots.event_hits,
             "memory_hits": [m.text for m in slots.memory_hits],

@@ -34,6 +34,38 @@ def load_world(session, path: Path) -> None:
     _load_memories(session, world)
 
 
+def clear_tenant_scope(session, tenant_ids: list[str]) -> None:
+    """Remove persona-scoped data for tenants before re-seeding eval worlds."""
+    for tid in tenant_ids:
+        session.conn.execute("DELETE FROM eval_runs WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM import_jobs WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM audit_logs WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM inbox_items WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM memory_items WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM event_edges WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM event_nodes WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM messages WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM threads WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM persona_grants WHERE tenant_id = %s::uuid", (tid,))
+        session.conn.execute("DELETE FROM personas WHERE tenant_id = %s::uuid", (tid,))
+
+
+def clear_inmemory_tenant_scope(stores, tenant_ids: list[str]) -> None:
+    tid_set = frozenset(tenant_ids)
+    stores.memories = {
+        k: v for k, v in stores.memories.items() if v.tenant_id.value not in tid_set
+    }
+    stores.vectors = {
+        mid: tup for mid, tup in stores.vectors.items() if tup[0] not in tid_set
+    }
+    stores.inbox = {k: v for k, v in stores.inbox.items() if v.tenant_id.value not in tid_set}
+    stores.events = {k: v for k, v in stores.events.items() if v.tenant_id.value not in tid_set}
+    stores.edges = [e for e in stores.edges if e.tenant_id.value not in tid_set]
+    stores.threads = {k: v for k, v in stores.threads.items() if v.tenant_id.value not in tid_set}
+    stores.personas = {k: v for k, v in stores.personas.items() if v.tenant_id.value not in tid_set}
+    stores.audit_logs = [e for e in stores.audit_logs if e.tenant_id.value not in tid_set]
+
+
 def load_mini_world(session) -> None:
     load_world(session, ROOT / "tests" / "fixtures" / "mini-world.yaml")
 

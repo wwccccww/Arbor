@@ -18,13 +18,17 @@ from arbor.paths import repo_root
 
 
 class PostgresSession:
-    def __init__(self, conn, url: str, embed=None) -> None:
+    def __init__(self, conn, url: str, embed=None, pool=None) -> None:
         self.conn = conn
         self.url = url
         self.embed = embed or FixtureEmbeddingClient()
+        self._pool = pool
+        self._primary_conn = conn
         self._bind()
 
-    def _bind(self) -> None:
+    def _bind(self, conn=None) -> None:
+        conn = conn or self.conn
+        self.conn = conn
         self.personas = PgPersonaRepository(self.conn)
         self.memories = PgMemoryRepository(self.conn)
         self.inbox = PgInboxRepository(self.conn)
@@ -35,17 +39,45 @@ class PostgresSession:
         self.tenants = PgTenantRepository(self.conn)
         self.users = PgUserRepository(self.conn)
 
+    def checkout(self) -> tuple[object, bool]:
+        if self._pool is None:
+            return self.conn, False
+        conn = self._pool.getconn()
+        self._bind(conn)
+        return conn, True
+
+    def checkin(self, conn: object, borrowed: bool) -> None:
+        if borrowed and self._pool is not None:
+            self._pool.putconn(conn)
+            self._bind(self._primary_conn)
+
     @classmethod
-    def connect(cls, url: str, embed=None) -> PostgresSession:
-        return cls(connect(url), url, embed=embed)
+    def connect(cls, url: str, embed=None, *, use_pool: bool = True) -> PostgresSession:
+        pool = None
+        if use_pool:
+            try:
+                from arbor.adapters.outbound.postgres.pool import open_pool
+
+                pool = open_pool(url)
+                conn = pool.getconn()
+            except Exception:
+                pool = None
+                conn = connect(url)
+        else:
+            conn = connect(url)
+        return cls(conn, url, embed=embed, pool=pool)
 
     def migrate(self) -> None:
         # Close before Alembic. 0001 opens a second connection to apply
         # schema.sql; keeping this session open across that can deadlock.
+        if self._pool is not None:
+            self._pool.close()
+            self._pool = None
         if self.conn is not None and not self.conn.closed:
             self.conn.close()
         upgrade_head(self.url)
         self.conn = connect(self.url)
+        self._primary_conn = self.conn
         self._bind()
 
     def reset(self) -> None:
@@ -78,4 +110,7 @@ class PostgresSession:
         load_mini_world(self)
 
     def close(self) -> None:
-        self.conn.close()
+        if self._pool is not None:
+            self._pool.close()
+        elif self.conn is not None and not self.conn.closed:
+            self.conn.close()

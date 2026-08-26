@@ -575,6 +575,20 @@ export function createClient(
       })) as { id: string }
     },
 
+    async seedEvalWorld(): Promise<{
+      suite_version: string
+      tenant_ids: string[]
+      persona_count: number
+      memory_count: number
+    }> {
+      return (await request('/eval/seed-world', { method: 'POST' })) as {
+        suite_version: string
+        tenant_ids: string[]
+        persona_count: number
+        memory_count: number
+      }
+    },
+
     async startEvalRun(
       strategy = 'layered_tree',
       opts?: { suite_version?: string; mode?: string },
