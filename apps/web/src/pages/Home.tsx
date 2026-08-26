@@ -14,6 +14,7 @@ export function Home({
   email,
   runtime,
   error,
+  notice,
   canCreate,
   creating,
   inviting,
@@ -37,6 +38,7 @@ export function Home({
   email?: string
   runtime?: RuntimeInfo
   error?: string
+  notice?: string
   canCreate?: boolean
   creating?: boolean
   inviting?: boolean
@@ -103,6 +105,7 @@ export function Home({
             <span>{runtime.store === 'postgres' ? 'Postgres 持久化' : '内存库（关掉 API 会丢数据）'}</span>
           </div>
         ) : null}
+        {notice ? <p className="app-notice">{notice}</p> : null}
         {error ? <p role="alert">{error}</p> : null}
 
         <div className="section-grid">

@@ -163,3 +163,31 @@ def calendar_backend() -> str:
     if raw in {"stub", "feishu", "auto"}:
         return raw
     return "auto"
+
+
+def ticket_api_url() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_TICKET_API_URL") or "").strip()
+
+
+def ticket_api_key() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_TICKET_API_KEY") or "").strip()
+
+
+def ticket_backend() -> str:
+    """stub | http | auto — auto uses http when ARBOR_TICKET_API_URL is set."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_TICKET_BACKEND") or "auto").strip().lower()
+    if raw in {"stub", "http", "auto"}:
+        return raw
+    return "auto"
+
+
+def tool_mode() -> str:
+    """keywords | llm | both — how persona tools are invoked."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_TOOL_MODE") or "both").strip().lower()
+    if raw in {"keywords", "llm", "both"}:
+        return raw
+    return "both"

@@ -25,6 +25,7 @@ import type {
   TenantMember,
   Thread,
   ThreadExport,
+  FeishuCalendarStatus,
 } from './types'
 
 function asCitations(raw: unknown): Citation[] {
@@ -609,6 +610,18 @@ export function createClient(
 
     async getEvalRun(runId: string): Promise<EvalRun> {
       return (await request(`/eval/runs/${runId}`)) as EvalRun
+    },
+
+    async getFeishuCalendarStatus(): Promise<FeishuCalendarStatus> {
+      return (await request('/me/feishu/status')) as FeishuCalendarStatus
+    },
+
+    async getFeishuConnectUrl(): Promise<{ authorize_url: string; provider: string }> {
+      return (await request('/me/feishu/connect')) as { authorize_url: string; provider: string }
+    },
+
+    async disconnectFeishu(): Promise<void> {
+      await request('/me/feishu/disconnect', { method: 'DELETE' })
     },
   }
 }

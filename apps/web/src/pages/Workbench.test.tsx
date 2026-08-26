@@ -27,6 +27,9 @@ function mockWorkbenchFetch() {
     if (url.includes('/tenants/') && url.includes('/members')) {
       return json({ items: [] })
     }
+    if (url.includes('/me/feishu/status')) {
+      return json({ connected: false, provider: 'feishu' })
+    }
     if (url.includes('/threads/t-1/messages') && method === 'GET') {
       return json({ items: [{ id: 'm1', role: 'user', content: '你好', citations: [] }], total: 1 })
     }

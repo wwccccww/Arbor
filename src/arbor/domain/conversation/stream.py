@@ -42,10 +42,11 @@ def parse_model_out(content: str) -> dict:
             data = json.loads(match.group(0))
             text = str(data.get("text") or "")
             citations = [c for c in (data.get("citations") or []) if isinstance(c, str)]
-            return {"text": text, "citations": citations}
+            tool_calls = [c for c in (data.get("tool_calls") or []) if isinstance(c, dict)]
+            return {"text": text, "citations": citations, "tool_calls": tool_calls}
         except json.JSONDecodeError:
             pass
-    return {"text": blob, "citations": []}
+    return {"text": blob, "citations": [], "tool_calls": []}
 
 
 def extract_text_delta(buffer: str) -> str:

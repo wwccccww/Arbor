@@ -96,14 +96,19 @@
 | `DELETE /v1/me/feishu/disconnect` | 解除绑定 |
 | `GET /v1/auth/feishu/callback` | OAuth 回调（飞书重定向，无需手动调） |
 
-回调成功后跳转到 `ARBOR_WEB_URL?feishu=connected`。人设 `tool_policy.allowed_tools` 含 `calendar` 且用户消息命中日程关键词时，会查飞书近 7 日日程并注入 prompt。
+### 工单 HTTP（可选）
 
-环境变量：
+`ARBOR_TICKET_API_URL` 配置后，`ticket` 工具会向该 URL `POST` JSON：`tenant_id`、`user_id`、`title`、`description`、`source=arbor-chat`。可选 `ARBOR_TICKET_API_KEY` 作为 Bearer。
 
-- `ARBOR_FEISHU_APP_ID` / `ARBOR_FEISHU_APP_SECRET`
-- `ARBOR_FEISHU_REDIRECT_URI`（默认 `http://localhost:8000/v1/auth/feishu/callback`）
-- `ARBOR_CALENDAR_BACKEND`：`auto` | `feishu` | `stub`
-- `ARBOR_WEB_URL`（OAuth 成功后前端地址，默认 `http://localhost:5173`）
+### 工具调用模式
+
+`ARBOR_TOOL_MODE`：
+
+- `keywords`：仅用户消息关键词触发工具
+- `llm`：仅模型 JSON 中 `tool_calls` 触发
+- `both`（默认）：关键词预执行 + 模型可追加 `tool_calls`
+
+飞书环境变量：`ARBOR_FEISHU_APP_ID`、`ARBOR_FEISHU_APP_SECRET`、`ARBOR_FEISHU_REDIRECT_URI`、`ARBOR_CALENDAR_BACKEND`、`ARBOR_WEB_URL`。
 
 ## 3. 工作空间
 
