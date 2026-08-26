@@ -8,6 +8,7 @@ import { GrantsPane } from '../components/GrantsPane'
 import { ImportPane } from '../components/ImportPane'
 import { InboxPane } from '../components/InboxPane'
 import { MemoryListPane } from '../components/MemoryListPane'
+import { FeishuCalendarConnect } from '../components/FeishuCalendarConnect'
 import { ProfilePane } from '../components/ProfilePane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
@@ -602,6 +603,7 @@ export function Workbench({
                   busy={profileBusy}
                   onSave={(patch) => void saveProfile(patch)}
                 />
+                <FeishuCalendarConnect client={client} editable={canEditPersona} />
               </div>
               <div data-left-panel="memory">
                 <MemoryListPane

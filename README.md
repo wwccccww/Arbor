@@ -18,7 +18,9 @@
 | 首页头像 + 聊天导入初稿 | 头像字段；首页独立导入 + Inbox bootstrap |
 | 人设轻量体检 API | `POST /v1/personas/{id}/eval/runs` |
 | tool_policy 注入 prompt | `ContextPolicy` 槽位 |
-| tool_policy stub 执行 | 日历/工单触发器 + prompt `tool_results` |
+| tool_policy 注入 + 执行 | 关键词触发 + LLM `tool_calls`（`ARBOR_TOOL_MODE`） |
+| 飞书日历 | OAuth + 查日程；工作台可连接飞书 |
+| 工单 HTTP | `ARBOR_TICKET_API_URL` 登记真实工单 |
 | Postgres 连接池 | `psycopg-pool` + 每请求 checkout |
 | HTTP 评测路由拆分 | `adapters/inbound/http/register_eval.py` |
 | 体检冻结世界 API | `POST /v1/eval/seed-world` + 体检页按钮 |

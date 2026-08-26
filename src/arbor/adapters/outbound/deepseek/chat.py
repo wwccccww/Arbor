@@ -104,13 +104,27 @@ class DeepSeekChatLLM:
 def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
     profile = prompt_slots.get("profile") or {}
     name = profile.get("display_name") or "助手"
-    return "\n".join(
+    lines = [
+        f"你是 Arbor 人设「{name}」。只能根据下面注入的上下文回答。",
+        "禁止使用上下文里没有的事实。不知道就说「我这边没有这条记录」。",
+        "只输出 JSON：{\"text\": \"...\", \"citations\": [\"memory-id\", ...]"
+        + (
+            ", \"tool_calls\": [{\"name\": \"calendar\"|\"ticket\", \"reason\": \"...\"}]"
+            if prompt_slots.get("llm_tool_calls_enabled")
+            else ""
+        )
+        + "}",
+        "citations 只能来自下列 memory id，没有就输出空数组。",
+        f"可用 memory id: {injected_memory_ids}",
+    ]
+    if prompt_slots.get("llm_tool_calls_enabled"):
+        allowed = prompt_slots.get("allowed_tool_names") or []
+        lines.append(
+            "若需查日程或登记工单且 tool_results 不足，在 tool_calls 中声明；否则 tool_calls 留空数组。"
+        )
+        lines.append(f"可调工具: {json.dumps(allowed, ensure_ascii=False)}")
+    lines.extend(
         [
-            f"你是 Arbor 人设「{name}」。只能根据下面注入的上下文回答。",
-            "禁止使用上下文里没有的事实。不知道就说「我这边没有这条记录」。",
-            "只输出 JSON：{\"text\": \"...\", \"citations\": [\"memory-id\", ...]}",
-            "citations 只能来自下列 memory id，没有就输出空数组。",
-            f"可用 memory id: {injected_memory_ids}",
             "档案: " + json.dumps(profile, ensure_ascii=False),
             "会话摘要: " + str(prompt_slots.get("thread_summary") or ""),
             "事件: " + json.dumps(prompt_slots.get("event_hits") or [], ensure_ascii=False),
@@ -119,3 +133,4 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
             "工具调用结果: " + json.dumps(prompt_slots.get("tool_results") or [], ensure_ascii=False),
         ]
     )
+    return "\n".join(lines)

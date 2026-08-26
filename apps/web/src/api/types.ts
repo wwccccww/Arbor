@@ -1,5 +1,11 @@
 export type Capability = 'chat' | 'read_memory' | 'write_memory' | 'admin'
 
+export type FeishuCalendarStatus = {
+  connected: boolean
+  provider: string
+  calendar_id?: string
+}
+
 export type PersonaGrant = {
   user_id: string
   capabilities: Capability[]

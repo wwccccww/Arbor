@@ -421,6 +421,78 @@ paths:
                         type: string
                         description: fixture 或 bge-m3 等嵌入后端
 
+  /me/feishu/status:
+    get:
+      tags: [Auth]
+      summary: 飞书日历绑定状态
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 状态
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected:
+                    type: boolean
+                  provider:
+                    type: string
+                  calendar_id:
+                    type: string
+
+  /me/feishu/connect:
+    get:
+      tags: [Auth]
+      summary: 获取飞书 OAuth 授权 URL
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 授权链接
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorize_url:
+                    type: string
+                    format: uri
+                  provider:
+                    type: string
+
+  /me/feishu/disconnect:
+    delete:
+      tags: [Auth]
+      summary: 解除飞书日历绑定
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "204":
+          description: 已解除
+
+  /auth/feishu/callback:
+    get:
+      tags: [Auth]
+      summary: 飞书 OAuth 回调（浏览器重定向）
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+      responses:
+        "302":
+          description: 重定向到 ARBOR_WEB_URL
+
   /tenants:
     get:
       tags: [Tenants]

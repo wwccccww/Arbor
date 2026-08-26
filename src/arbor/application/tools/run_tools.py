@@ -21,7 +21,7 @@ _TOOL_TRIGGERS: dict[str, re.Pattern[str]] = {
 }
 
 
-def _normalize_tool_name(raw: str) -> str | None:
+def normalize_tool_name(raw: str) -> str | None:
     key = (raw or "").strip().lower()
     if not key:
         return None
@@ -33,6 +33,7 @@ def _stub_ticket_result(text: str) -> dict:
     return {
         "tool": "ticket",
         "status": "ok",
+        "provider": "stub",
         "ticket_id": "stub-ticket-001",
         "title": title,
         "note": "演示工单已登记（stub），未连接真实工单系统",
@@ -56,6 +57,17 @@ def _stub_calendar_result() -> dict:
     }
 
 
+def allowed_tool_names(tool_policy: ToolPolicy | None) -> set[str]:
+    if tool_policy is None:
+        return set()
+    allowed: set[str] = set()
+    for raw in tool_policy.allowed_tools:
+        name = normalize_tool_name(str(raw))
+        if name:
+            allowed.add(name)
+    return allowed
+
+
 def run_persona_tools(
     text: str,
     tool_policy: ToolPolicy | None,
@@ -63,15 +75,10 @@ def run_persona_tools(
     tenant_id: TenantId | None = None,
     user_id: UserId | None = None,
     calendar_tool: object | None = None,
+    ticket_tool: object | None = None,
 ) -> list[dict]:
-    """Run allowed tools when user text matches triggers."""
-    if tool_policy is None:
-        return []
-    allowed: set[str] = set()
-    for raw in tool_policy.allowed_tools:
-        name = _normalize_tool_name(str(raw))
-        if name:
-            allowed.add(name)
+    """Run allowed tools when user text matches keyword triggers."""
+    allowed = allowed_tool_names(tool_policy)
     if not allowed:
         return []
     haystack = (text or "").strip()
@@ -94,5 +101,16 @@ def run_persona_tools(
             else:
                 results.append(_stub_calendar_result())
         elif name == "ticket":
-            results.append(_stub_ticket_result(haystack))
+            if ticket_tool is not None and tenant_id is not None and user_id is not None:
+                title = haystack[:80] or "用户反馈"
+                results.append(
+                    ticket_tool.create(
+                        tenant_id=tenant_id,
+                        user_id=user_id,
+                        title=title,
+                        description=haystack,
+                    )
+                )
+            else:
+                results.append(_stub_ticket_result(haystack))
     return results

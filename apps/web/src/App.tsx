@@ -68,6 +68,25 @@ export default function App() {
   const [email, setEmail] = useState<string | undefined>()
   const [runtime, setRuntime] = useState<RuntimeInfo | undefined>()
   const [error, setError] = useState<string | undefined>()
+  const [feishuNotice, setFeishuNotice] = useState<string | undefined>()
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const feishu = params.get('feishu')
+    if (!feishu) return
+    if (feishu === 'connected') {
+      setFeishuNotice('飞书日历已绑定成功')
+    } else if (feishu === 'error') {
+      setFeishuNotice('飞书绑定失败，请重试')
+    }
+    params.delete('feishu')
+    params.delete('code')
+    params.delete('msg')
+    params.delete('reason')
+    const query = params.toString()
+    const next = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
+    window.history.replaceState(null, '', next)
+  }, [])
 
   useEffect(() => {
     if (!client || !session) return
@@ -362,6 +381,7 @@ export default function App() {
       email={email}
       runtime={runtime}
       error={error}
+      notice={feishuNotice}
       canCreate={canCreate}
       creating={creatingPersona || creatingTenant || deletingTenant || importingChat}
       members={members}

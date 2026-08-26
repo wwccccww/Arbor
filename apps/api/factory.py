@@ -43,6 +43,8 @@ from arbor.adapters.outbound.object_storage import build_object_storage, object_
 from arbor.adapters.outbound.tools.credential_store import FileFeishuCredentialStore
 from arbor.adapters.outbound.tools.feishu_calendar import FeishuCalendarTool, StubCalendarTool
 from arbor.adapters.outbound.tools.feishu_client import FeishuClient
+from arbor.adapters.outbound.tools.http_ticket import HttpTicketTool
+from arbor.adapters.outbound.tools.stub_ticket import StubTicketTool
 from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
 from arbor.adapters.outbound.postgres.eval_runs import (
     InMemoryEvalRunRepository,
@@ -95,6 +97,9 @@ from arbor.env import (
     feishu_app_secret,
     feishu_redirect_uri,
     feishu_web_success_url,
+    ticket_api_key,
+    ticket_api_url,
+    ticket_backend,
 )
 from arbor.paths import repo_root
 
@@ -227,6 +232,15 @@ def _build_calendar_stack() -> tuple[object, FeishuClient | None, FileFeishuCred
     return StubCalendarTool(), None, credentials
 
 
+def _build_ticket_tool() -> object:
+    backend = ticket_backend()
+    url = ticket_api_url()
+    use_http = backend == "http" or (backend == "auto" and url)
+    if use_http and url:
+        return HttpTicketTool(api_url=url, api_key=ticket_api_key())
+    return StubTicketTool()
+
+
 def _highest_seq_id(session) -> int:
     """Return the largest a000-NNN sequence already stored, so the id generator
     resumes past persisted rows instead of colliding after a restart."""
@@ -328,6 +342,7 @@ def create_app(
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
     storage = build_object_storage(session=session, stores=stores)
     calendar_tool, feishu_client, feishu_credentials = _build_calendar_stack()
+    ticket_tool = _build_ticket_tool()
     vision_enrich = (
         (lambda text, attachments: _enrich_chat_with_vision(text, attachments, storage))
         if chat_api_key()
@@ -348,6 +363,7 @@ def create_app(
         storage=storage,
         vision_enrich=vision_enrich,
         calendar_tool=calendar_tool,
+        ticket_tool=ticket_tool,
     )
     confirm = ConfirmInboxItem(
         personas=personas,

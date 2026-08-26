@@ -5,7 +5,9 @@ from dataclasses import dataclass
 
 from arbor.application.conversation.compress_thread_summary import compress_thread_summary
 from arbor.application.retrieval import retrieve
-from arbor.application.tools.run_tools import run_persona_tools
+from arbor.application.tools.execute import execute_tool_calls
+from arbor.application.tools.run_tools import allowed_tool_names, run_persona_tools
+from arbor.env import tool_mode
 from arbor.domain.conversation.context_policy import ContextPolicy
 from arbor.domain.conversation.stream import StreamFinished, parse_model_out
 from arbor.domain.conversation.thread import Citation, Message, Thread
@@ -44,6 +46,7 @@ class SendMessage:
     enrich_with_vision: bool = True
     vision_enrich: object | None = None
     calendar_tool: object | None = None
+    ticket_tool: object | None = None
 
     def __call__(
         self,
@@ -70,6 +73,7 @@ class SendMessage:
             text=ctx.llm_text,
             injected_memory_ids=list(ctx.slots.injected_memory_ids),
         )
+        llm_out = self._maybe_llm_tool_round(ctx, llm_out)
         return self._finish(ctx, llm_out)
 
     def stream_reply(
@@ -103,9 +107,10 @@ class SendMessage:
         if streaming is None:
             llm_out = self.llm.complete(
                 prompt_slots=ctx.prompt_slots,
-                text=text,
+                text=ctx.llm_text,
                 injected_memory_ids=list(ctx.slots.injected_memory_ids),
             )
+            llm_out = self._maybe_llm_tool_round(ctx, llm_out)
             result = self._finish(ctx, llm_out)
             for piece in result["text"]:
                 yield piece
@@ -130,6 +135,12 @@ class SendMessage:
         merged["text"] = merged.get("text", "") or "".join(deltas)
         citations = [c for c in (merged.get("citations") or []) if c in ctx.slots.injected_memory_ids]
         merged["citations"] = citations
+        merged = self._maybe_llm_tool_round(ctx, merged)
+        if merged.pop("tool_round_applied", False):
+            from arbor.domain.conversation.stream import chunk_text
+
+            for piece in chunk_text(merged.get("text") or ""):
+                yield piece
         result = self._finish(ctx, merged)
         yield StreamFinished(json.dumps(result, ensure_ascii=False))
 
@@ -196,17 +207,22 @@ class SendMessage:
         prompt_slots = {
             "profile": slots.profile,
             "tool_policy": slots.tool_policy,
-            "tool_results": run_persona_tools(
+            "tool_results": [],
+            "thread_summary": slots.thread_summary,
+            "event_hits": slots.event_hits,
+            "memory_hits": [m.text for m in slots.memory_hits],
+            "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
+            "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
+        }
+        if tool_mode() in {"keywords", "both"}:
+            prompt_slots["tool_results"] = run_persona_tools(
                 llm_text,
                 persona.tool_policy,
                 tenant_id=tenant_id,
                 user_id=user_id,
                 calendar_tool=self.calendar_tool,
-            ),
-            "thread_summary": slots.thread_summary,
-            "event_hits": slots.event_hits,
-            "memory_hits": [m.text for m in slots.memory_hits],
-        }
+                ticket_tool=self.ticket_tool,
+            )
         extracted = self.reasoner.extract(text) if self.reasoner else None
         inbox_added = 0
         if extracted and extracted.get("text"):
@@ -221,6 +237,7 @@ class SendMessage:
             inbox_added = 1
         return _Context(
             tenant_id=tenant_id,
+            user_id=user_id,
             persona_id=persona_id,
             thread=thread,
             text=text,
@@ -231,7 +248,37 @@ class SendMessage:
             hits=hits,
             stored_attachments=stored_attachments,
             inbox_added=inbox_added,
+            persona=persona,
         )
+
+    def _maybe_llm_tool_round(self, ctx: _Context, llm_out: dict) -> dict:
+        if tool_mode() not in {"llm", "both"}:
+            return llm_out
+        calls = llm_out.get("tool_calls") or []
+        if not calls:
+            return llm_out
+        allowed = allowed_tool_names(ctx.persona.tool_policy)
+        extra = execute_tool_calls(
+            calls,
+            allowed_tools=allowed,
+            tenant_id=ctx.tenant_id,
+            user_id=ctx.user_id,
+            query_text=ctx.llm_text,
+            calendar_tool=self.calendar_tool,
+            ticket_tool=self.ticket_tool,
+        )
+        if not extra:
+            return llm_out
+        merged_results = list(ctx.prompt_slots.get("tool_results") or []) + extra
+        ctx.prompt_slots["tool_results"] = merged_results
+        follow_up = self.llm.complete(
+            prompt_slots=ctx.prompt_slots,
+            text=ctx.llm_text,
+            injected_memory_ids=list(ctx.slots.injected_memory_ids),
+        )
+        follow_up["tool_calls"] = []
+        follow_up["tool_round_applied"] = True
+        return follow_up
 
     def _enrich_text_with_attachments(self, text: str, attachments: list[dict]) -> str:
         if self.vision_enrich is not None:
@@ -299,6 +346,7 @@ class SendMessage:
 @dataclass
 class _Context:
     tenant_id: TenantId
+    user_id: UserId
     persona_id: PersonaId
     thread: Thread
     text: str
@@ -309,6 +357,7 @@ class _Context:
     hits: list[MemoryItem]
     stored_attachments: list[dict]
     inbox_added: int
+    persona: object
 
 
 def _normalize_attachments(raw) -> list[dict]:
