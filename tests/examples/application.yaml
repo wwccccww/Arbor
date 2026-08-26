@@ -13,7 +13,9 @@
   then:
     llm_context_slot_order:
       - profile
+      - tool_policy
       - thread_summary
+      - recent_turns
       - event_hits
       - memory_hits
 

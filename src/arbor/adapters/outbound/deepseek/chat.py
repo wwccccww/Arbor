@@ -127,6 +127,7 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
         [
             "档案: " + json.dumps(profile, ensure_ascii=False),
             "会话摘要: " + str(prompt_slots.get("thread_summary") or ""),
+            "近期对话: " + json.dumps(prompt_slots.get("recent_turns") or [], ensure_ascii=False),
             "事件: " + json.dumps(prompt_slots.get("event_hits") or [], ensure_ascii=False),
             "记忆: " + json.dumps(prompt_slots.get("memory_hits") or [], ensure_ascii=False),
             "工具权限: " + json.dumps(prompt_slots.get("tool_policy") or {}, ensure_ascii=False),

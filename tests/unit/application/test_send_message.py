@@ -107,7 +107,14 @@ def test_send_message_context_order():
         text="我们上次为什么吵架？",
         capabilities=[Capability.CHAT, Capability.READ_MEMORY],
     )
-    assert out["slot_order"] == ["profile", "tool_policy", "thread_summary", "event_hits", "memory_hits"]
+    assert out["slot_order"] == [
+        "profile",
+        "tool_policy",
+        "thread_summary",
+        "recent_turns",
+        "event_hits",
+        "memory_hits",
+    ]
 
 
 def test_send_message_no_memory_without_grant():

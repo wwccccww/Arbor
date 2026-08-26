@@ -17,6 +17,12 @@ def injected_contexts(prompt_slots: dict) -> list[str]:
     for memory in prompt_slots.get("memory_hits") or []:
         if memory:
             contexts.append(str(memory))
+    for turn in prompt_slots.get("recent_turns") or []:
+        if isinstance(turn, dict):
+            role = turn.get("role") or "user"
+            content = (turn.get("content") or "").strip()
+            if content:
+                contexts.append(f"近期对话 {role}: {content}")
     return contexts
 
 

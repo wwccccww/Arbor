@@ -191,3 +191,43 @@ def tool_mode() -> str:
     if raw in {"keywords", "llm", "both"}:
         return raw
     return "both"
+
+
+def context_window_tokens() -> int:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_CONTEXT_WINDOW_TOKENS") or "64000").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 64000
+    return max(4096, value)
+
+
+def context_max_output_tokens() -> int:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_CONTEXT_MAX_OUTPUT_TOKENS") or "2048").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 2048
+    return max(256, value)
+
+
+def context_recent_k() -> int:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_CONTEXT_RECENT_K") or "6").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 6
+    return max(0, min(value, 32))
+
+
+def context_system_overhead_tokens() -> int:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_CONTEXT_SYSTEM_OVERHEAD") or "600").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 600
+    return max(200, value)

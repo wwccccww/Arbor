@@ -116,7 +116,7 @@ search(tenant_id, persona_id, query_vector, k, filters) -> list[MemoryHit]
 | `GetEventTree` | 鉴权 read_memory → 读节点与边 → 投影为树 DTO |
 | `RunEvaluation` | 装载金标世界 → 只调检索与对话端口 → 算指标 |
 
-`SendMessage` **不得**在适配器里拼 SQL 再调 LLM。拼上下文的策略属于应用层（可委托领域服务 `ContextPolicy`）。
+`SendMessage` **不得**在适配器里拼 SQL 再调 LLM。拼上下文的策略属于应用层 `ContextCompiler`（检索 → `ContextPolicy` 槽位 → 近期 k 条 + summary → 按模型窗口截断），再委托 `ContextPolicy` 定槽位顺序。
 
 ## 6. 检索策略（应用层，不是「一种 RAG 框架」）
 
