@@ -203,8 +203,7 @@ describe('MemoryListPane', () => {
 
   it('deletes a memory when admin callback is provided', async () => {
     const user = userEvent.setup()
-    const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       if (init?.method === 'DELETE') {
         return new Response(null, { status: 204 })
       }
