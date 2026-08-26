@@ -1,15 +1,15 @@
-from arbor.adapters.outbound.multimodal.document_parser import parse_document
-from arbor.adapters.outbound.multimodal.plain_text import parse_plain_text
-from arbor.application.memory.commands import ConfirmInboxItem
 from arbor.adapters.outbound.inmemory import (
+    FixtureEmbeddingClient,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
     InMemoryPersonaRepository,
     InMemoryStores,
     InMemoryVectorIndex,
-    FixtureEmbeddingClient,
     SeqIdGenerator,
 )
+from arbor.adapters.outbound.multimodal.document_parser import parse_document
+from arbor.adapters.outbound.multimodal.plain_text import parse_plain_text
+from arbor.application.memory.commands import ConfirmInboxItem
 from arbor.domain.memory.memory import InboxItem, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId

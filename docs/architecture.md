@@ -59,18 +59,18 @@ Arbor 采用 **六边形架构（端口-适配器）** 承载 **DDD 限界上下
 
 ### 4.1 入站端口（Driving / Primary）
 
-由 UI、HTTP、评测脚本调用，应用层实现。
+由 UI、HTTP、评测脚本调用。**v1 实现**：HTTP 与 CLI 直接调用 `application` 用例类；`ports/inbound/` 仅保留薄 Protocol（`ChatPort`、`EvaluationPort`），尚未实现完整入站端口门面。
 
-| 端口 | 用例 |
-|---|---|
-| `ChatPort` | 发送消息、获取带引用的回复 |
-| `PersonaAdminPort` | 创建/更新人设、授权 |
-| `MemoryCommandPort` | 导入、确认 Inbox、删除记忆 |
-| `MemoryQueryPort` | 列表记忆、事件树、引用展开 |
-| `EvaluationPort` | 跑金标、取报告 |
-| `IdentityPort` | 登录、成员管理 |
+| 端口（设计） | 用例 | v1 |
+|---|---|---|
+| `ChatPort` | 发送消息、获取带引用的回复 | Protocol stub；HTTP → `SendMessage` |
+| `PersonaAdminPort` | 创建/更新人设、授权 | HTTP → `persona/commands` |
+| `MemoryCommandPort` | 导入、确认 Inbox、删除记忆 | HTTP → `memory/*` 用例 |
+| `MemoryQueryPort` | 列表记忆、事件树、引用展开 | HTTP → queries / eventgraph |
+| `EvaluationPort` | 跑金标、取报告 | Protocol stub；CLI/HTTP → `evaluation/*` |
+| `IdentityPort` | 登录、成员管理 | HTTP → `identity/commands` |
 
-一个入站端口对应一组用例，避免 God Service。
+一个入站端口对应一组用例，避免 God Service。完整 Port 类可在 v2 收口 HTTP 与 CLI 的重复 DTO 翻译。
 
 ### 4.2 出站端口（Driven / Secondary）
 
@@ -82,8 +82,7 @@ Arbor 采用 **六边形架构（端口-适配器）** 承载 **DDD 限界上下
 | `MemoryRepository` | Postgres | 同上 |
 | `EventGraphRepository` | Postgres 邻接表 | Neo4j（仅当多跳成为瓶颈） |
 | `ThreadRepository` | Postgres | — |
-| `VectorIndex` | pgvector | Qdrant |
-| `UnitOfWork` | SQLAlchemy / async session | — |
+| `VectorIndex` | pgvector（`postgres/vector.py`） | Qdrant |
 | `LLMClient` | DeepSeek Chat | 其他 OpenAI 兼容端点 |
 | `ReasoningClient` | DeepSeek Reasoner | 可回退到 `LLMClient` |
 | `FaithfulnessScorer` | RAGAS faithfulness 适配器 | 其他 LLM 评委；仅 generation |
@@ -162,7 +161,7 @@ search(tenant_id, persona_id, query_vector, k, filters) -> list[MemoryHit]
 
 ```text
 apps/
-  api/                         # 组合根：容器、配置、app.include_router
+  api/                         # 组合根：factory.py、main.py
   web/                         # React 工作台
 src/arbor/
   domain/
@@ -171,6 +170,7 @@ src/arbor/
     memory/
     eventgraph/
     conversation/
+    audit/
     shared/                    # TenantId, PersonaId 等值对象
   application/
     identity/
@@ -178,27 +178,33 @@ src/arbor/
     memory/
     eventgraph/
     conversation/
-    evaluation/
+    evaluation/                # 评测支持子域（无 domain/evaluation 聚合）
+    audit/
+    retrieval.py
+    storage/                   # object_gc 等出站协调
   ports/
-    inbound/
-    outbound/
+    inbound/                   # v1 薄 Protocol
+    outbound/                  # 仓储、向量、LLM、ObjectStorage…
   adapters/
-    inbound/http/              # FastAPI routers，只做 HTTP ↔ DTO
-    inbound/cli/
-    outbound/postgres/
-    outbound/pgvector/
-    outbound/deepseek/
-    outbound/ragas/                # FaithfulnessScorer，仅评测 generation
-    outbound/embedding_bge/
-    outbound/s3/
-    outbound/multimodal/          # 文档 / 语音 / 图片解析 → Inbox payload
-    outbound/arq/
+    inbound/
+      http/                    # register_auth|tenants|personas|threads|audit|eval|feishu
+      cli/                     # eval_cli
+      eval_runner.py
+    outbound/
+      postgres/                # 业务表、vector、pool、RLS、migrations
+      deepseek/
+      embedding.py
+      ragas_scorer.py
+      s3.py / localfs.py / object_storage.py
+      multimodal/
+      arq/
+      inmemory.py              # 演示与单测替身
 eval/
 infra/compose/
 docs/
 ```
 
-**导入规则（可用 lint 守）：**
+**导入规则（`tests/architecture/test_import_rules.py` 守护，等同 import-linter 目标）：**
 
 ```text
 domain            不得 import arbor.adapters / arbor.application / 第三方框架
@@ -219,7 +225,7 @@ HTTP 请求
   → 入站端口用例
   → 领域不变式
   → 出站端口：仓储 / 向量 / LLM
-  → 领域事件（如 MemoryConfirmed）由应用层发布
+  → 应用层同步编排（v1 无领域事件总线，见 ADR-0008）
   → HTTP 响应 DTO（引用 memory_ids，不把 ORM 对象漏出去）
 ```
 

@@ -41,4 +41,5 @@ def test_upload_rejects_oversize_import_and_chat():
         files={"file": ("ok.txt", b"12345678", "text/plain")},
     )
     assert ok.status_code == 202
-    assert client.app.state.storage.count() == before + 1
+    # Sync import parses Inbox then RunImportJob GC removes the upload blob.
+    assert client.app.state.storage.count() == before

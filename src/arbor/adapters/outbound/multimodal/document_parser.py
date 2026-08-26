@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 
 from arbor.adapters.outbound.multimodal.docx_parser import parse_docx
-from arbor.adapters.outbound.multimodal.libreoffice_convert import convert_legacy_to_modern, is_legacy_office_filename
+from arbor.adapters.outbound.multimodal.libreoffice_convert import (
+    convert_legacy_to_modern,
+    is_legacy_office_filename,
+)
 from arbor.adapters.outbound.multimodal.pdf_pypdf import parse_pdf_pypdf
 from arbor.adapters.outbound.multimodal.plain_text import parse_plain_text
 from arbor.adapters.outbound.multimodal.pptx_parser import parse_pptx
@@ -26,7 +29,10 @@ def parse_document(data: bytes, filename: str) -> MediaParseResult:
     backend = document_parser_backend()
     if backend in {"docling", "auto"}:
         try:
-            from arbor.adapters.outbound.multimodal.docling_parser import docling_available, parse_docling
+            from arbor.adapters.outbound.multimodal.docling_parser import (
+                docling_available,
+                parse_docling,
+            )
 
             if docling_available():
                 docling_result = parse_docling(work_data, work_name)

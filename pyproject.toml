@@ -87,3 +87,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint.per-file-ignores]
+"src/arbor/adapters/**" = ["BLE001", "B008", "DTZ011", "EXE001", "RUF012"]
+"src/arbor/application/memory/import_jobs.py" = ["BLE001"]

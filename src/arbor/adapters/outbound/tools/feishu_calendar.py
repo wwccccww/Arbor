@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from arbor.adapters.outbound.tools.credential_store import FeishuCredentialStore, FeishuUserTokens
 from arbor.adapters.outbound.tools.feishu_client import FeishuClient, FeishuError
@@ -15,7 +15,7 @@ class StubCalendarTool:
         user_id: UserId,
         query_text: str,
     ) -> dict:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return {
             "tool": "calendar",
             "status": "ok",

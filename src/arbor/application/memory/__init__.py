@@ -12,6 +12,7 @@ __all__ = [
     "DismissInboxItem",
     "ImportArtifact",
     "ListMemories",
+    "MediaToInbox",
     "MemoryPage",
     "ProcessImportJob",
 ]

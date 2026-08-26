@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from arbor.adapters.inbound.http.feishu_oauth import decode_oauth_state, encode_oauth_state
-from arbor.adapters.outbound.tools.credential_store import InMemoryFeishuCredentialStore, FeishuUserTokens
+from arbor.adapters.outbound.tools.credential_store import (
+    FeishuUserTokens,
+    InMemoryFeishuCredentialStore,
+)
 from arbor.adapters.outbound.tools.feishu_calendar import FeishuCalendarTool
 from arbor.domain.shared.ids import TenantId, UserId
 

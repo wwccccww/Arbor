@@ -122,9 +122,10 @@ docker compose -f infra/compose/postgres.yml up -d
 apps/web                     # 入站适配器：工作台 UI
 apps/api                     # 组合根（factory.py）+ FastAPI 入口
 src/arbor/domain             # 领域模型（零基础设施依赖）
-src/arbor/application        # 用例编排
-src/arbor/ports              # 入站 / 出站端口（接口）
-src/arbor/adapters           # FastAPI、Postgres、DeepSeek、bge、S3…
+src/arbor/application        # 用例编排（含 evaluation、storage/object_gc）
+src/arbor/ports              # 入站薄 Protocol + 出站端口
+src/arbor/adapters/inbound/http  # register_* HTTP 路由
+src/arbor/adapters           # Postgres、DeepSeek、bge、S3、multimodal…
 tests/                       # 单测、契约测、API、架构边界
 eval/                        # suite-v1 金标、arbor-eval runner、四策略基线
 infra/compose                # Postgres + Redis

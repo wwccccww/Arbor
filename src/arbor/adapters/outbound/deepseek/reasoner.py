@@ -100,16 +100,7 @@ class DeepSeekReasoner:
 
 
 def _extract_prompt() -> str:
-    return "\n".join(
-        [
-            "你是 Arbor 的记忆抽取器。只根据用户这句话判断有没有应写入人设记忆的稳定事实或事件。",
-            "寒暄、提问、情绪、一次性指令不要抽取。",
-            "只输出 JSON，不要其它文字。",
-            '有可记内容：{"kind": "fact、event、conflict 或 emotion", "text": "第三人称短句", "skip": false}',
-            '没有：{"skip": true, "kind": null, "text": ""}',
-            "不要编造。text 必须能从原句推出。",
-        ]
-    )
+    return '你是 Arbor 的记忆抽取器。只根据用户这句话判断有没有应写入人设记忆的稳定事实或事件。\n寒暄、提问、情绪、一次性指令不要抽取。\n只输出 JSON，不要其它文字。\n有可记内容：{"kind": "fact、event、conflict 或 emotion", "text": "第三人称短句", "skip": false}\n没有：{"skip": true, "kind": null, "text": ""}\n不要编造。text 必须能从原句推出。'
 
 
 def parse_extract(content: str) -> dict | None:

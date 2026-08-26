@@ -5,8 +5,8 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryPersonaRepository,
     SeqIdGenerator,
 )
-from arbor.application.memory.commands import ImportArtifact
 from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
+from arbor.application.memory.commands import ImportArtifact
 from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability

@@ -81,13 +81,13 @@ def test_confirm_non_pending_inbox_is_conflict():
         ids=SeqIdGenerator(),
         auth=AuthorizationPolicy(),
     )
-    kwargs = dict(
-        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
-        user_id=USER,
-        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
-        inbox_id="once-me",
-        capabilities=list(Capability),
-    )
+    kwargs = {
+        "tenant_id": TenantId("0a000000-0000-4000-a000-000000000001"),
+        "user_id": USER,
+        "persona_id": PersonaId("0a000000-0000-4000-a000-000000000010"),
+        "inbox_id": "once-me",
+        "capabilities": list(Capability),
+    }
     confirm(**kwargs)
     with pytest.raises(DomainError) as exc:
         confirm(**kwargs)

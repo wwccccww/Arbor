@@ -286,8 +286,7 @@ class ScriptedLLM:
         if self.extra_citation_memory_id:
             citations.append(self.extra_citation_memory_id)
         reply = _scripted_reply(text, citations)
-        for piece in chunk_text(reply):
-            yield piece
+        yield from chunk_text(reply)
         raw = json.dumps({"text": reply, "citations": citations}, ensure_ascii=False)
         yield StreamFinished(raw)
 

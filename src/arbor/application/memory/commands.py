@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 

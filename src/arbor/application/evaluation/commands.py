@@ -28,7 +28,6 @@ def _case_view(row: dict) -> dict:
         "expected_behavior": row.get("behavior") or row.get("expected_behavior"),
         "expected_memory_count": len(expected),
         "expected_event_id": expected_event,
-        "persona_id": row.get("persona_id"),
         "hit_ids": list(row.get("hit_ids") or []),
         "leak_ids": list(row.get("leak_ids") or []),
         "sources": dict(row.get("sources") or {}),

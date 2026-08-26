@@ -11,7 +11,13 @@ from arbor.adapters.outbound.inmemory import (
 from arbor.application.memory.bootstrap_from_inbox import BootstrapFromInbox
 from arbor.application.memory.commands import ConfirmInboxItem
 from arbor.domain.memory.memory import InboxItem
-from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant, Persona, Profile
+from arbor.domain.persona.authorization import (
+    AuthorizationPolicy,
+    Capability,
+    Grant,
+    Persona,
+    Profile,
+)
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
 

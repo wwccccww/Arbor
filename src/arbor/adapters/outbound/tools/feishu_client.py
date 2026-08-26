@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -151,7 +151,7 @@ class FeishuClient:
 
     @staticmethod
     def event_window(days: int = 7) -> tuple[int, int]:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         start = int(now.timestamp())
         end = int((now + timedelta(days=days)).timestamp())
         return start, end
@@ -165,14 +165,14 @@ class FeishuClient:
             ts = start.get("timestamp") or start.get("date")
             if ts:
                 try:
-                    when = datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat()
+                    when = datetime.fromtimestamp(int(ts), tz=UTC).isoformat()
                 except (TypeError, ValueError, OSError):
                     when = str(ts)
             else:
                 when = str(start.get("date_time") or start.get("date") or "")
         elif start:
             try:
-                when = datetime.fromtimestamp(int(start), tz=timezone.utc).isoformat()
+                when = datetime.fromtimestamp(int(start), tz=UTC).isoformat()
             except (TypeError, ValueError, OSError):
                 when = str(start)
         return {
