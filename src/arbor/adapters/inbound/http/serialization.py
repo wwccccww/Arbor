@@ -56,3 +56,18 @@ def public_attachments(items) -> list[dict]:
         for item in items or []
         if isinstance(item, dict) and item.get("filename")
     ]
+
+
+def citation_json(memories, tenant, citation) -> dict:
+    """Project a stored citation into the same shape post_message returns."""
+    body: dict = {}
+    if citation.memory_id:
+        body["memory_id"] = citation.memory_id.value
+        item = memories.get(tenant, citation.memory_id)
+        if item is not None:
+            body["preview"] = (item.text or "")[:40]
+            if item.event_id:
+                body["event_id"] = item.event_id.value
+    if citation.event_id:
+        body["event_id"] = citation.event_id.value
+    return body
