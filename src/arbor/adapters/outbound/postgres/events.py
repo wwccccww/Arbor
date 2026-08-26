@@ -16,15 +16,16 @@ class PgEventGraphRepository:
         self.conn.execute(
             """
             INSERT INTO event_nodes (
-                id, tenant_id, persona_id, title, happened_at, type, importance, summary
+                id, tenant_id, persona_id, title, happened_at, type, importance, summary, confidence
             )
-            VALUES (%s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s)
+            VALUES (%s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
                 happened_at = EXCLUDED.happened_at,
                 type = EXCLUDED.type,
                 importance = EXCLUDED.importance,
-                summary = EXCLUDED.summary
+                summary = EXCLUDED.summary,
+                confidence = EXCLUDED.confidence
             """,
             (
                 node.id.value,
@@ -35,13 +36,14 @@ class PgEventGraphRepository:
                 node.type,
                 node.importance,
                 node.summary,
+                node.confidence,
             ),
         )
 
     def _node(self, event_id: EventId) -> EventNode | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary
+            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary, confidence
             FROM event_nodes
             WHERE id = %s::uuid
             """,
@@ -52,7 +54,7 @@ class PgEventGraphRepository:
     def get(self, tenant_id: TenantId, event_id: EventId) -> EventNode | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary
+            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary, confidence
             FROM event_nodes
             WHERE id = %s::uuid AND tenant_id = %s::uuid
             """,
@@ -63,7 +65,7 @@ class PgEventGraphRepository:
     def list_nodes(self, tenant_id: TenantId, persona_id: PersonaId) -> list[EventNode]:
         rows = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary
+            SELECT id, tenant_id, persona_id, title, happened_at, type, importance, summary, confidence
             FROM event_nodes
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
             """,

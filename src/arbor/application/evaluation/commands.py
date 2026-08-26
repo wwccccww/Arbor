@@ -23,10 +23,12 @@ def _case_view(row: dict) -> dict:
         "id": row.get("id"),
         "query": row.get("query"),
         "skill": row.get("skill"),
+        "persona_id": row.get("persona_id"),
         "expected_source": expected_source,
         "expected_behavior": row.get("behavior") or row.get("expected_behavior"),
         "expected_memory_count": len(expected),
         "expected_event_id": expected_event,
+        "persona_id": row.get("persona_id"),
         "hit_ids": list(row.get("hit_ids") or []),
         "leak_ids": list(row.get("leak_ids") or []),
         "sources": dict(row.get("sources") or {}),
@@ -86,6 +88,46 @@ class StartEvalRun:
             "strategy": strategy,
             "suite_version": suite_version,
             "mode": "retrieval",
+            "metrics": comparison_row(report),
+            "p0_tenant_leak_zero": bool(report.get("p0_tenant_leak_zero")),
+            "cases": cases,
+        }
+
+
+class StartPersonaEvalRun:
+    """Auto-generate smoke questions for one live persona."""
+
+    def __init__(self, *, run_persona_retrieval, ids) -> None:
+        self.run_persona_retrieval = run_persona_retrieval
+        self.ids = ids
+
+    def __call__(
+        self,
+        *,
+        workspace_admin: bool,
+        tenant_id,
+        user_id,
+        persona_id,
+        strategy: str,
+    ) -> dict:
+        if not workspace_admin:
+            raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
+        if strategy not in STRATEGIES:
+            raise DomainError("VALIDATION_ERROR", "unknown strategy")
+        report = self.run_persona_retrieval(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            persona_id=persona_id,
+            strategy=strategy,
+        )
+        cases = [_case_view(row) for row in report.get("cases") or []]
+        return {
+            "id": self.ids.new_id(),
+            "status": "completed",
+            "strategy": strategy,
+            "suite_version": "persona",
+            "mode": "retrieval",
+            "persona_id": persona_id.value,
             "metrics": comparison_row(report),
             "p0_tenant_leak_zero": bool(report.get("p0_tenant_leak_zero")),
             "cases": cases,

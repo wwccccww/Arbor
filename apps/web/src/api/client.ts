@@ -288,13 +288,15 @@ export function createClient(
         onDelta: (chunk: string) => void
         onDone: (msg: ChatMessage, events: StreamEvent[]) => void
       },
-      file?: File,
+      files?: File[],
     ): Promise<void> {
-      const init: RequestInit = file
+      const init: RequestInit = files?.length
         ? (() => {
             const body = new FormData()
             body.append('text', text)
-            body.append('file', file)
+            for (const file of files) {
+              body.append('file', file)
+            }
             return { method: 'POST', body }
           })()
         : {
@@ -480,7 +482,7 @@ export function createClient(
 
     async getEventTree(
       personaId: string,
-      view: 'tree' | 'timeline' = 'tree',
+      view: 'tree' | 'timeline' | 'biography' = 'tree',
       keyOnly = true,
     ): Promise<EventTree> {
       const params = new URLSearchParams({ view })
@@ -503,7 +505,11 @@ export function createClient(
         return {
           ...body,
           memories: body.memories ?? [],
+          verbatim: body.verbatim ?? [],
           attachments: body.attachments ?? [],
+          participants: body.participants ?? [],
+          causal_in: body.causal_in ?? [],
+          causal_out: body.causal_out ?? [],
         }
       } catch (err) {
         const status = (err as ApiError).status
@@ -546,6 +552,13 @@ export function createClient(
         }
         throw err
       }
+    },
+
+    async startPersonaEvalRun(personaId: string, strategy = 'layered_tree'): Promise<{ id: string }> {
+      return (await request(`/personas/${personaId}/eval/runs`, {
+        method: 'POST',
+        body: JSON.stringify({ strategy }),
+      })) as { id: string }
     },
 
     async startEvalRun(

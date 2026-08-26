@@ -6,6 +6,8 @@ from arbor.domain.shared.ids import PersonaId, TenantId
 from arbor.domain.shared.textvec import cosine, fixture_embed
 
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
+DEFAULT_POOL = 20
+DEFAULT_RERANK = 6
 
 
 def _lexical(query: str, text: str) -> float:
@@ -16,6 +18,24 @@ def _lexical(query: str, text: str) -> float:
     if not q:
         return 0.0
     return len(q & t) / len(q)
+
+
+def _score_memory(query: str, item: MemoryItem, embed) -> float:
+    blob = item.text or ""
+    return _lexical(query, blob) + cosine(embed(query), embed(blob))
+
+
+def rerank_memories(
+    query: str,
+    candidates: list[MemoryItem],
+    embed,
+    limit: int = DEFAULT_RERANK,
+) -> list[MemoryItem]:
+    if not candidates:
+        return []
+    scored = [(item, _score_memory(query, item, embed)) for item in candidates]
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return [item for item, score in scored if score > 0][:limit]
 
 
 def route_events(query: str, events: list[EventNode], limit: int = 2) -> list[EventNode]:
@@ -39,10 +59,15 @@ def retrieve(
     summary: str,
     vector_search,
     embed,
+    k_pool: int = DEFAULT_POOL,
+    k_rerank: int | None = None,
 ) -> dict:
     """Return hit layers. Isolation is the caller's VectorIndex filter."""
     if strategy not in STRATEGIES:
         raise ValueError(strategy)
+
+    final_k = k_rerank if k_rerank is not None else min(k, DEFAULT_RERANK)
+    pool_k = max(k_pool, k, final_k)
 
     profile_hits: list[MemoryItem] = []
     event_hits: list[MemoryItem] = []
@@ -63,19 +88,21 @@ def retrieve(
 
     if strategy in {"vector_only", "layered", "layered_tree"}:
         qv = embed(query)
-        raw = vector_search(tenant_id=tenant_id, persona_id=persona_id, query_vector=qv, k=k)
+        raw = vector_search(tenant_id=tenant_id, persona_id=persona_id, query_vector=qv, k=pool_k)
         seen = {m.id.value for m in profile_hits + event_hits}
         for item, _score in raw:
             if item.id.value not in seen:
                 vector_hits.append(item)
 
-    rag_hits: list[MemoryItem] = []
+    rag_pool: list[MemoryItem] = []
     if strategy != "summary_only":
         for group in (event_hits, vector_hits):
             for item in group:
-                if item.id.value not in {c.id.value for c in rag_hits}:
-                    rag_hits.append(item)
-        rag_hits = rag_hits[:k]
+                if item.id.value not in {c.id.value for c in rag_pool}:
+                    rag_pool.append(item)
+        rag_hits = rerank_memories(query, rag_pool, embed, limit=final_k)
+    else:
+        rag_hits = []
 
     scored: list[MemoryItem] = []
     for item in list(profile_hits) + rag_hits:

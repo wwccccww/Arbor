@@ -18,10 +18,11 @@ class GetEventTree:
         view: str = "tree",
         key_only: bool = False,
     ) -> dict:
+        api_view = "timeline" if view == "biography" else view
         nodes, edges = self.projector.project(
             self.events.list_nodes(tenant_id, persona_id),
             self.events.list_edges(tenant_id, persona_id),
-            view=view,
+            view=api_view,
             key_only=key_only,
         )
         memory_ids: dict[str, list[str]] = {}

@@ -316,6 +316,7 @@ export default function App() {
     return (
       <Checkup
         client={client}
+        personas={personas.map((p) => ({ id: p.id, display_name: p.display_name }))}
         onBack={() => {
           window.location.hash = '#/'
         }}

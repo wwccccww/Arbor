@@ -14,6 +14,7 @@ export type Persona = {
   relationships?: { name: string; kind: string }[]
   personality?: { traits?: string[] }
   grants?: PersonaGrant[]
+  tool_policy?: { allowed_tools?: string[]; notes?: string }
   stats?: {
     memory_count?: number
     last_interaction?: string
@@ -28,6 +29,7 @@ export type PersonaPatch = {
   personality?: { traits?: string[] }
   relationships?: { name: string; kind: string }[]
   skin?: 'companion' | 'employee'
+  tool_policy?: { allowed_tools?: string[]; notes?: string }
 }
 
 export type PersonaDraft = {
@@ -137,6 +139,7 @@ export type EventNode = {
   type?: string
   importance?: number
   summary?: string
+  confidence?: number
   memory_ids?: string[]
 }
 
@@ -152,7 +155,12 @@ export type EventCard = {
   happened_at?: string
   type?: string
   summary?: string
+  confidence?: number
+  participants?: string[]
+  causal_in?: { event_id: string; title: string; kind: string }[]
+  causal_out?: { event_id: string; title: string; kind: string }[]
   memories: { id: string; text: string }[]
+  verbatim?: { id: string; text: string }[]
   attachments: { id: string; type: string; text: string }[]
   forbidden?: boolean
 }

@@ -103,6 +103,7 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
             type=event.get("type", "daily"),
             importance=int(event.get("importance") or 3),
             happened_at=event.get("happened_at"),
+            confidence=float(event["confidence"]) if event.get("confidence") is not None else None,
         )
     for edge in world.get("event_edges", []):
         stores.edges.append(

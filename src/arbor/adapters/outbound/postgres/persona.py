@@ -14,7 +14,7 @@ class PgPersonaRepository:
     def get(self, tenant_id: TenantId, persona_id: PersonaId) -> Persona | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships
+            SELECT id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy
             FROM personas
             WHERE id = %s::uuid AND tenant_id = %s::uuid
             """,
@@ -46,10 +46,10 @@ class PgPersonaRepository:
         self.conn.execute(
             """
             INSERT INTO personas (
-                id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, updated_at
+                id, tenant_id, skin, display_name, one_liner, personality, taboos, relationships, tool_policy, updated_at
             )
             VALUES (
-                %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, now()
+                %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, now()
             )
             ON CONFLICT (id) DO UPDATE SET
                 skin = EXCLUDED.skin,
@@ -58,6 +58,7 @@ class PgPersonaRepository:
                 personality = EXCLUDED.personality,
                 taboos = EXCLUDED.taboos,
                 relationships = EXCLUDED.relationships,
+                tool_policy = EXCLUDED.tool_policy,
                 updated_at = now()
             """,
             (
@@ -69,6 +70,12 @@ class PgPersonaRepository:
                 Jsonb(persona.profile.personality) if persona.profile.personality is not None else None,
                 Jsonb(list(persona.profile.taboos)),
                 Jsonb(list(persona.profile.relationships)),
+                Jsonb(
+                    {
+                        "allowed_tools": list(persona.tool_policy.allowed_tools),
+                        "notes": persona.tool_policy.notes,
+                    }
+                ),
             ),
         )
         self.conn.execute(

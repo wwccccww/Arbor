@@ -42,7 +42,7 @@ export function Workbench({
   const threadGuard = useAsyncGuard()
   const treeGuard = useAsyncGuard()
   const [treeOpen, setTreeOpen] = useState(false)
-  const [treeView, setTreeView] = useState<'tree' | 'timeline'>('tree')
+  const [treeView, setTreeView] = useState<'tree' | 'timeline' | 'biography'>('biography')
   const [keyOnly, setKeyOnly] = useState(true)
   const [loading, setLoading] = useState(true)
   const [switchingThread, setSwitchingThread] = useState(false)
@@ -284,7 +284,6 @@ export function Workbench({
     setChatError(null)
     const userMessageId = `local-${Date.now()}`
     const placeholderId = `stream-${Date.now()}`
-    const firstFile = files?.[0]
     try {
       const baseMessages = await ensureLatestMessagePage(threadId, messageTotal)
       const userMessage: ChatMessage = {
@@ -323,7 +322,7 @@ export function Workbench({
               }
             },
           },
-          firstFile,
+          files,
         )
       } else {
         const reply = await client.sendMessage(threadId, text, files)
@@ -486,7 +485,7 @@ export function Workbench({
     }
   }
 
-  async function changeView(view: 'tree' | 'timeline') {
+  async function changeView(view: 'tree' | 'timeline' | 'biography') {
     setTreeView(view)
     setTreeError(null)
     const token = treeGuard.begin()

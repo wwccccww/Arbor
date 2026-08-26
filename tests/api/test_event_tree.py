@@ -80,7 +80,10 @@ def test_event_card_includes_related_memories():
     body = r.json()
     assert body["id"] == LINXIA_FIGHT
     assert body["title"] == "面店争吵"
-    assert any(item["id"] == "0a000000-0000-4000-a000-000000000303" for item in body["memories"])
+    assert any(
+        item["id"] == "0a000000-0000-4000-a000-000000000303"
+        for item in (body["memories"] + body.get("verbatim") or [])
+    )
     assert body["attachments"] == []
     meet = client.get(f"/v1/events/{LINXIA_MEET}", headers=_headers())
     assert meet.status_code == 200

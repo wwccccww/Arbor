@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from arbor.domain.errors import DomainError
-from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
+from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant, ToolPolicy
 from arbor.domain.persona.persona import Persona, Profile
 from arbor.domain.persona.templates import apply_template
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
@@ -77,6 +77,7 @@ class PatchPersona:
         taboos: list[str] | None = None,
         relationships: list[dict] | None = None,
         skin: str | None = None,
+        tool_policy: dict | None = None,
     ) -> Persona:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
@@ -99,6 +100,12 @@ class PatchPersona:
             persona.profile.relationships = list(relationships)
         if skin is not None:
             persona.skin = skin
+        if tool_policy is not None:
+            allowed = tool_policy.get("allowed_tools") or []
+            persona.tool_policy = ToolPolicy(
+                allowed_tools=[str(item) for item in allowed],
+                notes=str(tool_policy.get("notes") or ""),
+            )
         self.personas.save(persona)
         fields = [
             name
@@ -109,6 +116,7 @@ class PatchPersona:
                 ("taboos", taboos),
                 ("relationships", relationships),
                 ("skin", skin),
+                ("tool_policy", tool_policy),
             )
             if value is not None
         ]
