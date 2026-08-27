@@ -31,6 +31,9 @@ export function ImportPane({
     <section>
       <h3>导入</h3>
       <p>文本会进收件箱，不直写记忆。</p>
+      <p className="form-hint">
+        <a href="/demo/sample-chat.txt" download="sample-chat.txt">下载演示聊天样例</a>
+      </p>
       <form onSubmit={submit}>
         <label>
           导入文件

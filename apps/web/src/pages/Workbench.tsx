@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
 import type { ChatMessage, EventCard, EventNode, EventTree, ImportJob, InboxItem, MemoryItem, Persona, PersonaGrant, PersonaPatch, TenantMember, Thread } from '../api/types'
 import { ChatPane } from '../components/ChatPane'
+import { DemoGuidePane } from '../components/DemoGuidePane'
 import { EventCardPane } from '../components/EventCardPane'
 import { EventTreePane } from '../components/EventTreePane'
 import { GrantsPane } from '../components/GrantsPane'
@@ -80,6 +81,7 @@ export function Workbench({
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importJob, setImportJob] = useState<ImportJob | null>(null)
+  const [importFinished, setImportFinished] = useState(false)
   const [chatError, setChatError] = useState<string | null>(null)
   const [sidebarError, setSidebarError] = useState<string | null>(null)
   const [treeError, setTreeError] = useState<string | null>(null)
@@ -225,8 +227,28 @@ export function Workbench({
     }
   }
 
+  async function refreshEventTree(view = treeView, nextKeyOnly = keyOnly) {
+    const token = treeGuard.begin()
+    try {
+      const tree = await client.getEventTree(personaId, view, nextKeyOnly)
+      if (!treeGuard.isLatest(token)) return
+      setTreeForbidden(Boolean(tree.forbidden))
+      setNodes(tree.nodes)
+      setTreeEdges(tree.edges)
+    } catch (err) {
+      if (!treeGuard.isLatest(token)) return
+      setTreeError((err as Error).message)
+    }
+  }
+
   function jump(eventId?: string) {
-    void openCard(eventId)
+    setTreeOpen(true)
+    void (async () => {
+      if (treeView !== 'biography') {
+        await changeView('biography')
+      }
+      await openCard(eventId)
+    })()
   }
 
   async function pageMessages(offset: number) {
@@ -419,13 +441,10 @@ export function Workbench({
       await client.confirmInbox(inboxId, opts)
       setInbox((current) => current.filter((item) => item.id !== inboxId))
       await loadMemories(memoryType, memoryStatus, memoryOffset, memoryByEvent ? highlightedId : undefined)
+      await refreshEventTree()
       if (opts.markKeyEvent) {
-        const token = treeGuard.begin()
-        const tree = await client.getEventTree(personaId, treeView, keyOnly)
-        if (!treeGuard.isLatest(token)) return
-        setTreeForbidden(Boolean(tree.forbidden))
-        setNodes(tree.nodes)
-        setTreeEdges(tree.edges)
+        setTreeOpen(true)
+        setTreeView('biography')
       }
     } catch (err) {
       setSidebarError((err as Error).message)
@@ -543,6 +562,28 @@ export function Workbench({
     }
   }
 
+  async function bootstrapInboxItems() {
+    setInboxBusy('bootstrap')
+    setSidebarError(null)
+    try {
+      const result = await client.bootstrapInbox(personaId)
+      const pending = await client.listInbox(personaId)
+      setInboxForbidden(Boolean(pending.forbidden))
+      setInbox(pending.items)
+      setPersona(await client.getPersona(personaId))
+      await loadMemories(memoryType, memoryStatus, 0, memoryByEvent ? highlightedId : undefined)
+      await changeView('biography')
+      setTreeOpen(true)
+      if (result.events_created > 0) {
+        setImportFinished(true)
+      }
+    } catch (err) {
+      setSidebarError((err as Error).message)
+    } finally {
+      setInboxBusy(undefined)
+    }
+  }
+
   async function importFile(file: File, hint?: string) {
     setImporting(true)
     setSidebarError(null)
@@ -556,6 +597,9 @@ export function Workbench({
       const pending = await client.listInbox(personaId)
       setInboxForbidden(Boolean(pending.forbidden))
       setInbox(pending.items)
+      if (pending.items.length > 0 || (job.inbox_created ?? 0) > 0) {
+        setImportFinished(true)
+      }
     } catch (err) {
       setSidebarError((err as Error).message)
     } finally {
@@ -626,6 +670,14 @@ export function Workbench({
                 />
               </div>
               <div data-left-panel="tools">
+                <DemoGuidePane
+                  inboxCount={inbox.length}
+                  eventCount={nodes.length}
+                  importDone={importFinished}
+                  onOpenCheckup={() => {
+                    window.location.hash = '#/checkup'
+                  }}
+                />
                 <GrantsPane
                   members={members}
                   grants={persona.grants ?? []}
@@ -645,6 +697,7 @@ export function Workbench({
                   busyId={inboxBusy}
                   onConfirm={(id, opts) => void confirmItem(id, opts)}
                   onDismiss={(id) => void dismissItem(id)}
+                  onBootstrap={() => void bootstrapInboxItems()}
                 />
               </div>
             </>

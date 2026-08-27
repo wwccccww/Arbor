@@ -1013,9 +1013,77 @@ td:first-child {
   color: var(--ink-soft);
 }
 
-.biography-tree__list--daily {
-  margin-top: 0.35rem;
+.biography-tree__list--spine {
+  position: relative;
+  padding-left: 0.65rem;
 }
+
+.biography-tree__list--spine::before {
+  content: '';
+  position: absolute;
+  left: 0.15rem;
+  top: 0.35rem;
+  bottom: 0.35rem;
+  width: 2px;
+  background: color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 2px;
+}
+
+.biography-tree__list--spine .biography-tree__item {
+  position: relative;
+}
+
+.biography-tree__list--spine .biography-tree__item::before {
+  content: '';
+  position: absolute;
+  left: -0.5rem;
+  top: 0.85rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+}
+
+.biography-tree__item[data-highlight='true'] .biography-tree__node {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.demo-guide {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+}
+
+.demo-guide__steps {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-guide__step {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.demo-guide__step[data-done='false'] .badge {
+  opacity: 0.65;
+}
+
+.inbox-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 
 .event-flow {
   height: min(420px, 42vh);

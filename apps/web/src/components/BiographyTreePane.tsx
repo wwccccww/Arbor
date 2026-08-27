@@ -95,7 +95,7 @@ export function BiographyTreePane({
           </select>
         </label>
       ) : null}
-      <ol className="biography-tree__list">
+      <ol className="biography-tree__list biography-tree__list--spine">
         {filtered.map((node) => (
           <li
             key={node.id}

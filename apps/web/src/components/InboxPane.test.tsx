@@ -51,6 +51,21 @@ describe('InboxPane', () => {
     expect((dismissCall?.[1] as RequestInit).method).toBe('POST')
   })
 
+  it('calls bootstrap handler when provided', async () => {
+    const user = userEvent.setup()
+    const onBootstrap = vi.fn()
+    render(
+      <InboxPane
+        items={[{ id: 'in-1', kind: 'fact', status: 'pending', payload: { text: '测试' } }]}
+        onConfirm={vi.fn()}
+        onDismiss={vi.fn()}
+        onBootstrap={onBootstrap}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: '一键写入记忆并建树' }))
+    expect(onBootstrap).toHaveBeenCalled()
+  })
+
   it('does not list payload text without write_memory', () => {
     render(
       <InboxPane

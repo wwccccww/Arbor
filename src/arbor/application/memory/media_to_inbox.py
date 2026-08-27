@@ -63,7 +63,10 @@ class MediaToInbox:
                 plain = data.decode("utf-8-sig").strip()
             except UnicodeDecodeError:
                 plain = ""
-            if plain and self.reasoner is not None:
+            # Long chat exports: chunk + per-chunk reasoner instead of one blob extract.
+            multi_line = plain.count("\n") >= 2
+            long_blob = len(plain) > 280
+            if plain and self.reasoner is not None and not multi_line and not long_blob:
                 extracted = self.reasoner.extract(plain)
                 if extracted and not extracted.get("skip"):
                     kind_name = extracted.get("kind") or "fact"
@@ -71,7 +74,7 @@ class MediaToInbox:
                         "text": extracted.get("text") or plain,
                         "source": filename,
                         "source_text": extracted.get("source_text") or plain,
-                        "memory_type": "fact",
+                        "memory_type": extracted.get("memory_type") or "fact",
                     }
                     if hint:
                         payload["hint"] = hint
@@ -157,7 +160,7 @@ class MediaToInbox:
                     "text": extracted.get("text") or text,
                     "source": filename,
                     "source_text": extracted.get("source_text") or text,
-                    "memory_type": "fact",
+                    "memory_type": extracted.get("memory_type") or "fact",
                 }
             else:
                 payload = {"text": text, "source": filename, "memory_type": "fact"}
