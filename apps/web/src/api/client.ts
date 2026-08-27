@@ -22,6 +22,7 @@ import type {
   PersonaPatch,
   RetrievalMeta,
   StreamEvent,
+  ToolResult,
   Tenant,
   TenantMember,
   Thread,
@@ -273,6 +274,7 @@ export function createClient(
         inbox_created?: number
         attachments?: ChatAttachment[]
         retrieval_meta?: RetrievalMeta
+        tool_results?: ToolResult[]
       }
       return {
         id: body.message_id,
@@ -282,6 +284,7 @@ export function createClient(
         inbox_created: body.inbox_created ?? 0,
         attachments: body.attachments ?? [],
         retrieval_meta: body.retrieval_meta,
+        tool_results: body.tool_results ?? [],
       }
     },
 
@@ -370,6 +373,7 @@ export function createClient(
           inbox_created: doneEvent.inbox_created ?? 0,
           attachments: doneEvent.attachments ?? [],
           retrieval_meta: doneEvent.retrieval_meta,
+          tool_results: doneEvent.tool_results ?? [],
         },
         events,
       )
@@ -614,6 +618,16 @@ export function createClient(
 
     async getEvalRun(runId: string): Promise<EvalRun> {
       return (await request(`/eval/runs/${runId}`)) as EvalRun
+    },
+
+    async createTicket(
+      personaId: string,
+      payload: { title: string; description?: string },
+    ): Promise<ToolResult> {
+      return (await request(`/personas/${personaId}/tools/ticket`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as ToolResult
     },
 
     async listEvalRuns(limit = 10): Promise<{

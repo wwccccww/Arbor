@@ -1159,6 +1159,47 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /personas/{persona_id}/tools/ticket:
+    post:
+      tags: [Personas]
+      summary: 登记工单（需 tool_policy 允许 ticket）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "200":
+          description: 工单登记结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tool:
+                    type: string
+                  status:
+                    type: string
+                  ticket_id:
+                    type: string
+                  title:
+                    type: string
+                  note:
+                    type: string
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /personas/{persona_id}/eval/runs:
     post:
       tags: [Eval]

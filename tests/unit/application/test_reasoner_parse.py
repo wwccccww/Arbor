@@ -18,6 +18,15 @@ def test_parse_extract_maps_event_kind_to_episode_summary():
     assert parsed["memory_type"] == "episode_summary"
 
 
+def test_parse_extract_reads_conflicts_with():
+    parsed = parse_extract(
+        '{"kind": "conflict", "text": "林夏对猫毛过敏", "conflicts_with": '
+        '"0a000000-0000-4000-a000-000000000307", "skip": false}'
+    )
+    assert parsed["kind"] == "conflict"
+    assert parsed["conflicts_with"] == "0a000000-0000-4000-a000-000000000307"
+
+
 def test_parse_extract_defaults_unknown_kind_to_fact():
     parsed = parse_extract('{"kind": "gossip", "text": "林夏住杭州"}')
     assert parsed["kind"] == "fact"

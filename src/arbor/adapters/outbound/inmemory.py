@@ -355,7 +355,7 @@ class ScriptedReasoner:
         self.kind = kind
         self.conflicts_with = conflicts_with
 
-    def extract(self, text: str) -> dict | None:
+    def extract(self, text: str, active_memories: list | None = None) -> dict | None:
         if not self.proposed_fact:
             return None
         out: dict = {"kind": self.kind, "text": self.proposed_fact, "source_text": text}

@@ -87,5 +87,6 @@ async def sse_stream(streamer, extra_inbox_created: int = 0):
             "inbox_created": (final.get("inbox_added") or 0) + int(extra_inbox_created or 0),
             "attachments": final.get("attachments") or [],
             "retrieval_meta": final.get("retrieval_meta") or {},
+            "tool_results": final.get("tool_results") or [],
         }
     )

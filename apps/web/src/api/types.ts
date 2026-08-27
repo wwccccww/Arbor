@@ -114,6 +114,17 @@ export type ChatAttachment = {
   filename: string
 }
 
+export type ToolResult = {
+  tool?: string
+  status?: string
+  provider?: string
+  ticket_id?: string
+  title?: string
+  note?: string
+  summary?: string
+  events?: { title?: string; start?: string; note?: string }[]
+}
+
 export type ChatMessage = {
   id: string
   role: string
@@ -122,6 +133,7 @@ export type ChatMessage = {
   attachments?: ChatAttachment[]
   inbox_created?: number
   retrieval_meta?: RetrievalMeta
+  tool_results?: ToolResult[]
 }
 
 export type MessagePage = {
@@ -140,6 +152,7 @@ export type StreamEvent =
       inbox_created?: number
       attachments?: ChatAttachment[]
       retrieval_meta?: RetrievalMeta
+      tool_results?: ToolResult[]
     }
 
 export type ThreadExport = {

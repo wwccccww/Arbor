@@ -17,6 +17,7 @@ from arbor.adapters.inbound.http.register_feishu import FeishuHttpDeps, register
 from arbor.adapters.inbound.http.register_personas import PersonaHttpDeps, register_persona_routes
 from arbor.adapters.inbound.http.register_tenants import TenantHttpDeps, register_tenant_routes
 from arbor.adapters.inbound.http.register_threads import ThreadHttpDeps, register_thread_routes
+from arbor.adapters.inbound.http.register_tools import ToolsHttpDeps, register_tools_routes
 from arbor.adapters.outbound.auth_sessions import InMemoryAuthSessionStore
 from arbor.adapters.outbound.deepseek import DeepSeekChatLLM, DeepSeekReasoner, DeepSeekUnavailable
 from arbor.adapters.outbound.embedding import EmbeddingUnavailable, embedding_client_from_env
@@ -411,6 +412,7 @@ def create_app(
         ids=ids,
         auth=AuthorizationPolicy(),
         reasoner=reasoner or ScriptedReasoner(),
+        memories=memories,
         parse_media=parse_media_bytes,
     )
     process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
@@ -765,6 +767,16 @@ def create_app(
             export_thread=export_thread,
             get_chat_attachment=get_chat_attachment,
             max_upload_bytes=max_upload_bytes,
+            current_user=current_user,
+            resolve_tenant=resolve_tenant,
+        ),
+    )
+    register_tools_routes(
+        app,
+        ToolsHttpDeps(
+            personas=personas,
+            ticket_tool=ticket_tool,
+            auth=AuthorizationPolicy(),
             current_user=current_user,
             resolve_tenant=resolve_tenant,
         ),

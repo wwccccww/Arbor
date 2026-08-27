@@ -100,6 +100,32 @@
 
 `ARBOR_TICKET_API_URL` 配置后，`ticket` 工具会向该 URL `POST` JSON：`tenant_id`、`user_id`、`title`、`description`、`source=arbor-chat`。可选 `ARBOR_TICKET_API_KEY` 作为 Bearer。
 
+### 工单工具 API（工作台 UI）
+
+`POST /v1/personas/{persona_id}/tools/ticket`
+
+需人设 `tool_policy.allowed_tools` 包含 `ticket`，且调用方对该人设有 `chat` 授权。
+
+```json
+{ "title": "面店空调故障", "description": "制冷不足，请安排检修" }
+```
+
+响应（stub 或 HTTP 后端）示例：
+
+```json
+{
+  "tool": "ticket",
+  "status": "ok",
+  "ticket_id": "stub-ticket-001",
+  "title": "面店空调故障",
+  "note": "演示工单已登记（stub），未连接真实工单系统"
+}
+```
+
+错误：`403 FORBIDDEN_TOOL`（未授权工具）、`403 FORBIDDEN_CHAT`（无对话权限）。
+
+聊天响应 `POST /v1/threads/{thread_id}/messages` 与消息列表在助手消息上可带 `tool_results`（与关键词/LLM 工具执行结果同形）。
+
 ### 工具调用模式
 
 `ARBOR_TOOL_MODE`：

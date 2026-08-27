@@ -245,3 +245,25 @@ def test_vector_fake_index_isolates_persona():
     assert all(h[0].persona_id == b.persona_id for h in hits)
     assert all(h[0].id != a.id for h in hits)
     assert any(h[0].id == b.id for h in hits)
+
+
+def test_send_message_heuristic_conflict_inbox():
+    stores, send = _stack(proposed_fact="林夏其实可以接受香菜")
+    inbox = InMemoryInboxRepository(stores)
+    send.inbox = inbox
+    send(
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        user_id=USER,
+        thread_id=ThreadId("0a000000-0000-4000-a000-000000000030"),
+        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
+        text="关于香菜",
+        capabilities=list(Capability),
+    )
+    pending = inbox.list_pending(
+        TenantId("0a000000-0000-4000-a000-000000000001"),
+        PersonaId("0a000000-0000-4000-a000-000000000010"),
+    )
+    assert pending
+    assert pending[0].kind == "conflict"
+    assert pending[0].conflicts_with is not None
+    assert pending[0].conflicts_with.value == "0a000000-0000-4000-a000-000000000302"

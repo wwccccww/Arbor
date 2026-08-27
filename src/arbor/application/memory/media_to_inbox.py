@@ -4,6 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from arbor.application.memory.conflict_detection import enrich_inbox_extract
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
@@ -28,6 +29,7 @@ class MediaToInbox:
         ids,
         auth: AuthorizationPolicy,
         reasoner=None,
+        memories=None,
         parse_media: Callable[[bytes, str], Any] | None = None,
     ) -> None:
         self.personas = personas
@@ -35,6 +37,7 @@ class MediaToInbox:
         self.ids = ids
         self.auth = auth
         self.reasoner = reasoner
+        self.memories = memories
         self.parse_media = parse_media
 
     def __call__(
@@ -57,6 +60,10 @@ class MediaToInbox:
         if Capability.WRITE_MEMORY not in caps:
             raise DomainError("FORBIDDEN_MEMORY_WRITE", "write_memory required")
 
+        active = (
+            self.memories.list_active(tenant_id, persona_id) if self.memories is not None else []
+        )
+
         kind = media_kind_for_filename(filename)
         if kind is MediaKind.TEXT and use_reasoner_for_facts and data:
             try:
@@ -67,8 +74,9 @@ class MediaToInbox:
             multi_line = plain.count("\n") >= 2
             long_blob = len(plain) > 280
             if plain and self.reasoner is not None and not multi_line and not long_blob:
-                extracted = self.reasoner.extract(plain)
+                extracted = self.reasoner.extract(plain, active_memories=active)
                 if extracted and not extracted.get("skip"):
+                    extracted = enrich_inbox_extract(extracted, active)
                     kind_name = extracted.get("kind") or "fact"
                     payload = {
                         "text": extracted.get("text") or plain,
@@ -108,6 +116,7 @@ class MediaToInbox:
             hint=hint,
             parsed=parsed,
             use_reasoner_for_facts=use_reasoner_for_facts,
+            active_memories=active,
         )
         return MediaInboxResult(
             inbox_created=created,
@@ -125,6 +134,7 @@ class MediaToInbox:
         hint: str | None,
         parsed: Any,
         use_reasoner_for_facts: bool,
+        active_memories: list,
     ) -> int:
         created = 0
         for chunk in parsed.chunks:
@@ -156,8 +166,9 @@ class MediaToInbox:
 
             extracted = None
             if use_reasoner_for_facts and self.reasoner is not None:
-                extracted = self.reasoner.extract(text)
+                extracted = self.reasoner.extract(text, active_memories=active_memories)
             if extracted and not extracted.get("skip"):
+                extracted = enrich_inbox_extract(extracted, active_memories)
                 kind = extracted.get("kind") or "fact"
                 payload = {
                     "text": extracted.get("text") or text,

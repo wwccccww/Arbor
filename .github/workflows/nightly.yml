@@ -72,3 +72,22 @@ jobs:
         run: |
           python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy layered_tree --backend postgres --embed bge
           python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres --embed bge --write-baseline
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: pip install pip-audit
+      - run: pip install -e ".[dev,api,postgres]"
+      - run: pip-audit
+      - run: npm ci
+        working-directory: apps/web
+      - run: npm audit --audit-level=high
+        working-directory: apps/web

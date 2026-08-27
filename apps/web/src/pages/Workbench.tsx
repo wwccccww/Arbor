@@ -11,6 +11,7 @@ import { InboxPane } from '../components/InboxPane'
 import { MemoryListPane } from '../components/MemoryListPane'
 import { FeishuCalendarConnect } from '../components/FeishuCalendarConnect'
 import { ProfilePane } from '../components/ProfilePane'
+import { TicketToolPane } from '../components/TicketToolPane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
 import { useAsyncGuard } from '../useAsyncGuard'
@@ -610,6 +611,9 @@ export function Workbench({
   }
 
   const canEditPersona = workspaceAdmin || Array.isArray(persona?.grants)
+  const ticketAllowed = (persona?.tool_policy?.allowed_tools ?? []).some(
+    (tool) => tool === 'ticket' || tool === '工单',
+  )
 
   return (
     <div>
@@ -693,6 +697,12 @@ export function Workbench({
                   busy={importing}
                   job={importJob}
                   onImport={(file, hint) => void importFile(file, hint)}
+                />
+                <TicketToolPane
+                  client={client}
+                  personaId={personaId}
+                  allowed={ticketAllowed}
+                  disabled={!canEditPersona && !ticketAllowed}
                 />
                 <InboxPane
                   items={inbox}
