@@ -227,11 +227,25 @@ Owner/Admin。
   "citations": [
     { "memory_id": "…", "event_id": "…", "preview": "去年十一月在…" }
   ],
+  "injected_memory_ids": ["…"],
+  "context_token_budget": 12000,
+  "context_token_estimate": 4200,
+  "context_truncation_notes": [],
+  "retrieval_meta": {
+    "strategy": "layered_tree",
+    "hit_ids": ["…"],
+    "sources": { "…": "vector" },
+    "hit_scores": { "…": 0.82 },
+    "sub_queries": [{ "query": "…", "intent": "episode" }],
+    "per_source_counts": { "profile": 3, "event_tree": 2, "vector": 8 }
+  },
   "inbox_created": 1
 }
 ```
 
-检索顺序由应用层固定：档案 → 摘要 → 事件树 → 向量。响应不返回原始向量。
+`retrieval_meta` 供调试与体检页展示本轮检索来源；不向客户端返回向量。注入进 LLM 的 `memory_hits` 为 `{id, text, source?, score?}` 列表（在 `prompt_slots` 内，流式与非流式路径一致）。
+
+检索编排见 [architecture.md §6](architecture.md)；顺序仍为：档案 → 摘要 → 近期对话 → 事件树路由（含边扩展）→ hybrid 向量 → rerank → 组装上下文。
 
 ## 6. 记忆与导入
 

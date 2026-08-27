@@ -120,19 +120,51 @@ search(tenant_id, persona_id, query_vector, k, filters) -> list[MemoryHit]
 
 ## 6. 检索策略（应用层，不是「一种 RAG 框架」）
 
-一次回答的顺序固定：
+默认策略 **`layered_tree`**（`SendMessage.strategy` / `ContextCompiler`）。实现集中在 `application/retrieval.py`，由下列模块协作（检索编排 v2，2026-08）：
+
+| 模块 | 职责 |
+|---|---|
+| `retrieval_config.py` | `RetrievalConfig` + `ARBOR_RETRIEVAL_*` 环境变量 |
+| `event_graph_router.py` | 事件种子打分 + 沿 `temporal` / `caused_by` 边扩展 1～2 跳 |
+| `query_planner.py` | 复合问拆子 query（默认 `rules`：`因为` / `后来` / `如果`…） |
+| `retrieval_lexical.py` | 词级 lexical、类型权重、MMR、RRF 合并 |
+| `context_compiler.py` | 检索 → 槽位 → token 预算；`memory_hits` 带 `id` / `score` |
+| `context_injection.py` | 注入 payload 形状、极性冲突软检测 |
+
+一次回答的**槽位顺序**仍固定（与 `ContextPolicy` 一致）：
 
 ```text
-1. 档案        规则取出，不检索
-2. 近期摘要    Thread 上的 summary
-3. 事件树      按时间 / 人物 / 类型定位节点（结构化查询）
-4. 向量 RAG    仅在该 tenant + persona（及可选 event_id）下近邻
-5. 可选 rerank 20 → 4~6 条
-6. 组装上下文  带 MemoryId / EventId，供引用
+1. 档案        Persona.profile 规则注入，不靠向量
+2. 工具策略    tool_policy（若有）
+3. 近期摘要    Thread.summary
+4. 近期对话    recent_k 条消息（ContextCompiler）
+5. 事件        路由种子 + 图扩展后的 EventNode（title/summary）
+6. 记忆片段    hybrid 召回 + rerank 后的 MemoryItem（最多 prompt_k 条）
 ```
 
-这是 **档案 + 事件树路由 + 向量细节**。  
-不上 GraphRAG、不上独立 TreeRAG 产品。事件树是领域模型，不是检索框架。
+**`layered_tree` 检索编排（单轮请求内）**：
+
+```text
+query → [可选] rules 拆子 query
+     → 每子 query：事件种子 → 边扩展 → event 下记忆
+     → 全局 ANN(pool_k) + 事件 scoped ANN(filters.event_ids) → RRF
+     → [可选] 应用层 lexical scan → 再 RRF（ARBOR_RETRIEVAL_HYBRID）
+     → 合并池 → 词级 rerank + 类型权重 + MMR → rerank_k
+     → ContextCompiler 写入 prompt（memory_hits: {id, text, source, score}）
+     → 超 token 时按低分优先 trim 记忆
+```
+
+**向量端口**：`VectorIndex.search(..., filters)` 已落地，可选键：
+
+- `event_ids` — 只检索挂在这些事件上的记忆
+- `types` — 记忆类型白名单
+- `exclude_ids` — 排除已进档案层 / 事件层的 id
+
+仍是 **档案 + 事件树路由 + 向量细节**。不上 GraphRAG、不上独立 TreeRAG 产品。
+
+**可观测**：`SendMessage` 响应含 `retrieval_meta`（`hit_ids`、`sources`、`hit_scores`、`sub_queries`、`per_source_counts`）与 `context_truncation_notes`。详见 [api.md](api.md)。
+
+环境变量见 [local-dev.md](local-dev.md)；评测基线见 [evaluation.md](evaluation.md)。技术决策见 [ADR 0009](adr/0009-retrieval-orchestrator-v2.md)。
 
 ## 7. 限界上下文与六边形的关系
 
@@ -178,9 +210,16 @@ src/arbor/
     memory/
     eventgraph/
     conversation/
+      context_compiler.py
+      context_injection.py
+      …
     evaluation/                # 评测支持子域（无 domain/evaluation 聚合）
     audit/
-    retrieval.py
+    retrieval.py               # retrieve() 编排入口
+    retrieval_config.py
+    retrieval_lexical.py
+    event_graph_router.py
+    query_planner.py
     storage/                   # object_gc 等出站协调
   ports/
     inbound/                   # v1 薄 Protocol

@@ -102,16 +102,16 @@ suite-v1 夹具世界
 
 每次发布默认策略前，四列都要跑。**简历用规模集 477**，不要用 suite-v1 的满分表。
 
-suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模集（夹具嵌入，2026-08-20）：
+suite-v1（13 题，烟雾）数字见 `eval/baselines/suite-v1.json`。规模集（夹具嵌入，2026-08-27，检索编排 v2 后）：
 
 | strategy | 身份一致 | Recall@5 | 人设泄漏 | 跨租户泄漏 | 关键事件命中 | 检索延迟 |
 |---|---|---|---|---|---|---|
 | `summary_only` | 0.0 | 0.0 | 0 | **0** | 0.0 | <1ms |
-| `vector_only` | 0.68 | 0.77 | 0 | **0** | 0.94 | <1ms |
-| `layered` | **1.0** | 0.89 | 0 | **0** | 0.94 | <1ms |
-| `layered_tree` | **1.0** | **0.90** | 0 | **0** | **0.99** | <1ms |
+| `vector_only` | 0.63 | 0.69 | 0 | **0** | 0.79 | ~3ms |
+| `layered` | **1.0** | **0.90** | 0 | **0** | 0.88 | ~2ms |
+| `layered_tree` | **1.0** | **0.90** | 0 | **0** | **0.97** | ~3ms |
 
-简历上只放这张表 + 一句话：档案稳住身份，树提高因果/时间题，向量只补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation 已接入 `pytest -m llm` / `arbor-eval --mode generation`（suite-v1，需密钥）。RAGAS 评委需独立 `ARBOR_JUDGE_API_KEY`，未配置则 skip。源记忆只有 33 条，477 是问法扩张。
+简历上只放这张表 + 一句话：档案稳住身份，事件图扩展 + hybrid 抬 Recall，向量补细节；过滤保证租户泄漏为 0。嵌入是夹具哈希不是 bge；generation 已接入 `pytest -m llm` / `arbor-eval --mode generation`（suite-v1，需密钥）。RAGAS 评委需独立 `ARBOR_JUDGE_API_KEY`，未配置则 skip。源记忆只有 33 条，477 是问法扩张。检索实现见 [architecture.md §6](architecture.md) 与 [ADR 0009](adr/0009-retrieval-orchestrator-v2.md)。
 
 基线文件：`eval/baselines/suite-ragas-v1.json`（`arbor-eval --suite ragas-v1 --strategy all --write-baseline`）。
 

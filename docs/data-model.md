@@ -121,7 +121,7 @@ UNIQUE / PK: id
 INDEX: (tenant_id, persona_id, status)
 INDEX: ivfflat 或 hnsw ON embedding
        -- 查询必须带 tenant_id、persona_id 条件，避免全库 ANN
-OPTIONAL: GIN tsvector(text) 用于专名混合检索
+OPTIONAL: GIN tsvector(text) 用于专名混合检索（**未实现**；v2 用应用层 lexical scan + 向量 RRF，见 ADR-0009）
 ```
 
 **查询契约**
@@ -132,7 +132,11 @@ FROM memory_items
 WHERE tenant_id = :tenant
   AND persona_id = :persona
   AND status = 'active'
-  -- 可选: event_id = :event
+  AND embedding IS NOT NULL
+  -- 可选 filters（VectorIndex.search）:
+  -- AND event_id = ANY(:event_ids::uuid[])
+  -- AND type = ANY(:types::text[])
+  -- AND NOT (id = ANY(:exclude_ids::uuid[]))
 ORDER BY embedding <=> :q
 LIMIT :k;
 ```
