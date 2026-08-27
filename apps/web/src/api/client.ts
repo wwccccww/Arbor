@@ -136,8 +136,11 @@ export function createClient(
       return (await request('/me')) as Me
     },
 
-    async listPersonas(): Promise<Persona[]> {
-      const body = (await request('/personas')) as { items?: Persona[] }
+    async listPersonas(options?: { includeStats?: boolean }): Promise<Persona[]> {
+      const params = new URLSearchParams()
+      if (options?.includeStats) params.set('include_stats', 'true')
+      const suffix = params.toString() ? `?${params.toString()}` : ''
+      const body = (await request(`/personas${suffix}`)) as { items?: Persona[] }
       return body.items ?? []
     },
 
@@ -627,6 +630,13 @@ export function createClient(
       return (await request(`/personas/${personaId}/tools/ticket`, {
         method: 'POST',
         body: JSON.stringify(payload),
+      })) as ToolResult
+    },
+
+    async queryCalendar(personaId: string, queryText = '近期日程'): Promise<ToolResult> {
+      return (await request(`/personas/${personaId}/tools/calendar`, {
+        method: 'POST',
+        body: JSON.stringify({ query_text: queryText }),
       })) as ToolResult
     },
 

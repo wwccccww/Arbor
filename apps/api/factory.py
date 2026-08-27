@@ -750,6 +750,7 @@ def create_app(
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
             resolve_tenant=resolve_tenant,
+            threads=threads,
         ),
     )
     register_thread_routes(
@@ -776,6 +777,7 @@ def create_app(
         ToolsHttpDeps(
             personas=personas,
             ticket_tool=ticket_tool,
+            calendar_tool=calendar_tool,
             auth=AuthorizationPolicy(),
             current_user=current_user,
             resolve_tenant=resolve_tenant,

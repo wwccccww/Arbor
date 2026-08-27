@@ -126,6 +126,22 @@
 
 聊天响应 `POST /v1/threads/{thread_id}/messages` 与消息列表在助手消息上可带 `tool_results`（与关键词/LLM 工具执行结果同形）。
 
+### 日历工具 API（工作台 UI）
+
+`POST /v1/personas/{persona_id}/tools/calendar`
+
+需人设 `tool_policy.allowed_tools` 包含 `calendar`，且调用方对该人设有 `chat` 授权。飞书真实日程需用户先绑定飞书日历。
+
+```json
+{ "query_text": "这周有什么安排" }
+```
+
+### 人设列表统计
+
+`GET /v1/personas?include_stats=true`
+
+在列表项上附加 `stats`：`memory_count`（需 `read_memory`）、`thread_count` / `last_interaction` / `last_interaction_at`（需 `chat`）。
+
 ### 工具调用模式
 
 `ARBOR_TOOL_MODE`：

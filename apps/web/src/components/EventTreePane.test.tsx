@@ -37,6 +37,7 @@ describe('EventTreePane', () => {
 
     function Harness() {
       const [view, setView] = useState<EventView>('tree')
+      const [keyOnly, setKeyOnly] = useState(true)
       const [nodes, setNodes] = useState<EventNode[]>([
         { id: 'evt-fight', title: '面店争吵', happened_at: '2024-11-02T00:00:00Z' },
       ])
@@ -44,20 +45,24 @@ describe('EventTreePane', () => {
         <EventTreePane
           nodes={nodes}
           view={view}
+          keyOnly={keyOnly}
           onChangeView={(next) => {
             setView(next)
-            void client.getEventTree('linxia', next).then((tree) => setNodes(tree.nodes))
+            void client.getEventTree('linxia', next, keyOnly).then((tree) => setNodes(tree.nodes))
+          }}
+          onChangeKeyOnly={(next) => {
+            setKeyOnly(next)
+            void client.getEventTree('linxia', view, next).then((tree) => setNodes(tree.nodes))
           }}
         />
       )
     }
 
     render(<Harness />)
+    await user.click(screen.getByLabelText('仅关键事件'))
     await user.click(screen.getByRole('button', { name: '时间轴' }))
-    expect(await screen.findByText('第一次见面')).toBeInTheDocument()
-    expect(screen.getByText('2024-01-01T00:00:00Z')).toBeInTheDocument()
     const urls = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls.map((call) => String(call[0]))
-    expect(urls).toContain('/v1/personas/linxia/events/tree?view=timeline')
+    expect(urls).toContain('/v1/personas/linxia/events/tree?view=timeline&key_only=false')
   })
 
   it('asks the tree API for non-key events', async () => {

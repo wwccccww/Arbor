@@ -11,6 +11,7 @@ import { InboxPane } from '../components/InboxPane'
 import { MemoryListPane } from '../components/MemoryListPane'
 import { FeishuCalendarConnect } from '../components/FeishuCalendarConnect'
 import { ProfilePane } from '../components/ProfilePane'
+import { CalendarToolPane } from '../components/CalendarToolPane'
 import { TicketToolPane } from '../components/TicketToolPane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
@@ -614,6 +615,9 @@ export function Workbench({
   const ticketAllowed = (persona?.tool_policy?.allowed_tools ?? []).some(
     (tool) => tool === 'ticket' || tool === '工单',
   )
+  const calendarAllowed = (persona?.tool_policy?.allowed_tools ?? []).some(
+    (tool) => tool === 'calendar' || tool === '日程' || tool === '日历',
+  )
 
   return (
     <div>
@@ -628,6 +632,15 @@ export function Workbench({
           </span>
         ) : null}
         <span className="crumb">{persona?.one_liner ?? ''}</span>
+        <button
+          type="button"
+          className="btn--ghost"
+          onClick={() => {
+            window.location.hash = `#/personas/${personaId}/inbox`
+          }}
+        >
+          记忆收件箱
+        </button>
       </header>
       {sidebarError ? (
         <p className="workbench-alert workbench-alert--sidebar" role="alert">
@@ -703,6 +716,12 @@ export function Workbench({
                   personaId={personaId}
                   allowed={ticketAllowed}
                   disabled={!canEditPersona && !ticketAllowed}
+                />
+                <CalendarToolPane
+                  client={client}
+                  personaId={personaId}
+                  allowed={calendarAllowed}
+                  disabled={!canEditPersona && !calendarAllowed}
                 />
                 <InboxPane
                   items={inbox}

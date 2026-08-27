@@ -19,6 +19,7 @@ export function Home({
   creating,
   inviting,
   onOpen,
+  onOpenInbox,
   onCheckup,
   onAudit,
   onCreate,
@@ -43,6 +44,7 @@ export function Home({
   creating?: boolean
   inviting?: boolean
   onOpen: (personaId: string) => void
+  onOpenInbox?: (personaId: string) => void
   onCheckup: () => void
   onAudit?: () => void
   onCreate?: (draft: PersonaDraft, bootstrapFile?: File) => void
@@ -155,6 +157,15 @@ export function Home({
               const threadCount = persona.stats?.thread_count ?? null
               const avatar = personaAvatar(persona)
               const avatarEmoji = personaAvatarIsEmoji(avatar)
+              const lastAt = persona.stats?.last_interaction_at
+              const lastAtLabel = lastAt
+                ? new Date(lastAt).toLocaleString('zh-CN', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : null
               return (
                 <li key={persona.id}>
                   <button type="button" onClick={() => onOpen(persona.id)}>
@@ -179,8 +190,23 @@ export function Home({
                         {persona.stats?.last_interaction
                           ? ` · 最近：${persona.stats.last_interaction}`
                           : ''}
+                        {lastAtLabel ? ` · ${lastAtLabel}` : ''}
                       </span>
-                      <span className="cta">打开 →</span>
+                      <span className="persona-grid__actions">
+                        {onOpenInbox ? (
+                          <button
+                            type="button"
+                            className="btn--ghost persona-grid__inbox"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              onOpenInbox(persona.id)
+                            }}
+                          >
+                            收件箱
+                          </button>
+                        ) : null}
+                        <span className="cta">打开 →</span>
+                      </span>
                     </span>
                   </button>
                 </li>

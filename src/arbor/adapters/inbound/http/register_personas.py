@@ -9,8 +9,9 @@ from arbor.adapters.inbound.http.authz import require_read, require_write
 from arbor.adapters.inbound.http.chat import reject_oversize
 from arbor.adapters.inbound.http.schemas import ConfirmIn, GrantsIn, PersonaIn, PersonaPatchIn
 from arbor.adapters.inbound.http.serialization import caps_for, grant_json, persona_json
+from arbor.application.persona.persona_stats import build_persona_stats, stats_json
 from arbor.domain.errors import DomainError
-from arbor.domain.persona.authorization import Capability
+from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 
 
@@ -38,25 +39,43 @@ class PersonaHttpDeps:
     current_user: Callable
     workspace_admin_for: Callable
     resolve_tenant: Callable
+    threads: object | None = None
 
 
 def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
     @app.get("/v1/personas")
     def get_personas(
+        include_stats: bool = Query(default=False),
         authorization: str | None = Header(default=None),
         x_tenant_id: str | None = Header(default=None),
     ):
         user = deps.current_user(authorization)
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        tenant = TenantId(x_tenant_id)
+        user_id = UserId(user["user_id"])
         items = deps.list_personas(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
+            tenant_id=tenant,
+            user_id=user_id,
             workspace_admin=deps.workspace_admin_for(user, x_tenant_id),
         )
-        return {
-            "items": [persona_json(persona, caps_for(persona, user)) for persona in items]
-        }
+        auth = AuthorizationPolicy()
+        body_items = []
+        for persona in items:
+            caps = caps_for(persona, user)
+            row = persona_json(persona, caps)
+            if include_stats and deps.memories is not None and deps.threads is not None:
+                row["stats"] = stats_json(
+                    build_persona_stats(
+                        persona,
+                        user_id,
+                        auth=auth,
+                        memories=deps.memories,
+                        threads=deps.threads,
+                    )
+                )
+            body_items.append(row)
+        return {"items": body_items}
 
     @app.post("/v1/personas", status_code=201)
     def post_persona(
