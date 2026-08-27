@@ -186,6 +186,7 @@ def register_thread_routes(app, deps: ThreadHttpDeps) -> None:
             "injected_memory_ids": result["injected_memory_ids"],
             "inbox_created": (result.get("inbox_added") or 0) + chat_media_added,
             "attachments": result.get("attachments") or [],
+            "retrieval_meta": result.get("retrieval_meta") or {},
         }
 
     @app.get("/v1/threads/{thread_id}/attachments/{filename}")

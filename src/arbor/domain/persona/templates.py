@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -61,7 +62,7 @@ PERSONA_TEMPLATES: dict[str, PersonaTemplate] = {
 
 def apply_template(template_id: str | None, **overrides) -> dict:
     """Merge a named template with explicit persona fields."""
-    base = {
+    base: dict[str, Any] = {
         "skin": "companion",
         "display_name": "",
         "one_liner": "",
@@ -75,16 +76,15 @@ def apply_template(template_id: str | None, **overrides) -> dict:
             from arbor.domain.errors import DomainError
 
             raise DomainError("VALIDATION_ERROR", "unknown template")
-        base.update(
-            {
-                "skin": tpl.skin,
-                "display_name": tpl.display_name,
-                "one_liner": tpl.one_liner,
-                "personality": tpl.personality,
-                "taboos": list(tpl.taboos),
-                "relationships": list(tpl.relationships),
-            }
-        )
+        patch: dict[str, Any] = {
+            "skin": tpl.skin,
+            "display_name": tpl.display_name,
+            "one_liner": tpl.one_liner,
+            "personality": tpl.personality,
+            "taboos": list(tpl.taboos),
+            "relationships": list(tpl.relationships),
+        }
+        base.update(patch)
     for key, value in overrides.items():
         if value is not None:
             base[key] = value

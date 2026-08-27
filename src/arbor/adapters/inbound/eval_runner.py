@@ -30,7 +30,6 @@ from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.persona.persona import Persona, Profile
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
-from arbor.domain.shared.textvec import fixture_embed
 from arbor.env import database_url
 from arbor.paths import repo_root
 
@@ -41,7 +40,7 @@ def _status(raw: str) -> MemoryStatus:
     return MemoryStatus(raw)
 
 
-def load_world(path: Path, stores: InMemoryStores) -> None:
+def load_world(path: Path, stores: InMemoryStores, embed_client=None) -> None:
     import json
 
     world = json.loads(path.read_text(encoding="utf-8"))
@@ -135,6 +134,7 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
                     )
     mem_repo = InMemoryMemoryRepository(stores)
     index = InMemoryVectorIndex(stores, mem_repo)
+    embed_fn = (embed_client or FixtureEmbeddingClient()).embed
     for raw in world["memories"]:
         item = MemoryItem(
             id=MemoryId(raw["id"]),
@@ -148,7 +148,16 @@ def load_world(path: Path, stores: InMemoryStores) -> None:
         )
         stores.memories[raw["id"]] = item
         if item.is_searchable():
-            index.upsert(item.tenant_id, item.persona_id, item.id, fixture_embed(item.text), item.status)
+            index.upsert(item.tenant_id, item.persona_id, item.id, embed_fn(item.text), item.status)
+
+
+def resolve_embed(embed: str = "fixture"):
+    if embed == "bge":
+        from arbor.adapters.outbound.embedding import HttpEmbeddingClient
+
+        client = HttpEmbeddingClient()
+        return client, client.label
+    return FixtureEmbeddingClient(), "fixture_embed (deterministic hash, not bge-m3)"
 
 
 def resolve_backend(backend: str = "auto") -> str:
@@ -161,12 +170,12 @@ def resolve_backend(backend: str = "auto") -> str:
     return backend
 
 
-def _ports(stores: InMemoryStores):
+def _ports(stores: InMemoryStores, embed_client=None):
     memories = InMemoryMemoryRepository(stores)
     events = InMemoryEventGraphRepository(stores)
     threads = InMemoryThreadRepository(stores)
     index = InMemoryVectorIndex(stores, memories)
-    embed = FixtureEmbeddingClient()
+    embed = embed_client or FixtureEmbeddingClient()
 
     def summary_for(persona_id: PersonaId) -> str:
         for thread in stores.threads.values():
@@ -177,10 +186,10 @@ def _ports(stores: InMemoryStores):
     return memories, events, threads, index, embed, summary_for
 
 
-def _open_postgres(world_path: Path):
+def _open_postgres(world_path: Path, embed_client=None):
     from arbor.adapters.outbound.postgres import PostgresSession
 
-    session = PostgresSession.connect(database_url())
+    session = PostgresSession.connect(database_url(), embed=embed_client)
     session.reset()
     session.load_world(world_path)
     return session
@@ -200,20 +209,24 @@ def run_suite(
     k: int | None = None,
     backend: str = "auto",
     session=None,
+    embed: str = "fixture",
 ) -> dict:
     world, cases_doc, _thresholds, default_k, world_path = load_suite_files(suite_dir)
     backend = resolve_backend(backend)
     owns = False
     stores = None
+    embed_client, _embed_label = resolve_embed(embed)
     if backend == "postgres":
         if session is None:
-            session = _open_postgres(world_path)
+            session = _open_postgres(world_path, embed_client=embed_client)
             owns = True
         memories, events, _threads, index, embed, summary_for = _postgres_ports(session)
+        lexical_search = getattr(index, "lexical_search", None)
     else:
         stores = InMemoryStores()
-        load_world(world_path, stores)
-        memories, events, _threads, index, embed, summary_for = _ports(stores)
+        load_world(world_path, stores, embed_client=embed_client)
+        memories, events, _threads, index, embed, summary_for = _ports(stores, embed_client=embed_client)
+        lexical_search = None
     try:
         report = evaluate_retrieval(
             strategy=strategy,
@@ -226,6 +239,7 @@ def run_suite(
             summary_for=summary_for,
             vector_search=index.search,
             embed=embed.embed,
+            lexical_search=lexical_search,
         )
         report["backend"] = backend
         return report
@@ -234,20 +248,27 @@ def run_suite(
             session.close()
 
 
-def run_all_strategies(suite_dir: Path, backend: str = "auto") -> dict:
+def run_all_strategies(suite_dir: Path, backend: str = "auto", embed: str = "fixture") -> dict:
     backend = resolve_backend(backend)
     session = None
     world_path = None
+    embed_client, _ = resolve_embed(embed)
     if backend == "postgres":
         from arbor.application.evaluation.runner import resolve_world_path
 
         world_path = resolve_world_path(suite_dir)
-        session = _open_postgres(world_path)
+        session = _open_postgres(world_path, embed_client=embed_client)
     try:
         table = {}
         reports = {}
         for name in strategy_names():
-            report = run_suite(suite_dir=suite_dir, strategy=name, backend=backend, session=session)
+            report = run_suite(
+                suite_dir=suite_dir,
+                strategy=name,
+                backend=backend,
+                session=session,
+                embed=embed,
+            )
             reports[name] = report
             table[name] = comparison_row(report)
         return {"strategies": table, "reports": reports, "backend": backend}

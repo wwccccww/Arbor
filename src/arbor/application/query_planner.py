@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import json
 import re
+
+import httpx
+
+from arbor.env import chat_api_key, chat_base_url, chat_model
 
 _SPLIT_MARKERS = (
     "因为",
@@ -23,9 +28,17 @@ def plan_queries(query: str, mode: str) -> list[dict]:
     stripped = (query or "").strip()
     if not stripped or mode == "off":
         return [{"query": stripped, "intent": "general"}]
+    if mode == "llm":
+        planned = _llm_plan_queries(stripped)
+        if planned:
+            return planned
+        return _rules_plan_queries(stripped)
     if mode != "rules":
-        return [{"query": stripped, "intent": "general"}]
+        return [{"query": stripped, "intent": _intent_for(stripped)}]
+    return _rules_plan_queries(stripped)
 
+
+def _rules_plan_queries(stripped: str) -> list[dict]:
     parts: list[str] = [stripped]
     for marker in _SPLIT_MARKERS:
         next_parts: list[str] = []
@@ -57,6 +70,80 @@ def plan_queries(query: str, mode: str) -> list[dict]:
     planned: list[dict] = []
     for piece in deduped[:3]:
         planned.append({"query": piece, "intent": _intent_for(piece)})
+    return planned
+
+
+def _llm_plan_queries(query: str) -> list[dict] | None:
+    key = chat_api_key()
+    if not key:
+        return None
+    model = chat_model()
+    payload: dict = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": _llm_plan_prompt()},
+            {"role": "user", "content": query},
+        ],
+        "max_tokens": 400,
+    }
+    if "reasoner" not in model:
+        payload["temperature"] = 0.1
+    try:
+        response = httpx.post(
+            f"{chat_base_url()}/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=30.0,
+        )
+    except httpx.HTTPError:
+        return None
+    if response.status_code >= 400:
+        return None
+    try:
+        content = response.json()["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError, ValueError):
+        return None
+    return _parse_llm_plan(content, query)
+
+
+def _llm_plan_prompt() -> str:
+    return (
+        "你是 Arbor 检索 query 规划器。把用户问题拆成最多 3 个子 query，用于从人设记忆里检索。"
+        "只输出 JSON 数组，不要其它文字。"
+        "元素格式：{\"query\": \"子问题\", \"intent\": \"profile|episode|general\"}。"
+        "profile：档案/喜好/禁忌；episode：具体事件/时间线；general：其它。"
+        "若无需拆分，返回单元素数组。不要编造用户没问的内容。"
+    )
+
+
+def _parse_llm_plan(content: str, fallback_query: str) -> list[dict] | None:
+    blob = (content or "").strip()
+    if not blob:
+        return None
+    match = re.search(r"\[.*\]", blob, flags=re.DOTALL)
+    if not match:
+        return None
+    try:
+        data = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, list) or not data:
+        return None
+    planned: list[dict] = []
+    seen: set[str] = set()
+    for item in data[:3]:
+        if not isinstance(item, dict):
+            continue
+        piece = str(item.get("query") or "").strip()
+        if not piece or piece in seen:
+            continue
+        seen.add(piece)
+        intent = str(item.get("intent") or "general").strip().lower()
+        if intent not in {"profile", "episode", "general"}:
+            intent = _intent_for(piece)
+        planned.append({"query": piece, "intent": intent})
+    if not planned:
+        return None
     return planned
 
 

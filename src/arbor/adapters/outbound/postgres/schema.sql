@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS memory_items (
     status text NOT NULL DEFAULT 'active',
     supersedes uuid,
     embedding vector,
+    text_tsv tsvector,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -131,6 +132,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 CREATE INDEX IF NOT EXISTS memory_items_scope_status
     ON memory_items (tenant_id, persona_id, status);
+
+CREATE INDEX IF NOT EXISTS memory_items_text_tsv
+    ON memory_items USING GIN (text_tsv);
 
 CREATE INDEX IF NOT EXISTS event_nodes_scope
     ON event_nodes (tenant_id, persona_id);

@@ -21,7 +21,7 @@ ADR-0002 已规定：分层记忆 + 事件树路由，不引入 GraphRAG 流水�
 6. **VectorIndex.filters**：`event_ids`、`types`、`exclude_ids` 在 Postgres / InMemory 落地。
 7. **切块**：`ARBOR_CHUNK_MAX_CHARS` / `ARBOR_CHUNK_OVERLAP_CHARS` 可配置 overlap。
 
-**不做**：Postgres `tsvector` 列（留作后续）、GraphRAG、跨 persona 合并、PR 门禁绑 RAGAS。
+**不做**：GraphRAG、跨 persona 合并、PR 门禁绑 RAGAS。Postgres `text_tsv` 已落地（`0010`）；`query_plan=llm` 与 nightly bge 轨见 `eval_cli --embed bge`。
 
 ## 后果
 

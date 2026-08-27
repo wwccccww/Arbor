@@ -100,6 +100,15 @@ export type Citation = {
   preview?: string
 }
 
+export type RetrievalMeta = {
+  strategy?: string
+  hit_ids?: string[]
+  sources?: Record<string, string>
+  hit_scores?: Record<string, number>
+  per_source_counts?: Record<string, number>
+  sub_queries?: { query: string; intent?: string }[]
+}
+
 export type ChatAttachment = {
   filename: string
 }
@@ -111,6 +120,7 @@ export type ChatMessage = {
   citations: Citation[]
   attachments?: ChatAttachment[]
   inbox_created?: number
+  retrieval_meta?: RetrievalMeta
 }
 
 export type MessagePage = {
@@ -120,7 +130,7 @@ export type MessagePage = {
 
 export type StreamEvent =
   | { type: 'delta'; text: string }
-  | {
+      | {
       type: 'done'
       message_id?: string
       text: string
@@ -128,6 +138,7 @@ export type StreamEvent =
       injected_memory_ids?: string[]
       inbox_created?: number
       attachments?: ChatAttachment[]
+      retrieval_meta?: RetrievalMeta
     }
 
 export type ThreadExport = {
@@ -222,6 +233,12 @@ export type EvalMetrics = {
   persona_leak_rate?: number
   tenant_leak_count?: number
   key_event_hit_rate?: number
+  citation_subset_rate?: number
+  ragas_faithfulness?: number | null
+  ragas_n?: number
+  n_cases?: number
+  n_leaking_cases?: number
+  refuse_text_leak_count?: number
 }
 
 export type EvalCase = {

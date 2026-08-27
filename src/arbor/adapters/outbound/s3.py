@@ -139,3 +139,14 @@ class S3ObjectStorage:
         for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
             total += len(page.get("Contents") or [])
         return total
+
+    def list_keys(self, prefix: str = "") -> list[str]:
+        search_prefix = self._key(prefix) if prefix else (self.prefix or "")
+        keys: list[str] = []
+        paginator = self.client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=search_prefix):
+            for item in page.get("Contents") or []:
+                key = str(item.get("Key") or "")
+                if key:
+                    keys.append(key)
+        return sorted(keys)

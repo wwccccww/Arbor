@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
+import { RetrievalMetaPanel } from './RetrievalMetaPanel'
 
 export function ChatPane({
   messages,
@@ -152,6 +153,7 @@ export function ChatPane({
             {message.role === 'assistant' ? (
               <CitationList citations={message.citations} onJump={onJump} />
             ) : null}
+            {message.role === 'assistant' ? <RetrievalMetaPanel meta={message.retrieval_meta} /> : null}
           </li>
         ))}
       </ol>

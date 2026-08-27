@@ -37,3 +37,34 @@ jobs:
       - name: arbor-eval generation suite-v1
         if: ${{ env.DEEPSEEK_API_KEY != '' }}
         run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy layered_tree --mode generation --backend postgres
+  bge-retrieval:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: arbor
+          POSTGRES_PASSWORD: arbor
+          POSTGRES_DB: arbor
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arbor -d arbor"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://arbor:arbor@localhost:5432/arbor
+      EMBEDDING_API_KEY: ${{ secrets.EMBEDDING_API_KEY }}
+      SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api,postgres]"
+      - name: arbor-eval ragas-v1 with bge-m3
+        if: ${{ env.EMBEDDING_API_KEY != '' || env.SILICONFLOW_API_KEY != '' }}
+        run: |
+          python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy layered_tree --backend postgres --embed bge
+          python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres --embed bge --write-baseline

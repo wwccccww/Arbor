@@ -47,3 +47,14 @@ class PgBlobObjectStorage:
     def count(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) AS n FROM object_blobs").fetchone()
         return int(row["n"] if row else 0)
+
+    def list_keys(self, prefix: str = "") -> list[str]:
+        normalized = self._key(prefix) if prefix else ""
+        if normalized:
+            rows = self.conn.execute(
+                "SELECT key FROM object_blobs WHERE key LIKE %s",
+                (f"{normalized}%",),
+            ).fetchall()
+        else:
+            rows = self.conn.execute("SELECT key FROM object_blobs").fetchall()
+        return [str(row["key"]) for row in rows]

@@ -105,6 +105,7 @@ def retrieve(
     config: RetrievalConfig | None = None,
     k_pool: int | None = None,
     k_rerank: int | None = None,
+    lexical_search=None,
 ) -> dict:
     """Return hit layers. Isolation is the caller's VectorIndex filter."""
     if strategy not in STRATEGIES:
@@ -202,10 +203,21 @@ def retrieve(
             ]
 
             if cfg.hybrid_enabled:
-                lexical_items = _lexical_scan(memories, sub_query, sub_pool_k)
-                lexical_items = [
-                    item for item in lexical_items if item.id.value not in exclude_ids
-                ]
+                exclude = list(exclude_ids)
+                lexical_items: list[MemoryItem] = []
+                if lexical_search is not None:
+                    lexical_items = lexical_search(
+                        tenant_id,
+                        persona_id,
+                        sub_query,
+                        sub_pool_k,
+                        filters={"exclude_ids": exclude} if exclude else None,
+                    )
+                else:
+                    lexical_items = _lexical_scan(memories, sub_query, sub_pool_k)
+                    lexical_items = [
+                        item for item in lexical_items if item.id.value not in exclude_ids
+                    ]
                 if lexical_items:
                     merged_vectors = rrf_merge([merged_vectors, lexical_items])
 

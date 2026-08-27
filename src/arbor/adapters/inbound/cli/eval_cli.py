@@ -12,12 +12,13 @@ from pathlib import Path
 from arbor.adapters.inbound.eval_runner import (
     ROOT,
     resolve_backend,
+    resolve_embed,
     run_all_strategies,
     run_generation,
     run_suite,
 )
 from arbor.application.retrieval import STRATEGIES
-from arbor.env import chat_api_key
+from arbor.env import chat_api_key, embedding_api_key
 
 SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
@@ -29,7 +30,13 @@ BASELINE_FILES = {
 }
 
 
-def _baseline_payload(suite: str, payload: dict) -> dict:
+def _baseline_dest(suite: str, embed: str) -> Path:
+    if embed == "bge" and suite == "ragas-v1":
+        return ROOT / "eval" / "baselines" / "suite-ragas-v1-bge.json"
+    return BASELINE_FILES[suite]
+
+
+def _baseline_payload(suite: str, payload: dict, embed_label: str) -> dict:
     reports = payload.get("reports") or {}
     layered = reports.get("layered_tree") or {}
     metrics = layered.get("metrics") or {}
@@ -39,7 +46,7 @@ def _baseline_payload(suite: str, payload: dict) -> dict:
         "mode": "retrieval",
         "k": 5,
         "n_cases": next(iter(payload["strategies"].values()), {}).get("n_cases"),
-        "embeddings": "fixture_embed (deterministic hash, not bge-m3)",
+        "embeddings": embed_label,
         "note": (
             "夹具嵌入。向量后端见 backend 字段：memory 或 postgres/pgvector。"
             "跨租户泄漏必须为 0。"
@@ -69,6 +76,12 @@ def main(argv: list[str] | None = None) -> int:
         "--write-baseline",
         action="store_true",
         help="write eval/baselines JSON (retrieval: four strategies; generation: suite-v1-generation.json)",
+    )
+    parser.add_argument(
+        "--embed",
+        default="fixture",
+        choices=["fixture", "bge"],
+        help="embedding backend for retrieval eval (bge needs EMBEDDING_API_KEY)",
     )
     args = parser.parse_args(argv)
     suite_dir = SUITE_DIRS[args.suite]
@@ -120,17 +133,23 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         return 0
 
+    if args.embed == "bge" and not embedding_api_key():
+        print("bge embed needs EMBEDDING_API_KEY in this process", file=sys.stderr)
+        return 2
+
     try:
         backend = resolve_backend(args.backend)
     except RuntimeError as exc:
         print(exc, file=sys.stderr)
         return 2
 
+    _, embed_label = resolve_embed(args.embed)
+
     if args.strategy == "all":
-        payload = run_all_strategies(suite_dir, backend=backend)
+        payload = run_all_strategies(suite_dir, backend=backend, embed=args.embed)
         print(json.dumps({"backend": payload.get("backend"), "strategies": payload["strategies"]}, ensure_ascii=False, indent=2))
     else:
-        payload = run_suite(suite_dir=suite_dir, strategy=args.strategy, backend=backend)
+        payload = run_suite(suite_dir=suite_dir, strategy=args.strategy, backend=backend, embed=args.embed)
         print(
             json.dumps(
                 {
@@ -157,8 +176,11 @@ def main(argv: list[str] | None = None) -> int:
         if args.strategy != "all":
             print("--write-baseline retrieval requires --strategy all", file=sys.stderr)
             return 1
-        dest = BASELINE_FILES[args.suite]
-        dest.write_text(json.dumps(_baseline_payload(args.suite, payload), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        dest = _baseline_dest(args.suite, args.embed)
+        dest.write_text(
+            json.dumps(_baseline_payload(args.suite, payload, embed_label), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         print(f"wrote {dest}", file=sys.stderr)
     if args.strategy == "all":
         leaks = [payload["strategies"][name]["tenant_leak_count"] for name in payload["strategies"]]

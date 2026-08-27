@@ -84,6 +84,7 @@ class ContextCompiler:
         user_text: str,
         tool_results: list | None = None,
         event_edges: list[EventEdge] | None = None,
+        lexical_search=None,
     ) -> CompiledContext:
         retrieval_strategy = self.strategy if Capability.READ_MEMORY in capabilities else "summary_only"
         prompt_k = retrieval_prompt_k()
@@ -100,6 +101,7 @@ class ContextCompiler:
             vector_search=vector_search,
             embed=embed,
             config=self.retrieval_config,
+            lexical_search=lexical_search,
         )
         hit_scores = dict(retrieved.get("hit_scores") or {})
         trim_priority = list(retrieved.get("trim_priority") or [])

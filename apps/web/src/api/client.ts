@@ -20,6 +20,7 @@ import type {
   PersonaDraft,
   PersonaGrant,
   PersonaPatch,
+  RetrievalMeta,
   StreamEvent,
   Tenant,
   TenantMember,
@@ -271,6 +272,7 @@ export function createClient(
         citations?: unknown
         inbox_created?: number
         attachments?: ChatAttachment[]
+        retrieval_meta?: RetrievalMeta
       }
       return {
         id: body.message_id,
@@ -279,6 +281,7 @@ export function createClient(
         citations: asCitations(body.citations),
         inbox_created: body.inbox_created ?? 0,
         attachments: body.attachments ?? [],
+        retrieval_meta: body.retrieval_meta,
       }
     },
 
@@ -366,6 +369,7 @@ export function createClient(
           citations: asCitations(doneEvent.citations),
           inbox_created: doneEvent.inbox_created ?? 0,
           attachments: doneEvent.attachments ?? [],
+          retrieval_meta: doneEvent.retrieval_meta,
         },
         events,
       )

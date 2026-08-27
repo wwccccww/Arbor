@@ -530,6 +530,7 @@ def create_app(
             summary_for=lambda p: _summary_for_persona(tenant_id, p),
             vector_search=vectors.search,
             embed=resolved_embed.embed,
+            lexical_search=getattr(vectors, "lexical_search", None),
             memory_catalog=memory_catalog,
         )
 

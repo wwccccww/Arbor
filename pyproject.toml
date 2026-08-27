@@ -21,6 +21,7 @@ dev = [
   "alembic>=1.13",
   "sqlalchemy>=2.0",
   "ruff>=0.8",
+  "mypy>=1.10",
   "pypdf>=4.0",
   "python-docx>=1.1",
   "python-pptx>=1.0",
@@ -91,3 +92,10 @@ target-version = "py311"
 [tool.ruff.lint.per-file-ignores]
 "src/arbor/adapters/**" = ["BLE001", "B008", "DTZ011", "EXE001", "RUF012"]
 "src/arbor/application/memory/import_jobs.py" = ["BLE001"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["arbor.domain", "arbor.ports"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+no_implicit_optional = true

@@ -121,7 +121,7 @@ UNIQUE / PK: id
 INDEX: (tenant_id, persona_id, status)
 INDEX: ivfflat 或 hnsw ON embedding
        -- 查询必须带 tenant_id、persona_id 条件，避免全库 ANN
-OPTIONAL: GIN tsvector(text) 用于专名混合检索（**未实现**；v2 用应用层 lexical scan + 向量 RRF，见 ADR-0009）
+OPTIONAL: GIN `text_tsv`（`0010_memory_text_tsv`）用于 Postgres 混合检索 lexical 分支；内存后端仍用应用层 scan。
 ```
 
 **查询契约**

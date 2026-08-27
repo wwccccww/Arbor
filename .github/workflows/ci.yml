@@ -29,6 +29,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev,api,postgres]"
       - run: python3 -m ruff check src tests
+      - run: python3 -m mypy src/arbor/domain src/arbor/ports
       - run: python3 scripts/validate_openapi.py
       - run: python3 -m pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres

@@ -190,6 +190,7 @@ class SendMessage:
             embed=self.embed.embed,
             user_text=llm_text,
             event_edges=event_edges,
+            lexical_search=getattr(self.vectors, "lexical_search", None),
         )
         if tool_mode() in {"keywords", "both"}:
             tool_results = run_persona_tools(

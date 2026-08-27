@@ -5,7 +5,7 @@ export function tenantLeakFailed(metrics: EvalMetrics, leakZero?: boolean): bool
   return (metrics.tenant_leak_count ?? 0) !== 0
 }
 
-function fmt(value: number | undefined): string {
+function fmt(value: number | undefined | null): string {
   if (value == null) return '—'
   return Number.isInteger(value) ? String(value) : value.toFixed(2)
 }
@@ -13,11 +13,35 @@ function fmt(value: number | undefined): string {
 export function MetricBar({
   metrics,
   leakZero,
+  mode,
 }: {
   metrics: EvalMetrics
   leakZero?: boolean
+  mode?: string
 }) {
   const leakFail = tenantLeakFailed(metrics, leakZero)
+  const isGeneration = mode === 'generation' || metrics.citation_subset_rate != null
+
+  if (isGeneration) {
+    return (
+      <ul aria-label="生成评测指标" className="metric-bar">
+        <li>
+          引用子集 <strong>{fmt(metrics.citation_subset_rate)}</strong>
+        </li>
+        <li>
+          RAGAS 忠实度 <strong>{fmt(metrics.ragas_faithfulness)}</strong>
+          {metrics.ragas_n ? <span className="badge">n={metrics.ragas_n}</span> : null}
+        </li>
+        <li>
+          泄漏题数 <strong>{fmt(metrics.n_leaking_cases)}</strong>
+        </li>
+        <li>
+          拒答泄漏 <strong>{fmt(metrics.refuse_text_leak_count)}</strong>
+        </li>
+      </ul>
+    )
+  }
+
   return (
     <ul aria-label="体检指标" className="metric-bar">
       <li>

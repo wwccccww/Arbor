@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from psycopg.types.json import Jsonb
 
+from arbor.adapters.outbound.postgres.lexical import memory_lexical_tokens
 from arbor.adapters.outbound.postgres.mapping import memory_from_row
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId
@@ -67,10 +68,11 @@ class PgMemoryRepository:
         self.conn.execute(
             """
             INSERT INTO memory_items (
-                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes, source
+                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes, source, text_tsv
             )
             VALUES (
-                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s
+                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s,
+                to_tsvector('simple', %s)
             )
             ON CONFLICT (id) DO UPDATE SET
                 text = EXCLUDED.text,
@@ -79,7 +81,8 @@ class PgMemoryRepository:
                 event_id = EXCLUDED.event_id,
                 thread_id = EXCLUDED.thread_id,
                 supersedes = EXCLUDED.supersedes,
-                source = EXCLUDED.source
+                source = EXCLUDED.source,
+                text_tsv = EXCLUDED.text_tsv
             """,
             (
                 item.id.value,
@@ -92,6 +95,7 @@ class PgMemoryRepository:
                 item.status.value,
                 item.supersedes.value if item.supersedes else None,
                 Jsonb(item.source) if item.source else None,
+                memory_lexical_tokens(item.text),
             ),
         )
 

@@ -21,6 +21,7 @@ def run_persona_retrieval_eval(
     k: int = 5,
     memory_catalog: list[dict],
     list_edges=None,
+    lexical_search=None,
 ) -> dict:
     rows = []
     for case in cases:
@@ -40,6 +41,7 @@ def run_persona_retrieval_eval(
             summary=summary_for(case_persona),
             vector_search=vector_search,
             embed=embed,
+            lexical_search=lexical_search,
         )
         retrieved["latency_ms"] = (time.perf_counter() - started) * 1000
         row = score_case(case, retrieved)
