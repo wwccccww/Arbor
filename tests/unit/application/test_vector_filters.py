@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from arbor.adapters.outbound.inmemory import InMemoryMemoryRepository, InMemoryStores, InMemoryVectorIndex
+from arbor.adapters.outbound.inmemory import (
+    InMemoryMemoryRepository,
+    InMemoryStores,
+    InMemoryVectorIndex,
+)
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId
 from arbor.domain.shared.textvec import fixture_embed
-
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 PERSONA = PersonaId("0a000000-0000-4000-a000-000000000010")

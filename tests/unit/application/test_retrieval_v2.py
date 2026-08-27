@@ -7,7 +7,6 @@ from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.shared.ids import EventId, PersonaId, TenantId
 from arbor.domain.shared.textvec import fixture_embed
 
-
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 PERSONA = PersonaId("0a000000-0000-4000-a000-000000000010")
 
