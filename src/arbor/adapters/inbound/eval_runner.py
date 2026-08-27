@@ -359,5 +359,6 @@ def run_generation(
         "mode": "generation",
         "backend": backend,
         "metrics": metrics,
+        "p0_tenant_leak_zero": metrics.get("generation_p0_pass", False),
         "cases": rows,
     }

@@ -32,13 +32,18 @@ const SKILL_LABELS: Record<string, string> = {
 
 type Filter = 'all' | 'passed' | 'failed'
 
-function CaseRow({ row, index }: { row: EvalCase; index: number }) {
+function CaseRow({ row, index, generation }: { row: EvalCase; index: number; generation?: boolean }) {
   const sourceLabel = SOURCE_LABELS[row.expected_source ?? ''] ?? row.expected_source ?? '无'
   const hitCount = row.hit_ids.length
   const missReasons: string[] = []
   if (row.leaked) missReasons.push('泄漏')
-  if ((row.expected_memory_count ?? 0) > 0 && row.recall < 1) missReasons.push('未召回')
-  if (row.expected_source === 'event_tree' && row.expected_event_id && !row.event_hit) missReasons.push('事件未命中')
+  if (generation) {
+    if (!row.citation_subset && row.expected_behavior !== 'refuse') missReasons.push('引用超范围')
+    if (row.text_leak) missReasons.push('拒答泄漏')
+  } else {
+    if ((row.expected_memory_count ?? 0) > 0 && row.recall < 1) missReasons.push('未召回')
+    if (row.expected_source === 'event_tree' && row.expected_event_id && !row.event_hit) missReasons.push('事件未命中')
+  }
 
   return (
     <li className="case-row" data-pass={row.passed ? 'true' : 'false'}>
@@ -51,13 +56,32 @@ function CaseRow({ row, index }: { row: EvalCase; index: number }) {
         </p>
         <p className="case-row__meta">
           <span className="badge">{SKILL_LABELS[row.skill ?? ''] ?? row.skill ?? '—'}</span>
-          <span className="badge">来源 {sourceLabel}</span>
-          <span className="badge">命中 {hitCount}</span>
-          <span className="badge">召回 {row.recall.toFixed(2)}</span>
+          {generation ? (
+            <>
+              <span className="badge">引用 {hitCount}</span>
+              {row.ragas_faithfulness != null ? (
+                <span className="badge">RAGAS {row.ragas_faithfulness.toFixed(2)}</span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <span className="badge">来源 {sourceLabel}</span>
+              <span className="badge">命中 {hitCount}</span>
+              <span className="badge">召回 {row.recall.toFixed(2)}</span>
+            </>
+          )}
         </p>
         {row.expected_behavior ? <p className="case-row__behavior">期望：{row.expected_behavior}</p> : null}
+        {generation && row.text ? (
+          <p className="case-row__meta">回答：{row.text.length > 120 ? `${row.text.slice(0, 120)}…` : row.text}</p>
+        ) : null}
         {row.hit_ids.length ? (
-          <p className="case-row__meta">命中 ID：{row.hit_ids.join(', ')}</p>
+          <p className="case-row__meta">
+            {generation ? '引用 ID' : '命中 ID'}：{row.hit_ids.join(', ')}
+          </p>
+        ) : null}
+        {generation && row.injected_memory_ids?.length ? (
+          <p className="case-row__meta">注入 ID：{row.injected_memory_ids.join(', ')}</p>
         ) : null}
         {missReasons.length ? (
           <p className="case-row__reason">
@@ -240,7 +264,9 @@ export function Checkup({
             {run?.suite_version === 'ragas-v1' ? 'ragas-v1 · 477 题' : 'suite 检索 / 生成'}
           </span>
         </div>
-        <p className="form-hint">检索模式不调用生成模型；生成模式需配置 DEEPSEEK_API_KEY。</p>
+        <p className="form-hint">
+          检索模式不调用生成模型；生成模式需配置 DEEPSEEK_API_KEY。RAGAS 忠实度需独立的 ARBOR_JUDGE_API_KEY（不能与生成密钥相同）。
+        </p>
 
         {forbidden ? <p role="alert">没有评测权限</p> : null}
         {error ? <p role="alert">{error}</p> : null}
@@ -390,6 +416,7 @@ export function Checkup({
                   key={row.id}
                   row={row}
                   index={safeCasePage * CASE_PAGE_SIZE + index}
+                  generation={run.mode === 'generation'}
                 />
               ))}
             </ul>

@@ -50,6 +50,17 @@ def judge_api_key() -> str:
     return judge
 
 
+def judge_status() -> str:
+    """Why RAGAS faithfulness may be skipped: configured | missing_key | same_as_generator."""
+    load_dotenv()
+    judge = os.environ.get("ARBOR_JUDGE_API_KEY") or ""
+    if not judge:
+        return "missing_key"
+    if judge == chat_api_key():
+        return "same_as_generator"
+    return "configured"
+
+
 def database_url() -> str:
     load_dotenv()
     return os.environ.get("DATABASE_URL") or ""

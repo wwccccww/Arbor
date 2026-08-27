@@ -1,7 +1,7 @@
 import pytest
 
 from arbor.adapters.outbound.inmemory import SeqIdGenerator
-from arbor.application.evaluation.commands import StartEvalRun
+from arbor.application.evaluation.commands import StartEvalRun, _generation_case_view
 from arbor.domain.errors import DomainError
 
 _STUB_METRICS = {
@@ -49,3 +49,60 @@ def test_start_eval_runs_injected_retrieval():
     assert result["status"] == "completed"
     assert result["metrics"]["tenant_leak_count"] == 0
     assert result["p0_tenant_leak_zero"] is True
+
+
+def test_generation_case_view_marks_citation_subset_fail():
+    view = _generation_case_view(
+        {
+            "id": "g1",
+            "behavior": "cite",
+            "skill": "episode_detail",
+            "query": "在哪吵的？",
+            "citation_subset": False,
+            "leaked": False,
+            "citations": ["m2", "mX"],
+            "injected_memory_ids": ["m2"],
+            "text": "在老张面馆。",
+        }
+    )
+    assert view["passed"] is False
+    assert view["hit_ids"] == ["m2", "mX"]
+    assert view["citation_subset"] is False
+
+
+def test_start_eval_generation_maps_cases():
+    def run_generation(*, strategy: str, suite_version: str) -> dict:
+        return {
+            "p0_tenant_leak_zero": True,
+            "metrics": {
+                "citation_subset_rate": 1.0,
+                "generation_p0_pass": True,
+                "judge_status": "missing_key",
+                "ragas_skipped": True,
+            },
+            "cases": [
+                {
+                    "id": "g1",
+                    "behavior": "answer",
+                    "skill": "profile_fact",
+                    "query": "你住哪？",
+                    "citation_subset": True,
+                    "leaked": False,
+                    "citations": ["m1"],
+                    "injected_memory_ids": ["m1"],
+                    "text": "住在城西。",
+                }
+            ],
+        }
+
+    cmd = StartEvalRun(run_retrieval=lambda **_: {}, run_generation=run_generation, ids=SeqIdGenerator())
+    result = cmd(
+        workspace_admin=True,
+        strategy="layered_tree",
+        suite_version="v1",
+        mode="generation",
+    )
+    assert result["mode"] == "generation"
+    assert result["p0_tenant_leak_zero"] is True
+    assert result["cases"][0]["passed"] is True
+    assert result["cases"][0]["text"] == "住在城西。"

@@ -236,6 +236,9 @@ export type EvalMetrics = {
   citation_subset_rate?: number
   ragas_faithfulness?: number | null
   ragas_n?: number
+  ragas_skipped?: boolean
+  judge_status?: 'configured' | 'missing_key' | 'same_as_generator'
+  generation_p0_pass?: boolean
   n_cases?: number
   n_leaking_cases?: number
   refuse_text_leak_count?: number
@@ -257,6 +260,12 @@ export type EvalCase = {
   event_hit: boolean
   profile_miss: boolean
   passed: boolean
+  citation_subset?: boolean
+  ragas_faithfulness?: number | null
+  text?: string
+  injected_memory_ids?: string[]
+  citations?: string[]
+  text_leak?: boolean
 }
 
 export type EvalRun = {

@@ -18,7 +18,7 @@ from arbor.adapters.inbound.eval_runner import (
     run_suite,
 )
 from arbor.application.retrieval import STRATEGIES
-from arbor.env import chat_api_key, embedding_api_key
+from arbor.env import chat_api_key, embedding_api_key, judge_status
 
 SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
                         "mode": "generation",
                         "strategy": strategy,
                         "generator": "deepseek-chat",
-                        "judge": "skipped unless ARBOR_JUDGE_API_KEY",
+                        "judge": judge_status(),
                         "metrics": payload["metrics"],
                     },
                     ensure_ascii=False,

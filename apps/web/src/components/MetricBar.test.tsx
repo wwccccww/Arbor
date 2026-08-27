@@ -36,4 +36,26 @@ describe('MetricBar', () => {
     expect(leak).toHaveTextContent('未通过')
     expect(leak).toHaveAttribute('data-fail', 'true')
   })
+
+  it('shows generation metrics and judge skip hint', () => {
+    render(
+      <MetricBar
+        mode="generation"
+        metrics={{
+          citation_subset_rate: 1,
+          ragas_faithfulness: null,
+          ragas_skipped: true,
+          judge_status: 'missing_key',
+          generation_p0_pass: true,
+          n_leaking_cases: 0,
+          refuse_text_leak_count: 0,
+        }}
+        leakZero
+      />,
+    )
+    expect(screen.getByLabelText('生成评测指标')).toBeInTheDocument()
+    expect(screen.getByText(/引用子集/)).toHaveTextContent('1')
+    expect(screen.getByText(/未配置 ARBOR_JUDGE_API_KEY/)).toBeInTheDocument()
+    expect(screen.getByText(/生成 P0/)).toHaveTextContent('通过')
+  })
 })

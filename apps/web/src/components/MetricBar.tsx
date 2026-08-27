@@ -10,6 +10,12 @@ function fmt(value: number | undefined | null): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2)
 }
 
+const JUDGE_HINTS: Record<string, string> = {
+  missing_key: '未配置 ARBOR_JUDGE_API_KEY',
+  same_as_generator: '评委密钥与生成密钥相同（已跳过）',
+  configured: '评委已配置',
+}
+
 export function MetricBar({
   metrics,
   leakZero,
@@ -23,14 +29,29 @@ export function MetricBar({
   const isGeneration = mode === 'generation' || metrics.citation_subset_rate != null
 
   if (isGeneration) {
+    const p0Pass = metrics.generation_p0_pass ?? leakZero
+    const p0Fail = p0Pass === false
+    const judgeHint = JUDGE_HINTS[metrics.judge_status ?? ''] ?? null
     return (
       <ul aria-label="生成评测指标" className="metric-bar">
+        <li data-fail={p0Fail ? 'true' : 'false'} data-pass={p0Fail ? 'false' : 'true'}>
+          生成 P0 <strong>{p0Fail ? '未通过' : '通过'}</strong>
+          <span className={`badge ${p0Fail ? 'badge--fail' : 'badge--ok'}`}>
+            {p0Fail ? '未通过' : '通过'}
+          </span>
+        </li>
         <li>
           引用子集 <strong>{fmt(metrics.citation_subset_rate)}</strong>
         </li>
         <li>
           RAGAS 忠实度 <strong>{fmt(metrics.ragas_faithfulness)}</strong>
           {metrics.ragas_n ? <span className="badge">n={metrics.ragas_n}</span> : null}
+          {metrics.ragas_skipped ? (
+            <span className="badge" title={judgeHint ?? undefined}>已跳过</span>
+          ) : null}
+          {judgeHint && metrics.ragas_skipped ? (
+            <span className="form-hint">{judgeHint}</span>
+          ) : null}
         </li>
         <li>
           泄漏题数 <strong>{fmt(metrics.n_leaking_cases)}</strong>
