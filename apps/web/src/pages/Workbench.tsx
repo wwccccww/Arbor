@@ -636,6 +636,7 @@ export function Workbench({
       <WorkbenchLayout
         narrow={narrow}
         treeOpen={treeOpen}
+        focusTools={inbox.length > 0 || importFinished}
         onToggleTree={() => setTreeOpen((open) => !open)}
         left={
           persona ? (

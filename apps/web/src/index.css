@@ -1076,6 +1076,23 @@ td:first-child {
   opacity: 0.65;
 }
 
+.inbox-conflict {
+  border-left: 3px solid var(--fail);
+  padding-left: 0.5rem;
+}
+
+.inbox-conflict-quote {
+  margin: 0.35rem 0;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--fail) 8%, var(--surface));
+  font-size: 0.85rem;
+}
+
+.inbox-conflict-quote p {
+  margin: 0.25rem 0 0;
+}
+
 .inbox-bulk {
   display: flex;
   flex-wrap: wrap;

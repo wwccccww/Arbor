@@ -53,7 +53,17 @@ export function InboxPane({
                   {isConflict ? <span className="badge badge--fail">冲突</span> : null}
                   {item.kind === 'event' ? <span className="badge">事件</span> : null}
                   <p>{text}</p>
-                  {item.conflicts_with ? <p className="form-hint">与已有记忆冲突：{item.conflicts_with}</p> : null}
+                  {item.conflict_memory_text ? (
+                    <blockquote className="inbox-conflict-quote">
+                      <strong>已有记忆</strong>
+                      <p>{item.conflict_memory_text}</p>
+                    </blockquote>
+                  ) : item.conflicts_with ? (
+                    <p className="form-hint">与已有记忆冲突（ID {item.conflicts_with}）</p>
+                  ) : null}
+                  {isConflict ? (
+                    <p className="form-hint">「记下来」会用新条替代旧记忆；「忽略」保留旧记忆。</p>
+                  ) : null}
                   <label>
                     <input
                       type="checkbox"

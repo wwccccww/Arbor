@@ -10,5 +10,5 @@ test('login, open persona, send message, see reply', async ({ page }) => {
   await page.getByLabel('发送消息').fill('你好')
   await page.getByRole('button', { name: '发送' }).click()
   const transcript = page.getByRole('list', { name: '对话记录' })
-  await expect(transcript.getByLabel('助手')).toBeVisible({ timeout: 30000 })
+  await expect(transcript.getByLabel('助手').last()).toBeVisible({ timeout: 30000 })
 })

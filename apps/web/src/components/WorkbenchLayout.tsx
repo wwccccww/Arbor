@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 
 type LeftTab = 'profile' | 'memory' | 'tools'
 
@@ -6,6 +6,7 @@ export function WorkbenchLayout({
   narrow = false,
   treeOpen = false,
   onToggleTree,
+  focusTools = false,
   left,
   center,
   right,
@@ -13,12 +14,17 @@ export function WorkbenchLayout({
   narrow?: boolean
   treeOpen?: boolean
   onToggleTree?: () => void
+  focusTools?: boolean
   left: ReactNode
   center: ReactNode
   right: ReactNode
 }) {
   const [leftTab, setLeftTab] = useState<LeftTab>('profile')
   const showTree = !narrow || treeOpen
+
+  useEffect(() => {
+    if (focusTools && narrow) setLeftTab('tools')
+  }, [focusTools, narrow])
 
   return (
     <div className={narrow ? 'workbench workbench-narrow' : 'workbench'}>

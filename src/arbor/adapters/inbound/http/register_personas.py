@@ -311,18 +311,27 @@ def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
             raise DomainError("NOT_FOUND", "not found")
         require_write(persona, user)
         items = deps.inbox.list_pending(TenantId(x_tenant_id), PersonaId(persona_id))
-        return {
-            "items": [
+        tenant = TenantId(x_tenant_id)
+        rows = []
+        for item in items:
+            conflict_raw = item.conflicts_with or item.payload.get("conflicts_with")
+            conflict_id = getattr(conflict_raw, "value", conflict_raw)
+            conflict_text = None
+            if conflict_id:
+                old = deps.memories.get(tenant, MemoryId(str(conflict_id)))
+                if old is not None:
+                    conflict_text = old.text
+            rows.append(
                 {
                     "id": item.id,
                     "kind": item.kind,
                     "status": item.status,
                     "payload": item.payload,
-                    "conflicts_with": item.payload.get("conflicts_with"),
+                    "conflicts_with": str(conflict_id) if conflict_id else None,
+                    "conflict_memory_text": conflict_text,
                 }
-                for item in items
-            ]
-        }
+            )
+        return {"items": rows}
 
     @app.post("/v1/personas/{persona_id}/inbox/bootstrap")
     def bootstrap_persona_inbox(
