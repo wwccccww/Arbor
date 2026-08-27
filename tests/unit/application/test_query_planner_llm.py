@@ -13,3 +13,8 @@ def test_plan_queries_llm_mode_parses_json_array():
 def test_plan_queries_llm_falls_back_to_rules_without_api():
     planned = plan_queries("因为面店吵架，后来怎么样了？", "llm")
     assert len(planned) >= 2
+
+
+def test_plan_queries_marks_causal_questions():
+    planned = plan_queries("为什么后来一周没说话？", "rules")
+    assert planned[0]["intent"] == "causal"

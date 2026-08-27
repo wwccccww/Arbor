@@ -57,6 +57,53 @@ def _merge_vector_hits(
     return global_rank
 
 
+def _stabilize_causal_hits(
+    rag_hits: list[MemoryItem],
+    event_hits: list[MemoryItem],
+    rag_pool: list[MemoryItem],
+    limit: int,
+) -> list[MemoryItem]:
+    """Keep cause/effect siblings on the same event and graph-expanded episodes for causal queries."""
+    pool_by_event: dict[str, list[MemoryItem]] = defaultdict(list)
+    for item in rag_pool:
+        if item.event_id:
+            pool_by_event[item.event_id.value].append(item)
+
+    merged = list(rag_hits)
+    seen = {item.id.value for item in merged}
+
+    for item in list(merged):
+        if not item.event_id:
+            continue
+        for sibling in pool_by_event.get(item.event_id.value, []):
+            if sibling.id.value not in seen:
+                merged.append(sibling)
+                seen.add(sibling.id.value)
+
+    per_event: dict[str, int] = defaultdict(int)
+    for item in event_hits:
+        if item.id.value in seen:
+            continue
+        event_key = item.event_id.value if item.event_id else ""
+        if per_event[event_key] >= 2:
+            continue
+        merged.append(item)
+        seen.add(item.id.value)
+        per_event[event_key] += 1
+
+    if any(item.type is MemoryType.FILE_CHUNK for item in merged):
+        for item in rag_pool:
+            if item.type is not MemoryType.FILE_CHUNK or item.id.value in seen:
+                continue
+            text = item.text or ""
+            if text.startswith("售后手册") or "手册" in text[:12]:
+                merged.append(item)
+                seen.add(item.id.value)
+
+    cap = max(limit, min(len(merged), limit + 4))
+    return merged[:cap]
+
+
 def rerank_memories(
     query: str,
     candidates: list[MemoryItem],
@@ -150,11 +197,12 @@ def retrieve(
 
         if strategy == "layered_tree":
             seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
+            expand_depth = cfg.event_expand_depth + (1 if intent == "causal" else 0)
             sub_event_nodes, expanded_event_ids = expand_event_nodes(
                 seeds,
                 events,
                 edge_list,
-                depth=cfg.event_expand_depth,
+                depth=expand_depth,
                 max_events=cfg.event_expand_max,
             )
             for node in sub_event_nodes:
@@ -174,7 +222,11 @@ def retrieve(
 
         if strategy in {"vector_only", "layered", "layered_tree"} and intent != "profile":
             sub_pool_k = max(10, pool_k // max(1, len(planned)))
-            exclude_ids = {memory.id.value for memory in profile_hits + event_hits}
+            if intent == "causal":
+                sub_pool_k = max(sub_pool_k, pool_k)
+            exclude_ids = {memory.id.value for memory in profile_hits}
+            if intent != "causal":
+                exclude_ids.update(memory.id.value for memory in event_hits)
             qv = embed(sub_query)
             global_raw = vector_search(
                 tenant_id=tenant_id,
@@ -231,11 +283,26 @@ def retrieve(
                     rag_pool.append(item)
                     seen_pool.add(item.id.value)
 
+            if intent == "causal":
+                chunk_scored = [
+                    (memory, lexical_token_score(sub_query, memory.text or ""))
+                    for memory in memories
+                    if memory.is_searchable() and memory.type is MemoryType.FILE_CHUNK
+                ]
+                chunk_scored.sort(key=lambda pair: pair[1], reverse=True)
+                for memory, score in chunk_scored[:4]:
+                    if score <= 0 or memory.id.value in seen_pool:
+                        continue
+                    rag_pool.append(memory)
+                    seen_pool.add(memory.id.value)
+
     per_source_counts["event_tree"] = len(event_hits)
     per_source_counts["vector"] = len(vector_hits)
 
     if strategy != "summary_only":
         rag_hits, all_hit_scores = rerank_memories(query, rag_pool, embed, limit=final_k, config=cfg)
+        if any(plan.get("intent") == "causal" for plan in planned) and strategy == "layered_tree":
+            rag_hits = _stabilize_causal_hits(rag_hits, event_hits, rag_pool, final_k)
     else:
         rag_hits = []
         all_hit_scores = {}
