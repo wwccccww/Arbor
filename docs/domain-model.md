@@ -126,7 +126,7 @@ can_chat / can_read_memory / can_write_memory / can_admin_persona
 
 - 将节点与边投影为树/时间轴 DTO（只读）。可放应用层查询端；若含「何为父节点」的规则，则留在领域。
 
-v1 边以时间后继为主，因果边按需增加，**不做社区检测、不做多层 GraphRAG 摘要**。
+v1 边以时间后继为主，因果边按需增加，**不做社区检测、不做多层 GraphRAG 摘要**。检索层会沿 `temporal`、`caused_by` 边做 1～2 跳扩展以定位相关事件（见 [architecture.md §6](architecture.md)）。
 
 ### 2.5 Conversation（会话）
 

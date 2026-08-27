@@ -17,7 +17,7 @@
 7. [测试样例](testing-examples.md) — Given-When-Then YAML，先于 pytest
 8. [评测](evaluation.md) — 怎么办：体检页、suite-v1 金标、门槛与工作流
 9. [RAGAS](ragas.md) — 仅评本轮注入文本上的生成忠实度
-10. [ADR](adr) — 已冻结的技术决策
+10. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
 
 ## 文档与代码的关系
 

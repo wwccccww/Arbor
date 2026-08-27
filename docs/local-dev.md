@@ -313,6 +313,45 @@ curl.exe -s http://127.0.0.1:8000/v1/me `
 
 应返回 `demo-a@arbor.eval` 与租户列表。
 
+## 检索与上下文（可选调参）
+
+默认策略 `layered_tree`（事件图扩展 + hybrid + rerank）。详见 [architecture.md §6](../architecture.md)、[ADR 0009](../adr/0009-retrieval-orchestrator-v2.md)。
+
+```text
+# 检索池与进 prompt 条数
+# ARBOR_RETRIEVAL_POOL_K=24
+# ARBOR_RETRIEVAL_RERANK_K=6
+# ARBOR_RETRIEVAL_PROMPT_K=5
+
+# 事件图：种子数、边扩展深度与上限
+# ARBOR_RETRIEVAL_EVENT_SEED_K=2
+# ARBOR_RETRIEVAL_EVENT_EXPAND_DEPTH=2
+# ARBOR_RETRIEVAL_EVENT_EXPAND_MAX=8
+
+# hybrid：应用层 lexical + 向量 RRF（on | off）
+# ARBOR_RETRIEVAL_HYBRID=on
+
+# 复合问拆子 query（off | rules | llm占位）
+# ARBOR_RETRIEVAL_QUERY_PLAN=rules
+
+# rerank：MMR 与类型权重
+# ARBOR_RETRIEVAL_MMR_LAMBDA=0.7
+# ARBOR_RETRIEVAL_TYPE_WEIGHT_FACT=1.0
+# ARBOR_RETRIEVAL_TYPE_WEIGHT_CHUNK=0.6
+
+# 导入切块
+# ARBOR_CHUNK_MAX_CHARS=1200
+# ARBOR_CHUNK_OVERLAP_CHARS=150
+
+# 上下文工程（ContextCompiler）
+# ARBOR_CONTEXT_WINDOW_TOKENS=64000
+# ARBOR_CONTEXT_MAX_OUTPUT_TOKENS=2048
+# ARBOR_CONTEXT_RECENT_K=6
+# ARBOR_CONTEXT_SYSTEM_OVERHEAD=600
+```
+
+改检索后请跑 `python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all` 并视情况更新 `eval/baselines/`（见 [evaluation.md](../evaluation.md)）。
+
 ## 常见问题
 
 | 现象 | 处理 |
