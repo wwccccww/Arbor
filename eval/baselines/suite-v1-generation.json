@@ -4,7 +4,7 @@
   "mode": "generation",
   "strategy": "layered_tree",
   "generator": "deepseek-chat",
-  "judge": "skipped unless ARBOR_JUDGE_API_KEY",
+  "judge": "missing_key",
   "metrics": {
     "n_cases": 13,
     "citation_subset_rate": 1.0,
@@ -12,6 +12,8 @@
     "n_leaking_cases": 0,
     "ragas_faithfulness": null,
     "ragas_n": 0,
-    "ragas_skipped": true
+    "ragas_skipped": true,
+    "judge_status": "missing_key",
+    "generation_p0_pass": true
   }
 }

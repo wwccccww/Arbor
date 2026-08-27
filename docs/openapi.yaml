@@ -244,6 +244,21 @@ components:
           description: |
             generation 辅指标。contexts 必须等于本轮注入文本。
             检索 run 可省略。不作为隔离或召回的依据。
+        ragas_n:
+          type: integer
+        ragas_skipped:
+          type: boolean
+        judge_status:
+          type: string
+          enum: [configured, missing_key, same_as_generator]
+        generation_p0_pass:
+          type: boolean
+        n_cases:
+          type: integer
+        n_leaking_cases:
+          type: integer
+        refuse_text_leak_count:
+          type: integer
     InboxItem:
       type: object
       properties:

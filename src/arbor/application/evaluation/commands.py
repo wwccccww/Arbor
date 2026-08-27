@@ -39,6 +39,38 @@ def _case_view(row: dict) -> dict:
     }
 
 
+def _generation_case_view(row: dict) -> dict:
+    """Project one scored generation case into the API-facing per-case view."""
+    behavior = row.get("behavior")
+    passed = not row.get("leaked")
+    if behavior in {"answer", "cite"}:
+        passed = passed and bool(row.get("citation_subset"))
+    citations = list(row.get("citations") or [])
+    return {
+        "id": row.get("id"),
+        "query": row.get("query"),
+        "skill": row.get("skill"),
+        "expected_source": None,
+        "expected_behavior": behavior,
+        "expected_memory_count": len(row.get("injected_memory_ids") or []),
+        "expected_event_id": None,
+        "hit_ids": citations,
+        "leak_ids": [],
+        "sources": {},
+        "recall": 1.0 if row.get("citation_subset") else 0.0,
+        "leaked": bool(row.get("leaked")),
+        "event_hit": True,
+        "profile_miss": False,
+        "passed": passed,
+        "citation_subset": bool(row.get("citation_subset")),
+        "ragas_faithfulness": row.get("ragas_faithfulness"),
+        "text": row.get("text") or "",
+        "injected_memory_ids": list(row.get("injected_memory_ids") or []),
+        "citations": citations,
+        "text_leak": bool(row.get("text_leak")),
+    }
+
+
 class StartEvalRun:
     """Run frozen-fixture retrieval or generation (suite-v1)."""
 
@@ -69,6 +101,7 @@ class StartEvalRun:
             if self.run_generation is None:
                 raise DomainError("VALIDATION_ERROR", "generation not configured")
             report = self.run_generation(strategy=strategy, suite_version=suite_version)
+            cases = [_generation_case_view(row) for row in report.get("cases") or []]
             return {
                 "id": self.ids.new_id(),
                 "status": "completed",
@@ -77,7 +110,7 @@ class StartEvalRun:
                 "mode": "generation",
                 "metrics": report.get("metrics") or {},
                 "p0_tenant_leak_zero": bool(report.get("p0_tenant_leak_zero")),
-                "cases": list(report.get("cases") or []),
+                "cases": cases,
             }
         report = self.run_retrieval(strategy=strategy, suite_version=suite_version)
         cases = [_case_view(row) for row in report.get("cases") or []]

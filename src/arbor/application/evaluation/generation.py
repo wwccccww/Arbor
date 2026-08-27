@@ -80,14 +80,25 @@ def score_generation_case(case: dict, result: dict, memories: dict[str, dict]) -
     }
 
 
+def generation_p0_pass(metrics: dict) -> bool:
+    """P0 for generation: no leaks and citation subset on answer/cite cases."""
+    if metrics.get("n_leaking_cases", 0) != 0:
+        return False
+    if metrics.get("refuse_text_leak_count", 0) != 0:
+        return False
+    return metrics.get("citation_subset_rate", 1.0) >= 1.0
+
+
 def aggregate_generation(rows: list[dict]) -> dict:
+    from arbor.env import judge_status
+
     cite_rows = [r for r in rows if r["behavior"] in {"answer", "cite"}]
     subset_rate = (
         sum(1 for r in cite_rows if r["citation_subset"]) / len(cite_rows) if cite_rows else 1.0
     )
     refuse_rows = [r for r in rows if r["behavior"] == "refuse"]
     ragas_vals = [r["ragas_faithfulness"] for r in rows if r["ragas_faithfulness"] is not None]
-    return {
+    metrics = {
         "n_cases": len(rows),
         "citation_subset_rate": round(subset_rate, 4),
         "refuse_text_leak_count": sum(1 for r in refuse_rows if r["text_leak"]),
@@ -95,4 +106,7 @@ def aggregate_generation(rows: list[dict]) -> dict:
         "ragas_faithfulness": round(sum(ragas_vals) / len(ragas_vals), 4) if ragas_vals else None,
         "ragas_n": len(ragas_vals),
         "ragas_skipped": len(ragas_vals) == 0,
+        "judge_status": judge_status(),
     }
+    metrics["generation_p0_pass"] = generation_p0_pass(metrics)
+    return metrics
