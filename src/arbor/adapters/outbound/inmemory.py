@@ -16,6 +16,24 @@ from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, Thre
 from arbor.domain.shared.textvec import cosine, fixture_embed
 
 
+def _apply_inmemory_filters(item: MemoryItem, filters: dict | None) -> bool:
+    if not filters:
+        return True
+    event_ids = filters.get("event_ids")
+    if event_ids is not None:
+        allowed = {str(value) for value in event_ids}
+        event_id = item.event_id.value if item.event_id else None
+        if event_id is None or event_id not in allowed:
+            return False
+    types = filters.get("types")
+    if types is not None:
+        allowed_types = {str(value) for value in types}
+        if item.type.value not in allowed_types:
+            return False
+    exclude_ids = filters.get("exclude_ids")
+    return exclude_ids is None or item.id.value not in {str(value) for value in exclude_ids}
+
+
 @dataclass
 class InMemoryStores:
     personas: dict[str, Persona] = field(default_factory=dict)
@@ -246,6 +264,8 @@ class InMemoryVectorIndex:
                 continue
             item = self.memories.get(tenant_id, MemoryId(mid))
             if item is None or not item.is_searchable():
+                continue
+            if not _apply_inmemory_filters(item, filters):
                 continue
             hits.append((item, cosine(query_vector, vec)))
         hits.sort(key=lambda x: x[1], reverse=True)

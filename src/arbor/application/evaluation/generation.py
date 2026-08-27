@@ -15,7 +15,15 @@ def injected_contexts(prompt_slots: dict) -> list[str]:
         else:
             contexts.append(f"事件: {event}")
     for memory in prompt_slots.get("memory_hits") or []:
-        if memory:
+        if isinstance(memory, dict):
+            text = str(memory.get("text") or "").strip()
+            memory_id = memory.get("id")
+            if text:
+                if memory_id:
+                    contexts.append(f"记忆 {memory_id}: {text}")
+                else:
+                    contexts.append(text)
+        elif memory:
             contexts.append(str(memory))
     for turn in prompt_slots.get("recent_turns") or []:
         if isinstance(turn, dict):

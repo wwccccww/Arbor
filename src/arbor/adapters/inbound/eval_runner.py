@@ -222,6 +222,7 @@ def run_suite(
             k=k or default_k,
             list_active=memories.list_active,
             list_events=events.list_nodes,
+            list_edges=events.list_edges,
             summary_for=summary_for,
             vector_search=index.search,
             embed=embed.embed,

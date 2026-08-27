@@ -30,6 +30,7 @@ def evaluate_retrieval(
     summary_for,
     vector_search,
     embed,
+    list_edges=None,
 ) -> dict:
     import time
 
@@ -47,6 +48,7 @@ def evaluate_retrieval(
             k=k,
             memories=list_active(tenant_id, persona_id),
             events=list_events(tenant_id, persona_id),
+            edges=list_edges(tenant_id, persona_id) if list_edges else None,
             summary=summary_for(persona_id),
             vector_search=vector_search,
             embed=embed,

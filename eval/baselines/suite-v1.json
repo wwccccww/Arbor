@@ -1,6 +1,6 @@
 {
   "suite_version": "v1",
-  "updated_at": "2026-08-20",
+  "updated_at": "2026-08-27",
   "mode": "retrieval",
   "k": 5,
   "note": "夹具嵌入 + 内存向量。跨租户泄漏必须为 0。RAGAS 不进本表。",
@@ -11,19 +11,21 @@
       "persona_leak_rate": 0.0,
       "tenant_leak_count": 0,
       "key_event_hit_rate": 0.0,
-      "latency_ms": 0.01,
+      "latency_ms": 0.73,
       "profile_miss_count": 3,
-      "superseded_in_topk": 0
+      "superseded_in_topk": 0,
+      "n_cases": 13
     },
     "vector_only": {
-      "identity_consistency": 1.0,
-      "recall_at_5": 1.0,
+      "identity_consistency": 0.5,
+      "recall_at_5": 0.8,
       "persona_leak_rate": 0.0,
       "tenant_leak_count": 0,
       "key_event_hit_rate": 1.0,
-      "latency_ms": 0.04,
+      "latency_ms": 1.62,
       "profile_miss_count": 3,
-      "superseded_in_topk": 0
+      "superseded_in_topk": 0,
+      "n_cases": 13
     },
     "layered": {
       "identity_consistency": 1.0,
@@ -31,9 +33,10 @@
       "persona_leak_rate": 0.0,
       "tenant_leak_count": 0,
       "key_event_hit_rate": 1.0,
-      "latency_ms": 0.04,
+      "latency_ms": 1.26,
       "profile_miss_count": 0,
-      "superseded_in_topk": 0
+      "superseded_in_topk": 0,
+      "n_cases": 13
     },
     "layered_tree": {
       "identity_consistency": 1.0,
@@ -41,9 +44,10 @@
       "persona_leak_rate": 0.0,
       "tenant_leak_count": 0,
       "key_event_hit_rate": 1.0,
-      "latency_ms": 0.16,
+      "latency_ms": 1.46,
       "profile_miss_count": 0,
-      "superseded_in_topk": 0
+      "superseded_in_topk": 0,
+      "n_cases": 13
     }
   }
 }
