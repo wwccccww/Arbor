@@ -6,7 +6,7 @@ from typing import Any
 
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
-from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
 
 
 @dataclass
@@ -78,6 +78,8 @@ class MediaToInbox:
                     }
                     if hint:
                         payload["hint"] = hint
+                    conflict_raw = extracted.get("conflicts_with")
+                    conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
                     self.inbox.add(
                         InboxItem(
                             id=self.ids.new_id(),
@@ -85,6 +87,7 @@ class MediaToInbox:
                             persona_id=persona_id,
                             kind=kind_name if kind_name in {"fact", "event", "conflict"} else "fact",
                             payload=payload,
+                            conflicts_with=conflicts_with,
                         )
                     )
                     return MediaInboxResult(
@@ -166,6 +169,8 @@ class MediaToInbox:
                 payload = {"text": text, "source": filename, "memory_type": "fact"}
             if hint:
                 payload["hint"] = hint
+            conflict_raw = (extracted or {}).get("conflicts_with") if extracted else None
+            conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
             self.inbox.add(
                 InboxItem(
                     id=self.ids.new_id(),
@@ -173,6 +178,7 @@ class MediaToInbox:
                     persona_id=persona_id,
                     kind=kind if kind in {"fact", "event", "conflict"} else "fact",
                     payload=payload,
+                    conflicts_with=conflicts_with,
                 )
             )
             created += 1

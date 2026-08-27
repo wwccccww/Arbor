@@ -65,6 +65,7 @@ export type RuntimeInfo = {
   llm: string
   store: string
   embed?: string
+  feishu?: 'stub' | 'feishu'
 }
 
 export type Me = {
@@ -234,6 +235,7 @@ export type EvalMetrics = {
   persona_leak_rate?: number
   tenant_leak_count?: number
   key_event_hit_rate?: number
+  latency_ms?: number
   citation_subset_rate?: number
   ragas_faithfulness?: number | null
   ragas_n?: number

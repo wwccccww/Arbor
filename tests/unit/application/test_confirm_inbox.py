@@ -13,7 +13,7 @@ from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
-from arbor.domain.shared.ids import PersonaId, TenantId
+from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId
 from tests.unit.application.test_send_message import (
     USER,
     _stack,
@@ -116,6 +116,46 @@ def test_dismiss_inbox_item():
     )
     assert pending == []
     assert inbox.get(TenantId("0a000000-0000-4000-a000-000000000001"), "drop-me").status == "dismissed"
+
+
+def test_confirm_conflict_supersedes_old_memory():
+    stores, _send = _stack()
+    memories = InMemoryMemoryRepository(stores)
+    inbox = InMemoryInboxRepository(stores)
+    old_id = MemoryId("0a000000-0000-4000-a000-000000000302")
+    old = memories.get(TenantId("0a000000-0000-4000-a000-000000000001"), old_id)
+    assert old is not None
+    assert old.status.value == "active"
+    item = InboxItem(
+        id="conflict-inbox",
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
+        kind="conflict",
+        payload={"text": "林夏其实可以接受香菜"},
+        conflicts_with=old_id,
+    )
+    inbox.add(item)
+    confirm = ConfirmInboxItem(
+        personas=InMemoryPersonaRepository(stores),
+        memories=memories,
+        inbox=inbox,
+        vectors=InMemoryVectorIndex(stores, memories),
+        embed=FixtureEmbeddingClient(),
+        ids=SeqIdGenerator(),
+        auth=AuthorizationPolicy(),
+    )
+    new = confirm(
+        tenant_id=TenantId("0a000000-0000-4000-a000-000000000001"),
+        user_id=USER,
+        persona_id=PersonaId("0a000000-0000-4000-a000-000000000010"),
+        inbox_id="conflict-inbox",
+        capabilities=list(Capability),
+    )
+    refreshed_old = memories.get(TenantId("0a000000-0000-4000-a000-000000000001"), old_id)
+    assert refreshed_old is not None
+    assert refreshed_old.status.value == "superseded"
+    assert new.status.value == "active"
+    assert new.supersedes == old_id
 
 
 def test_confirm_mark_key_event_grows_tree():

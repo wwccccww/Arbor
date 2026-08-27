@@ -221,6 +221,18 @@ label {
   color: var(--red);
 }
 
+.badge--promise {
+  background: var(--blue-soft);
+  border-color: #c7d9ec;
+  color: var(--blue);
+}
+
+.badge--milestone {
+  background: var(--green-soft);
+  border-color: #c6e3d0;
+  color: var(--green);
+}
+
 .eyebrow {
   display: block;
   font-size: 0.72rem;

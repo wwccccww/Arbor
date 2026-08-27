@@ -61,6 +61,34 @@ def register_eval_routes(app, deps: EvalHttpDeps) -> None:
         deps.eval_runs.save(result)
         return {"id": result["id"]}
 
+    @app.get("/v1/eval/runs")
+    def list_eval_runs(
+        limit: int = 10,
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = deps.current_user(authorization)
+        if not x_tenant_id:
+            raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        if not deps.workspace_admin_for(user, x_tenant_id):
+            raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
+        capped = max(1, min(limit, 50))
+        items = deps.eval_runs.list_recent(x_tenant_id, capped)
+        return {
+            "items": [
+                {
+                    "id": run["id"],
+                    "status": run["status"],
+                    "strategy": run["strategy"],
+                    "suite_version": run["suite_version"],
+                    "mode": run["mode"],
+                    "metrics": run.get("metrics") or {},
+                    "p0_tenant_leak_zero": run.get("p0_tenant_leak_zero"),
+                }
+                for run in items
+            ],
+        }
+
     @app.get("/v1/eval/runs/{run_id}")
     def get_eval_run(
         run_id: str,

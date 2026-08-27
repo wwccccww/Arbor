@@ -5,15 +5,18 @@ import type { FeishuCalendarStatus } from '../api/types'
 export function FeishuCalendarConnect({
   client,
   editable,
+  enabled = true,
 }: {
   client: ArborClient
   editable?: boolean
+  enabled?: boolean
 }) {
   const [status, setStatus] = useState<FeishuCalendarStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
+    if (!enabled) return
     try {
       const next = await client.getFeishuCalendarStatus()
       setStatus(next)
@@ -21,17 +24,23 @@ export function FeishuCalendarConnect({
     } catch (err) {
       setError((err as Error).message)
     }
-  }, [client])
+  }, [client, enabled])
 
   useEffect(() => {
+    if (!enabled) return
     void refresh()
-  }, [refresh])
+  }, [refresh, enabled])
 
   useEffect(() => {
+    if (!enabled) return
     const onFocus = () => void refresh()
     window.addEventListener('focus', onFocus)
     return () => window.removeEventListener('focus', onFocus)
-  }, [refresh])
+  }, [refresh, enabled])
+
+  if (!enabled) {
+    return null
+  }
 
   async function connect() {
     setBusy(true)

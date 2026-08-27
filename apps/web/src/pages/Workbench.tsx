@@ -32,11 +32,13 @@ export function Workbench({
   client,
   personaId,
   workspaceAdmin = false,
+  feishuEnabled = false,
   onBack,
 }: {
   client: ArborClient
   personaId: string
   workspaceAdmin?: boolean
+  feishuEnabled?: boolean
   onBack: () => void
 }) {
   const narrow = useNarrow()
@@ -648,7 +650,7 @@ export function Workbench({
                   busy={profileBusy}
                   onSave={(patch) => void saveProfile(patch)}
                 />
-                <FeishuCalendarConnect client={client} editable={canEditPersona} />
+                <FeishuCalendarConnect client={client} editable={canEditPersona} enabled={feishuEnabled} />
               </div>
               <div data-left-panel="memory">
                 <MemoryListPane

@@ -206,12 +206,15 @@ class SendMessage:
         extracted = self.reasoner.extract(text) if self.reasoner else None
         inbox_added = 0
         if extracted and extracted.get("text"):
+            conflict_raw = extracted.get("conflicts_with")
+            conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
             item = InboxItem(
                 id=self.ids.new_id(),
                 tenant_id=tenant_id,
                 persona_id=persona_id,
                 kind=extracted.get("kind", "fact"),
                 payload={"text": extracted["text"]},
+                conflicts_with=conflicts_with,
             )
             self.inbox.add(item)
             inbox_added = 1

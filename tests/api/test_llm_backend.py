@@ -40,6 +40,7 @@ def test_me_runtime_defaults_to_scripted_memory():
         "embed": "fixture",
         "object_store": "local",
         "job_queue": "sync",
+        "feishu": "stub",
     }
 
 
@@ -55,6 +56,7 @@ def test_me_runtime_reports_deepseek(monkeypatch):
         "embed": "fixture",
         "object_store": "local",
         "job_queue": "sync",
+        "feishu": "stub",
     }
 
 

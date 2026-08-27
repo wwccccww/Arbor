@@ -16,7 +16,7 @@ ADR-0002 已规定：分层记忆 + 事件树路由，不引入 GraphRAG 流水�
 1. **事件图**：种子打分后沿 `temporal` / `caused_by` 边扩展 1～2 跳；scoped ANN + 全局 ANN RRF。
 2. **Hybrid**：应用层 lexical scan（人设内 active 记忆）与向量结果 RRF；默认开启，可 `ARBOR_RETRIEVAL_HYBRID=off`。
 3. **Rerank**：词级 lexical + 向量分 + 记忆类型权重 + MMR 去重。
-4. **Query 规划**：默认 `rules` 拆复合问；`off` 关闭；`llm` 占位未接真模型。
+4. **Query 规划**：默认 `rules` 拆复合问；`off` 关闭；`llm` 在配置 `DEEPSEEK_API_KEY` 时调用 Chat Completions 拆问，失败或无密钥时回退 `rules`。
 5. **注入**：`memory_hits` 为 `{id, text, source, score}`；trim 按低分优先；`SendMessage` 返回 `retrieval_meta`。
 6. **VectorIndex.filters**：`event_ids`、`types`、`exclude_ids` 在 Postgres / InMemory 落地。
 7. **切块**：`ARBOR_CHUNK_MAX_CHARS` / `ARBOR_CHUNK_OVERLAP_CHARS` 可配置 overlap。

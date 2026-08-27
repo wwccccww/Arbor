@@ -31,6 +31,13 @@ function participantsFromEdges(
   return [...people].sort()
 }
 
+function typeBadgeClass(type?: string) {
+  if (type === 'conflict') return 'badge badge--fail'
+  if (type === 'promise') return 'badge badge--promise'
+  if (type === 'milestone') return 'badge badge--milestone'
+  return 'badge badge--companion'
+}
+
 export function BiographyTreePane({
   nodes,
   edges = [],
@@ -104,7 +111,7 @@ export function BiographyTreePane({
           >
             <button type="button" className="biography-tree__node" onClick={() => onSelect?.(node.id)}>
               <span className="biography-tree__when">{node.happened_at?.slice(0, 10) ?? '—'}</span>
-              <span className={`badge badge--${node.type === 'conflict' ? 'fail' : 'companion'}`}>
+              <span className={typeBadgeClass(node.type)}>
                 {TYPE_LABELS[node.type ?? ''] ?? node.type ?? '事件'}
               </span>
               <strong>{node.title}</strong>

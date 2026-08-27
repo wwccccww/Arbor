@@ -217,6 +217,8 @@ Owner/Admin。
 
 聊天附件在具备 `write_memory` 时会解析进 Inbox（`file_chunk` / `transcript` / `image_caption`），不直写 Memory；仅 `chat` 权限时附件只挂在消息上。需要 `chat`。GET 历史只回 `filename`；下载走 `GET /v1/threads/{thread_id}/attachments/{filename}`。配置了视觉描述时，检索与 LLM 上下文会附带图片摘要，消息正文仍为用户输入的文字。
 
+可选查询参数 `?stream=true`：以 SSE 流式返回助手回复分片，末包为完整 JSON（含 `citations`）。
+
 响应：
 
 ```json
@@ -351,6 +353,10 @@ Query：`view=tree|timeline`、`key_only=true`。
 ```
 
 `mode`：`retrieval`（默认）或 `generation`。`generation` 会跑引用子集检查；若配置了 `FaithfulnessScorer` 再写 `ragas_faithfulness`。空间 Admin。演示模式可打到夹具租户。
+
+### `GET /v1/eval/runs`
+
+列出本租户最近评测运行（空间 Admin）。查询参数 `limit`（默认 10，最大 50）。返回 `items[]`：`id`、`strategy`、`suite_version`、`mode`、`metrics`、`p0_tenant_leak_zero`（不含逐题 `cases`，详情见单条 GET）。
 
 ### `GET /v1/eval/runs/{run_id}`
 

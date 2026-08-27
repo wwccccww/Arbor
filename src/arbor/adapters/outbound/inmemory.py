@@ -344,13 +344,24 @@ class ScriptedLLM:
 
 
 class ScriptedReasoner:
-    def __init__(self, proposed_fact: str | None = None) -> None:
+    def __init__(
+        self,
+        proposed_fact: str | None = None,
+        *,
+        kind: str = "fact",
+        conflicts_with: str | None = None,
+    ) -> None:
         self.proposed_fact = proposed_fact
+        self.kind = kind
+        self.conflicts_with = conflicts_with
 
     def extract(self, text: str) -> dict | None:
         if not self.proposed_fact:
             return None
-        return {"kind": "fact", "text": self.proposed_fact, "source_text": text}
+        out: dict = {"kind": self.kind, "text": self.proposed_fact, "source_text": text}
+        if self.conflicts_with:
+            out["conflicts_with"] = self.conflicts_with
+        return out
 
     def summarize(self, dialogue: str, prior: str = "") -> str | None:
         blob = (dialogue or "").strip().replace("\n", " ")
