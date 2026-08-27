@@ -1093,6 +1093,7 @@ td:first-child {
   margin: 0.25rem 0 0;
 }
 
+.inbox-bulk {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
