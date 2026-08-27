@@ -264,7 +264,7 @@ nightly       可选：.github/workflows/nightly.yml（generation + pytest -m ll
 
 **架构 import 方向** 由 `tests/architecture/test_import_rules.py` 守护（等同 import-linter 目标，未单独装 import-linter）。
 
-**mypy** 尚未接入 CI；端口 Protocol 类型靠 ruff + 单测覆盖。
+**mypy** 已接入 CI（`arbor.domain` + `arbor.ports`）；适配器仍靠 ruff + 单测。
 
 合并条件：`unit` 与 `web` 全绿。  
 `tenant_leak_count` 在 eval-fixture（unit job 内 arbor-eval）中必须为 0。
