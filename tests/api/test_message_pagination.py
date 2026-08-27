@@ -34,6 +34,7 @@ def test_list_messages_limit_offset_and_total():
     assert paged.status_code == 200
     assert len(paged.json()["items"]) == 1
     assert paged.json()["total"] == full.json()["total"]
+    # P0: member has chat on 林夏 but not on 小周 — listing 小周 thread messages is forbidden.
     created = client.post(f"/v1/personas/{ZHOU}/threads", headers=_headers())
     assert created.status_code == 201
     hidden = client.get(

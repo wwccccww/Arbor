@@ -4,6 +4,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { FeishuCalendarConnect } from './FeishuCalendarConnect'
 
 describe('FeishuCalendarConnect', () => {
+  it('renders nothing when integration is disabled', () => {
+    const client = {
+      getFeishuCalendarStatus: vi.fn(),
+    }
+    const { container } = render(
+      <FeishuCalendarConnect client={client as never} editable enabled={false} />,
+    )
+    expect(container).toBeEmptyDOMElement()
+    expect(client.getFeishuCalendarStatus).not.toHaveBeenCalled()
+  })
+
   it('shows connect button when not linked', async () => {
     const client = {
       getFeishuCalendarStatus: vi.fn(async () => ({

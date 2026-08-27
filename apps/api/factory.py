@@ -153,6 +153,7 @@ def _runtime_info(
     embed: object,
     object_store: str = "local",
     job_queue: str = "sync",
+    feishu: str = "stub",
 ) -> dict[str, str]:
     if isinstance(embed, FixtureEmbeddingClient) or embed is None:
         embed_label = "fixture"
@@ -164,6 +165,7 @@ def _runtime_info(
         "embed": embed_label,
         "object_store": object_store,
         "job_queue": job_queue,
+        "feishu": feishu,
     }
 
 
@@ -619,6 +621,7 @@ def create_app(
         embed=resolved_embed,
         object_store=object_store_label(storage),
         job_queue="redis" if redis_url else "sync",
+        feishu="feishu" if feishu_client is not None else "stub",
     )
     app.state.auth_sessions = auth_sessions
 

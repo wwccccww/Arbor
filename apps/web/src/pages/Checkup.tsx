@@ -231,6 +231,57 @@ export function Checkup({
     }
   }
 
+  async function runDemoMode() {
+    setBusy(true)
+    setBusyLabel('演示模式：装载冻结世界并跑 suite-v1…')
+    setError(null)
+    setCasePage(0)
+    try {
+      await client.seedEvalWorld()
+      setRun(await fetchRun('layered_tree'))
+      setRows([])
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
+  async function loadRecentComparison() {
+    setBusy(true)
+    setBusyLabel('正在加载最近评测结果…')
+    setError(null)
+    try {
+      const listed = await client.listEvalRuns(24)
+      const comparison: EvalRun[] = []
+      for (const strategy of STRATEGIES) {
+        const summary = listed.items.find(
+          (item) =>
+            item.strategy === strategy &&
+            item.suite_version === 'v1' &&
+            item.mode === 'retrieval',
+        )
+        if (summary) {
+          comparison.push(await client.getEvalRun(summary.id))
+        }
+      }
+      if (!comparison.length) {
+        setError('还没有 suite-v1 检索记录，请先跑评测或演示模式')
+        return
+      }
+      setRows(comparison)
+      setRun(comparison.find((item) => item.strategy === 'layered_tree') ?? comparison[0])
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
   const cases = (run?.cases ?? []).filter((row) => {
     if (filter === 'all') return true
     return filter === 'passed' ? row.passed : !row.passed
@@ -285,12 +336,20 @@ export function Checkup({
           ) : null}
           <button
             type="button"
+            className="btn--primary"
+            disabled={busy || forbidden}
+            onClick={() => void runDemoMode()}
+          >
+            演示模式（装载 + suite-v1）
+          </button>
+          <button
+            type="button"
             disabled={busy || forbidden || !personaId}
             onClick={() => void runPersonaSmoke()}
           >
             人设轻量体检
           </button>
-          <button type="button" className="btn--primary" disabled={busy || forbidden} onClick={() => void runDefault()}>
+          <button type="button" disabled={busy || forbidden} onClick={() => void runDefault()}>
             跑 suite-v1 检索（13 题）
           </button>
           <button
@@ -315,7 +374,10 @@ export function Checkup({
             suite-v1 生成评测
           </button>
           <button type="button" disabled={busy || forbidden} onClick={() => void runComparison()}>
-            四策略对比
+            四策略对比（现场重跑）
+          </button>
+          <button type="button" disabled={busy || forbidden} onClick={() => void loadRecentComparison()}>
+            加载最近四策略
           </button>
         </div>
 
@@ -332,6 +394,8 @@ export function Checkup({
                   <th>Recall@5</th>
                   <th>人设泄漏</th>
                   <th>跨租户泄漏</th>
+                  <th>关键事件命中</th>
+                  <th>检索延迟</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,6 +406,12 @@ export function Checkup({
                     <td>{item.metrics.recall_at_5}</td>
                     <td>{item.metrics.persona_leak_rate}</td>
                     <td>{item.metrics.tenant_leak_count}</td>
+                    <td>{item.metrics.key_event_hit_rate ?? '—'}</td>
+                    <td>
+                      {item.metrics.latency_ms != null
+                        ? `${Math.round(item.metrics.latency_ms)}ms`
+                        : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

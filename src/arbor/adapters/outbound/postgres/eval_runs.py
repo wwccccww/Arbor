@@ -36,6 +36,41 @@ class PgEvalRunRepository:
             ),
         )
 
+    def list_recent(self, tenant_id: str, limit: int = 10) -> list[dict]:
+        rows = self.conn.execute(
+            """
+            SELECT id, tenant_id, suite_version, strategy, mode, status,
+                   metrics, p0_tenant_leak_zero, cases
+            FROM eval_runs
+            WHERE tenant_id = %s::uuid
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (tenant_id, limit),
+        ).fetchall()
+        out: list[dict] = []
+        for row in rows:
+            metrics = row["metrics"]
+            cases = row["cases"]
+            if not isinstance(metrics, dict):
+                metrics = json.loads(metrics or "{}")
+            if not isinstance(cases, list):
+                cases = json.loads(cases or "[]")
+            out.append(
+                {
+                    "id": str(row["id"]),
+                    "tenant_id": str(row["tenant_id"]),
+                    "suite_version": str(row["suite_version"]),
+                    "strategy": str(row["strategy"]),
+                    "mode": str(row["mode"] or "retrieval"),
+                    "status": str(row["status"] or "completed"),
+                    "metrics": metrics,
+                    "p0_tenant_leak_zero": bool(row["p0_tenant_leak_zero"]),
+                    "cases": cases,
+                }
+            )
+        return out
+
     def get(self, tenant_id: str, run_id: str) -> dict | None:
         row = self.conn.execute(
             """
@@ -70,9 +105,23 @@ class PgEvalRunRepository:
 class InMemoryEvalRunRepository:
     def __init__(self) -> None:
         self._runs: dict[str, dict] = {}
+        self._order: list[str] = []
 
     def save(self, run: dict) -> None:
         self._runs[run["id"]] = dict(run)
+        if run["id"] not in self._order:
+            self._order.append(run["id"])
+
+    def list_recent(self, tenant_id: str, limit: int = 10) -> list[dict]:
+        items: list[dict] = []
+        for run_id in reversed(self._order):
+            run = self._runs.get(run_id)
+            if run is None or run.get("tenant_id") != tenant_id:
+                continue
+            items.append(dict(run))
+            if len(items) >= limit:
+                break
+        return items
 
     def get(self, tenant_id: str, run_id: str) -> dict | None:
         run = self._runs.get(run_id)

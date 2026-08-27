@@ -345,6 +345,7 @@ export default function App() {
         client={client}
         personaId={route.personaId}
         workspaceAdmin={workspaceAdmin}
+        feishuEnabled={runtime?.feishu === 'feishu'}
         onBack={() => {
           window.location.hash = '#/'
         }}

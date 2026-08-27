@@ -616,6 +616,28 @@ export function createClient(
       return (await request(`/eval/runs/${runId}`)) as EvalRun
     },
 
+    async listEvalRuns(limit = 10): Promise<{
+      items: Array<{
+        id: string
+        strategy: string
+        suite_version: string
+        mode: string
+        metrics: EvalRun['metrics']
+        p0_tenant_leak_zero?: boolean
+      }>
+    }> {
+      return (await request(`/eval/runs?limit=${limit}`)) as {
+        items: Array<{
+          id: string
+          strategy: string
+          suite_version: string
+          mode: string
+          metrics: EvalRun['metrics']
+          p0_tenant_leak_zero?: boolean
+        }>
+      }
+    },
+
     async getFeishuCalendarStatus(): Promise<FeishuCalendarStatus> {
       return (await request('/me/feishu/status')) as FeishuCalendarStatus
     },
