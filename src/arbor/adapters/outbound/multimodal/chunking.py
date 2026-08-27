@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import re
 
+from arbor.env import chunk_max_chars, chunk_overlap_chars
+
 _HEADING = re.compile(r"^#{1,6}\s+.+", re.MULTILINE)
 
 
-def chunk_text(text: str, *, max_chars: int = 1200) -> list[str]:
+def chunk_text(text: str, *, max_chars: int | None = None, overlap: int | None = None) -> list[str]:
+    max_len = max_chars if max_chars is not None else chunk_max_chars()
+    overlap_len = overlap if overlap is not None else chunk_overlap_chars()
     stripped = (text or "").strip()
     if not stripped:
         return []
-    if len(stripped) <= max_chars:
+    if len(stripped) <= max_len:
         return [stripped]
     sections: list[str] = []
     if _HEADING.search(stripped):
@@ -22,17 +26,22 @@ def chunk_text(text: str, *, max_chars: int = 1200) -> list[str]:
     out: list[str] = []
     buf = ""
     for section in sections:
-        if len(section) > max_chars:
+        if len(section) > max_len:
             if buf:
                 out.append(buf.strip())
                 buf = ""
             start = 0
             while start < len(section):
-                out.append(section[start : start + max_chars].strip())
-                start += max_chars
+                end = min(len(section), start + max_len)
+                piece = section[start:end].strip()
+                if piece:
+                    out.append(piece)
+                if end >= len(section):
+                    break
+                start = max(start + 1, end - overlap_len)
             continue
         candidate = f"{buf}\n\n{section}".strip() if buf else section
-        if len(candidate) <= max_chars:
+        if len(candidate) <= max_len:
             buf = candidate
         else:
             if buf:
@@ -40,4 +49,4 @@ def chunk_text(text: str, *, max_chars: int = 1200) -> list[str]:
             buf = section
     if buf:
         out.append(buf.strip())
-    return [c for c in out if c]
+    return [chunk for chunk in out if chunk]

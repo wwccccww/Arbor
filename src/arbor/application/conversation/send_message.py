@@ -175,6 +175,7 @@ class SendMessage:
         llm_text = self._enrich_text_with_attachments(text, stored_attachments)
         active = self.memories.list_active(tenant_id, persona_id)
         event_nodes = self.events.list_nodes(tenant_id, persona_id)
+        event_edges = self.events.list_edges(tenant_id, persona_id)
 
         compiled = self._compiler().compile(
             persona=persona,
@@ -188,6 +189,7 @@ class SendMessage:
             vector_search=self.vectors.search,
             embed=self.embed.embed,
             user_text=llm_text,
+            event_edges=event_edges,
         )
         if tool_mode() in {"keywords", "both"}:
             tool_results = run_persona_tools(
@@ -313,6 +315,8 @@ class SendMessage:
             "prompt_slots": ctx.prompt_slots,
             "context_token_budget": ctx.compiled.token_budget,
             "context_token_estimate": ctx.compiled.token_estimate,
+            "context_truncation_notes": list(ctx.compiled.truncation_notes),
+            "retrieval_meta": dict(ctx.compiled.retrieval_meta),
             "inbox_added": ctx.inbox_added,
             "attachments": [{"filename": item["filename"]} for item in ctx.stored_attachments],
         }

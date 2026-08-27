@@ -48,19 +48,38 @@ class PgVectorIndex:
         if persona_id is None:
             raise DomainError("VALIDATION_ERROR", "persona_id required")
         query = vector_literal(query_vector)
+        clauses = [
+            "tenant_id = %s::uuid",
+            "persona_id = %s::uuid",
+            "status = 'active'",
+            "embedding IS NOT NULL",
+        ]
+        params: list = [query, tenant_id.value, persona_id.value]
+        if filters:
+            event_ids = filters.get("event_ids")
+            if event_ids:
+                clauses.append("event_id = ANY(%s::uuid[])")
+                params.append([str(value) for value in event_ids])
+            types = filters.get("types")
+            if types:
+                clauses.append("type = ANY(%s::text[])")
+                params.append([str(value) for value in types])
+            exclude_ids = filters.get("exclude_ids")
+            if exclude_ids:
+                clauses.append("NOT (id = ANY(%s::uuid[]))")
+                params.append([str(value) for value in exclude_ids])
+        where_sql = " AND ".join(clauses)
+        params.extend([query, k])
         rows = self.conn.execute(
-            """
+            f"""
             SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes,
                    1 - (embedding <=> %s::vector) AS score
             FROM memory_items
-            WHERE tenant_id = %s::uuid
-              AND persona_id = %s::uuid
-              AND status = 'active'
-              AND embedding IS NOT NULL
+            WHERE {where_sql}
             ORDER BY embedding <=> %s::vector
             LIMIT %s
             """,
-            (query, tenant_id.value, persona_id.value, query, k),
+            tuple(params),
         ).fetchall()
         hits = []
         for row in rows:

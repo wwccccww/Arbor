@@ -20,6 +20,7 @@ def run_persona_retrieval_eval(
     embed,
     k: int = 5,
     memory_catalog: list[dict],
+    list_edges=None,
 ) -> dict:
     rows = []
     for case in cases:
@@ -35,6 +36,7 @@ def run_persona_retrieval_eval(
             k=k,
             memories=list_active(case_tenant, case_persona),
             events=list_events(case_tenant, case_persona),
+            edges=list_edges(case_tenant, case_persona) if list_edges else None,
             summary=summary_for(case_persona),
             vector_search=vector_search,
             embed=embed,

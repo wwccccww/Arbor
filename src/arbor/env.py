@@ -231,3 +231,84 @@ def context_system_overhead_tokens() -> int:
     except ValueError:
         value = 600
     return max(200, value)
+
+
+def _retrieval_int(name: str, default: int, minimum: int = 1, maximum: int | None = None) -> int:
+    load_dotenv()
+    raw = (os.environ.get(name) or str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = default
+    value = max(minimum, value)
+    if maximum is not None:
+        value = min(value, maximum)
+    return value
+
+
+def _retrieval_float(name: str, default: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
+    load_dotenv()
+    raw = (os.environ.get(name) or str(default)).strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def retrieval_pool_k() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_POOL_K", 24, minimum=5, maximum=100)
+
+
+def retrieval_rerank_k() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_RERANK_K", 6, minimum=1, maximum=20)
+
+
+def retrieval_prompt_k() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_PROMPT_K", 5, minimum=1, maximum=12)
+
+
+def retrieval_event_seed_k() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_EVENT_SEED_K", 2, minimum=1, maximum=5)
+
+
+def retrieval_event_expand_depth() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_EVENT_EXPAND_DEPTH", 2, minimum=0, maximum=4)
+
+
+def retrieval_event_expand_max() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_EVENT_EXPAND_MAX", 8, minimum=2, maximum=32)
+
+
+def retrieval_hybrid_enabled() -> bool:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RETRIEVAL_HYBRID") or "on").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def retrieval_query_plan() -> str:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RETRIEVAL_QUERY_PLAN") or "rules").strip().lower()
+    if raw in {"off", "rules", "llm"}:
+        return raw
+    return "rules"
+
+
+def retrieval_mmr_lambda() -> float:
+    return _retrieval_float("ARBOR_RETRIEVAL_MMR_LAMBDA", 0.7)
+
+
+def retrieval_type_weight_fact() -> float:
+    return _retrieval_float("ARBOR_RETRIEVAL_TYPE_WEIGHT_FACT", 1.0, maximum=2.0)
+
+
+def retrieval_type_weight_chunk() -> float:
+    return _retrieval_float("ARBOR_RETRIEVAL_TYPE_WEIGHT_CHUNK", 0.6, maximum=2.0)
+
+
+def chunk_max_chars() -> int:
+    return _retrieval_int("ARBOR_CHUNK_MAX_CHARS", 1200, minimum=200, maximum=8000)
+
+
+def chunk_overlap_chars() -> int:
+    return _retrieval_int("ARBOR_CHUNK_OVERLAP_CHARS", 150, minimum=0, maximum=1000)

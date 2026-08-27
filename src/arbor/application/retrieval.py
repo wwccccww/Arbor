@@ -1,50 +1,92 @@
 from __future__ import annotations
 
-from arbor.domain.eventgraph.graph import EventNode
+from collections import defaultdict
+
+from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
+from arbor.application.query_planner import plan_queries
+from arbor.application.retrieval_config import RetrievalConfig
+from arbor.application.retrieval_lexical import (
+    lexical_token_score,
+    mmr_select,
+    rrf_merge,
+    score_memory,
+)
+from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryType
 from arbor.domain.shared.ids import PersonaId, TenantId
-from arbor.domain.shared.textvec import cosine, fixture_embed
 
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
-DEFAULT_POOL = 20
-DEFAULT_RERANK = 6
 
 
-def _lexical(query: str, text: str) -> float:
-    if not query or not text:
-        return 0.0
-    q = set(query)
-    t = set(text)
-    if not q:
-        return 0.0
-    return len(q & t) / len(q)
+def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
+    if not filters:
+        return True
+    event_ids = filters.get("event_ids")
+    if event_ids is not None:
+        allowed = {str(value) for value in event_ids}
+        event_id = item.event_id.value if item.event_id else None
+        if event_id is None or event_id not in allowed:
+            return False
+    types = filters.get("types")
+    if types is not None:
+        allowed_types = {str(value) for value in types}
+        if item.type.value not in allowed_types:
+            return False
+    exclude_ids = filters.get("exclude_ids")
+    return exclude_ids is None or item.id.value not in {str(value) for value in exclude_ids}
 
 
-def _score_memory(query: str, item: MemoryItem, embed) -> float:
-    blob = item.text or ""
-    return _lexical(query, blob) + cosine(embed(query), embed(blob))
+def _lexical_scan(memories: list[MemoryItem], query: str, k: int) -> list[MemoryItem]:
+    scored = [
+        (item, lexical_token_score(query, item.text or ""))
+        for item in memories
+        if item.is_searchable()
+    ]
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return [item for item, score in scored if score > 0][:k]
+
+
+def _merge_vector_hits(
+    global_hits: list[tuple[MemoryItem, float]],
+    scoped_hits: list[tuple[MemoryItem, float]],
+) -> list[MemoryItem]:
+    global_rank = [item for item, _ in global_hits]
+    scoped_rank = [item for item, _ in scoped_hits]
+    if scoped_rank:
+        return rrf_merge([scoped_rank, global_rank])
+    return global_rank
 
 
 def rerank_memories(
     query: str,
     candidates: list[MemoryItem],
     embed,
-    limit: int = DEFAULT_RERANK,
-) -> list[MemoryItem]:
+    limit: int = 6,
+    config: RetrievalConfig | None = None,
+) -> tuple[list[MemoryItem], dict[str, float]]:
+    cfg = config or RetrievalConfig.from_env()
     if not candidates:
-        return []
-    scored = [(item, _score_memory(query, item, embed)) for item in candidates]
+        return [], {}
+    query_vector = embed(query)
+    scored = [
+        (
+            item,
+            score_memory(
+                query,
+                item,
+                embed,
+                fact_weight=cfg.type_weight_fact,
+                chunk_weight=cfg.type_weight_chunk,
+                query_vector=query_vector,
+            ),
+        )
+        for item in candidates
+    ]
     scored.sort(key=lambda pair: pair[1], reverse=True)
-    return [item for item, score in scored if score > 0][:limit]
-
-
-def route_events(query: str, events: list[EventNode], limit: int = 2) -> list[EventNode]:
-    scored = []
-    for event in events:
-        blob = f"{event.title} {event.summary}"
-        scored.append((event, _lexical(query, blob) + cosine(fixture_embed(query), fixture_embed(blob))))
-    scored.sort(key=lambda x: x[1], reverse=True)
-    return [e for e, s in scored if s > 0.05][:limit]
+    positive = [(item, score) for item, score in scored if score > 0]
+    selected = mmr_select(positive, embed, limit, lambda_=cfg.mmr_lambda)
+    hit_scores = {item.id.value: score for item, score in positive}
+    return selected, hit_scores
 
 
 def retrieve(
@@ -59,63 +101,150 @@ def retrieve(
     summary: str,
     vector_search,
     embed,
-    k_pool: int = DEFAULT_POOL,
+    edges: list[EventEdge] | None = None,
+    config: RetrievalConfig | None = None,
+    k_pool: int | None = None,
     k_rerank: int | None = None,
 ) -> dict:
     """Return hit layers. Isolation is the caller's VectorIndex filter."""
     if strategy not in STRATEGIES:
         raise ValueError(strategy)
 
-    final_k = k_rerank if k_rerank is not None else min(k, DEFAULT_RERANK)
-    pool_k = max(k_pool, k, final_k)
+    cfg = config or RetrievalConfig.from_env()
+    final_k = k_rerank if k_rerank is not None else min(k, cfg.rerank_k)
+    pool_k = k_pool if k_pool is not None else max(cfg.pool_k, k, final_k)
+    edge_list = edges or []
 
     profile_hits: list[MemoryItem] = []
     event_hits: list[MemoryItem] = []
     vector_hits: list[MemoryItem] = []
     event_nodes: list[EventNode] = []
+    per_source_counts: dict[str, int] = defaultdict(int)
+    sub_queries_used: list[dict] = []
+    rag_pool: list[MemoryItem] = []
+    seen_pool: set[str] = set()
+    seen_vector: set[str] = set()
+    seen_event_hit: set[str] = set()
+    seen_event_node: set[str] = set()
 
     if strategy in {"layered", "layered_tree"}:
         profile_hits = [
-            m
-            for m in memories
-            if m.is_searchable() and m.type is MemoryType.FACT and m.event_id is None
+            memory
+            for memory in memories
+            if memory.is_searchable() and memory.type is MemoryType.FACT and memory.event_id is None
         ]
+        per_source_counts["profile"] = len(profile_hits)
 
-    if strategy == "layered_tree":
-        event_nodes = route_events(query, events)
-        event_ids = {e.id.value for e in event_nodes}
-        event_hits = [m for m in memories if m.is_searchable() and m.event_id and m.event_id.value in event_ids]
+    planned = plan_queries(query, cfg.query_plan) if strategy != "summary_only" else []
+    if not planned:
+        planned = [{"query": query, "intent": "general"}]
 
-    if strategy in {"vector_only", "layered", "layered_tree"}:
-        qv = embed(query)
-        raw = vector_search(tenant_id=tenant_id, persona_id=persona_id, query_vector=qv, k=pool_k)
-        seen = {m.id.value for m in profile_hits + event_hits}
-        for item, _score in raw:
-            if item.id.value not in seen:
-                vector_hits.append(item)
+    for plan in planned:
+        sub_query = plan["query"]
+        intent = plan.get("intent") or "general"
+        sub_queries_used.append({"query": sub_query, "intent": intent})
 
-    rag_pool: list[MemoryItem] = []
-    if strategy != "summary_only":
-        for group in (event_hits, vector_hits):
-            for item in group:
-                if item.id.value not in {c.id.value for c in rag_pool}:
+        expanded_event_ids: set[str] = set()
+        event_hits_batch: list[MemoryItem] = []
+
+        if strategy == "layered_tree":
+            seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
+            sub_event_nodes, expanded_event_ids = expand_event_nodes(
+                seeds,
+                events,
+                edge_list,
+                depth=cfg.event_expand_depth,
+                max_events=cfg.event_expand_max,
+            )
+            for node in sub_event_nodes:
+                if node.id.value not in seen_event_node:
+                    event_nodes.append(node)
+                    seen_event_node.add(node.id.value)
+            event_ids = expanded_event_ids or {node.id.value for node in sub_event_nodes}
+            event_hits_batch = [
+                memory
+                for memory in memories
+                if memory.is_searchable() and memory.event_id and memory.event_id.value in event_ids
+            ]
+            for memory in event_hits_batch:
+                if memory.id.value not in seen_event_hit:
+                    event_hits.append(memory)
+                    seen_event_hit.add(memory.id.value)
+
+        if strategy in {"vector_only", "layered", "layered_tree"} and intent != "profile":
+            sub_pool_k = max(10, pool_k // max(1, len(planned)))
+            exclude_ids = {memory.id.value for memory in profile_hits + event_hits}
+            qv = embed(sub_query)
+            global_raw = vector_search(
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                query_vector=qv,
+                k=sub_pool_k,
+            )
+            scoped_raw: list[tuple[MemoryItem, float]] = []
+            if expanded_event_ids:
+                scoped_raw = vector_search(
+                    tenant_id=tenant_id,
+                    persona_id=persona_id,
+                    query_vector=qv,
+                    k=max(10, sub_pool_k // 2),
+                    filters={
+                        "event_ids": list(expanded_event_ids),
+                        "exclude_ids": list(exclude_ids),
+                    },
+                )
+
+            merged_vectors = _merge_vector_hits(global_raw, scoped_raw)
+            merged_vectors = [
+                item
+                for item in merged_vectors
+                if item.id.value not in exclude_ids and _apply_vector_filters(item, None)
+            ]
+
+            if cfg.hybrid_enabled:
+                lexical_items = _lexical_scan(memories, sub_query, sub_pool_k)
+                lexical_items = [
+                    item for item in lexical_items if item.id.value not in exclude_ids
+                ]
+                if lexical_items:
+                    merged_vectors = rrf_merge([merged_vectors, lexical_items])
+
+            for item in merged_vectors:
+                if item.id.value not in seen_vector:
+                    vector_hits.append(item)
+                    seen_vector.add(item.id.value)
+
+            for item in event_hits_batch + merged_vectors:
+                if item.id.value not in seen_pool:
                     rag_pool.append(item)
-        rag_hits = rerank_memories(query, rag_pool, embed, limit=final_k)
+                    seen_pool.add(item.id.value)
+
+    per_source_counts["event_tree"] = len(event_hits)
+    per_source_counts["vector"] = len(vector_hits)
+
+    if strategy != "summary_only":
+        rag_hits, all_hit_scores = rerank_memories(query, rag_pool, embed, limit=final_k, config=cfg)
     else:
         rag_hits = []
+        all_hit_scores = {}
 
     scored: list[MemoryItem] = []
     for item in list(profile_hits) + rag_hits:
-        if item.id.value not in {c.id.value for c in scored}:
+        if item.id.value not in {existing.id.value for existing in scored}:
             scored.append(item)
 
-    sources = {}
-    for m in profile_hits:
-        sources[m.id.value] = "profile"
-    for m in event_hits:
-        sources.setdefault(m.id.value, "event_tree")
-    for m in vector_hits:
-        sources.setdefault(m.id.value, "vector")
+    sources: dict[str, str] = {}
+    for memory in profile_hits:
+        sources[memory.id.value] = "profile"
+    for memory in event_hits:
+        sources.setdefault(memory.id.value, "event_tree")
+    for memory in vector_hits:
+        sources.setdefault(memory.id.value, "vector")
+
+    trim_priority = sorted(
+        rag_hits,
+        key=lambda memory: all_hit_scores.get(memory.id.value, 0.0),
+    )
 
     return {
         "strategy": strategy,
@@ -125,6 +254,10 @@ def retrieve(
         "event_nodes": event_nodes,
         "vector_hits": vector_hits,
         "hits": rag_hits,
-        "hit_ids": [m.id.value for m in scored],
+        "hit_ids": [memory.id.value for memory in scored],
+        "hit_scores": all_hit_scores,
+        "trim_priority": [memory.id.value for memory in trim_priority],
         "sources": sources,
+        "per_source_counts": dict(per_source_counts),
+        "sub_queries": sub_queries_used,
     }

@@ -526,6 +526,7 @@ def create_app(
             cases=cases,
             list_active=memories.list_active,
             list_events=events.list_nodes,
+            list_edges=events.list_edges,
             summary_for=lambda p: _summary_for_persona(tenant_id, p),
             vector_search=vectors.search,
             embed=resolved_embed.embed,
