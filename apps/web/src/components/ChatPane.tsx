@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
 import { RetrievalMetaPanel } from './RetrievalMetaPanel'
+import { ToolResultsPanel } from './ToolResultsPanel'
 
 export function ChatPane({
   messages,
@@ -47,6 +48,9 @@ export function ChatPane({
   const [draft, setDraft] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [fileKey, setFileKey] = useState(0)
+  const [recording, setRecording] = useState(false)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const recordChunksRef = useRef<BlobPart[]>([])
   const transcriptRef = useRef<HTMLOListElement>(null)
   const disabled = !ready || Boolean(sending) || Boolean(switchingThread)
 
@@ -64,6 +68,39 @@ export function ChatPane({
     setDraft('')
     setFiles([])
     setFileKey((current) => current + 1)
+  }
+
+  async function startVoiceRecording() {
+    if (disabled || recording) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recordChunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordChunksRef.current.push(event.data)
+      }
+      recorder.onstop = () => {
+        const mime = recorder.mimeType || 'audio/webm'
+        const blob = new Blob(recordChunksRef.current, { type: mime })
+        const ext = mime.includes('webm') ? 'webm' : mime.includes('ogg') ? 'ogg' : 'wav'
+        const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: mime })
+        setFiles((current) => [...current, file])
+        stream.getTracks().forEach((track) => track.stop())
+        recorderRef.current = null
+        setRecording(false)
+      }
+      recorder.start()
+      recorderRef.current = recorder
+      setRecording(true)
+    } catch {
+      setRecording(false)
+    }
+  }
+
+  function stopVoiceRecording() {
+    const recorder = recorderRef.current
+    if (!recorder || recorder.state === 'inactive') return
+    recorder.stop()
   }
 
   return (
@@ -154,6 +191,7 @@ export function ChatPane({
               <CitationList citations={message.citations} onJump={onJump} />
             ) : null}
             {message.role === 'assistant' ? <RetrievalMetaPanel meta={message.retrieval_meta} /> : null}
+            {message.role === 'assistant' ? <ToolResultsPanel results={message.tool_results} /> : null}
           </li>
         ))}
       </ol>
@@ -174,10 +212,24 @@ export function ChatPane({
             type="file"
             multiple
             disabled={disabled}
-            accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a"
+            accept=".txt,.md,.pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.mp3,.wav,.m4a,.webm,.ogg"
             onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
           />
         </label>
+        <div className="chat-voice">
+          <button
+            type="button"
+            disabled={disabled || recording}
+            onClick={() => void startVoiceRecording()}
+          >
+            开始录音
+          </button>
+          <button type="button" disabled={disabled || !recording} onClick={() => stopVoiceRecording()}>
+            结束录音
+          </button>
+          {recording ? <span className="form-hint">录音中…结束后会加入附件列表</span> : null}
+          {files.length ? <span className="form-hint">待发送附件：{files.map((f) => f.name).join('、')}</span> : null}
+        </div>
         <button type="submit" disabled={disabled || (!draft.trim() && files.length === 0)}>
           发送
         </button>

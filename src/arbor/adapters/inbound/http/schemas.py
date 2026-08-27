@@ -55,6 +55,11 @@ class PersonaEvalIn(BaseModel):
     strategy: str = "layered_tree"
 
 
+class TicketToolIn(BaseModel):
+    title: str = ""
+    description: str = ""
+
+
 class MemberPatchIn(BaseModel):
     role: str
 

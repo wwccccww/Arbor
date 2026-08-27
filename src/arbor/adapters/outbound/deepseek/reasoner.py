@@ -5,6 +5,7 @@ import re
 
 import httpx
 
+from arbor.domain.memory.memory import MemoryItem
 from arbor.env import chat_api_key, chat_base_url, reasoner_model
 
 ALLOWED_KINDS = frozenset({"fact", "event", "conflict", "emotion"})
@@ -17,7 +18,7 @@ class DeepSeekReasoner:
         self.timeout = timeout
         self.last_text: str | None = None
 
-    def extract(self, text: str) -> dict | None:
+    def extract(self, text: str, active_memories: list | None = None) -> dict | None:
         self.last_text = text
         if not (text or "").strip():
             return None
@@ -25,11 +26,12 @@ class DeepSeekReasoner:
         if not key:
             return None
         model = reasoner_model()
+        user_content = _format_extract_user(text, active_memories)
         payload: dict = {
             "model": model,
             "messages": [
-                {"role": "system", "content": _extract_prompt()},
-                {"role": "user", "content": text},
+                {"role": "system", "content": _extract_prompt(bool(active_memories))},
+                {"role": "user", "content": user_content},
             ],
             "max_tokens": 800,
         }
@@ -99,8 +101,35 @@ class DeepSeekReasoner:
             return None
 
 
-def _extract_prompt() -> str:
-    return '你是 Arbor 的记忆抽取器。只根据用户这句话判断有没有应写入人设记忆的稳定事实或事件。\n寒暄、提问、情绪、一次性指令不要抽取。\n只输出 JSON，不要其它文字。\n有可记内容：{"kind": "fact、event、conflict 或 emotion", "text": "第三人称短句", "skip": false}\n没有：{"skip": true, "kind": null, "text": ""}\n不要编造。text 必须能从原句推出。'
+def _format_extract_user(text: str, active_memories: list | None) -> str:
+    if not active_memories:
+        return text
+    lines: list[str] = []
+    for item in active_memories[:16]:
+        if isinstance(item, MemoryItem):
+            lines.append(f"- {item.id.value}: {item.text}")
+        elif isinstance(item, dict):
+            lines.append(f"- {item.get('id')}: {item.get('text')}")
+    if not lines:
+        return text
+    return "已有 active 记忆：\n" + "\n".join(lines) + f"\n\n用户新句：{text}"
+
+
+def _extract_prompt(with_memories: bool) -> str:
+    base = (
+        "你是 Arbor 的记忆抽取器。只根据用户这句话判断有没有应写入人设记忆的稳定事实或事件。\n"
+        "寒暄、提问、情绪、一次性指令不要抽取。\n"
+        "只输出 JSON，不要其它文字。\n"
+        "有可记内容：{\"kind\": \"fact、event、conflict 或 emotion\", \"text\": \"第三人称短句\", \"skip\": false}\n"
+        "没有：{\"skip\": true, \"kind\": null, \"text\": \"\"}\n"
+        "不要编造。text 必须能从原句推出。"
+    )
+    if with_memories:
+        base += (
+            "\n若新句与已有记忆矛盾，kind 用 conflict，并填 conflicts_with 为已有记忆的 id（UUID）。"
+            "示例：{\"kind\": \"conflict\", \"text\": \"…\", \"conflicts_with\": \"uuid\", \"skip\": false}"
+        )
+    return base
 
 
 def parse_extract(content: str) -> dict | None:
@@ -125,9 +154,13 @@ def parse_extract(content: str) -> dict | None:
     if kind == "emotion":
         kind = "fact"
     memory_type = "episode_summary" if kind in {"event", "conflict"} else "fact"
-    return {
+    out: dict = {
         "kind": kind,
         "text": text,
         "source_text": str(data.get("source_text") or ""),
         "memory_type": memory_type,
     }
+    conflict_raw = data.get("conflicts_with")
+    if conflict_raw:
+        out["conflicts_with"] = str(conflict_raw)
+    return out

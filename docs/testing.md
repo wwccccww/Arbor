@@ -249,8 +249,19 @@ eval/
 - 回复区能渲染 citations 并跳到节点
 - Inbox 确认/忽略会调对应 API
 - 三栏在窄屏不丢右栏入口（可改为抽屉）
+- 工单工具 `TicketToolPane`：无 `ticket` 权限时展示说明；有权限时 `POST /tools/ticket`
+- 聊天 `ToolResultsPanel` 渲染助手 `tool_results`
+- `ChatPane` 录音按钮在 mock `MediaRecorder` 下把 webm 加入待发送附件
 
-E2E（Playwright）保留 1 条烟雾：`apps/web/e2e/smoke.spec.ts`（登录 → 打开人设 → 发一句 → 看到回复）。CI `web` job 在 vitest 之后执行。记忆正确性不靠 E2E。
+E2E（Playwright，`apps/web/e2e/`）：
+
+| 文件 | 场景 |
+|---|---|
+| `smoke.spec.ts` | 登录 → 打开人设 → 发一句 → 看到回复 |
+| `demo-path.spec.ts` | 演示路径：导入/收件箱/记忆等关键导航 |
+| `demo-closure.spec.ts` | 林夏吵架引用跳传记树；小周同问表现为无知 |
+
+CI `web` job 在 vitest 之后执行全部 Playwright 用例（`npm run test:e2e`）。记忆正确性不靠 E2E。
 
 ## 8. CI 门禁
 
@@ -258,8 +269,8 @@ PR 流水线（`.github/workflows/ci.yml`）分 job，失败信息要对分层�
 
 ```text
 unit          ruff（src + tests）+ validate_openapi + pytest unit/architecture/eval/api/contract（-m "not llm"）+ arbor-eval 检索
-web           oxlint + vitest + build + Playwright 烟雾（e2e/smoke.spec.ts）
-nightly       可选：.github/workflows/nightly.yml（generation + pytest -m llm，需 DEEPSEEK_API_KEY）
+web           oxlint + vitest + build + Playwright（e2e/*.spec.ts）
+nightly       generation + pytest -m llm（需 DEEPSEEK_API_KEY）；pip-audit + npm audit（依赖漏洞扫描）
 ```
 
 **架构 import 方向** 由 `tests/architecture/test_import_rules.py` 守护（等同 import-linter 目标，未单独装 import-linter）。

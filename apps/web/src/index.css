@@ -1088,6 +1088,28 @@ td:first-child {
   opacity: 0.65;
 }
 
+.ticket-tool,
+.tool-results {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.chat-voice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.ticket-tool__result {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+}
+
 .inbox-conflict {
   border-left: 3px solid var(--fail);
   padding-left: 0.5rem;

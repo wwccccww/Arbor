@@ -282,4 +282,69 @@ describe('ChatPane', () => {
     )
     expect(postCall?.[0]).toBe('/v1/personas/p1/threads')
   })
+
+  it('renders assistant tool results', () => {
+    render(
+      <ChatPane
+        messages={[
+          {
+            id: 'a1',
+            role: 'assistant',
+            text: '已帮你登记。',
+            citations: [],
+            tool_results: [{ tool: 'ticket', ticket_id: 'stub-ticket-001', title: '空调故障' }],
+          },
+        ]}
+        onSend={vi.fn()}
+        onJump={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('工具结果（1）')).toBeInTheDocument()
+    expect(screen.getByText('工单 stub-ticket-001')).toBeInTheDocument()
+  })
+
+  it('records voice via MediaRecorder and adds file to pending attachments', async () => {
+    const user = userEvent.setup()
+    class MockMediaRecorder {
+      static isTypeSupported = vi.fn(() => true)
+      mimeType = 'audio/webm'
+      state: 'inactive' | 'recording' = 'inactive'
+      ondataavailable: ((event: { data: Blob }) => void) | null = null
+      onstop: (() => void) | null = null
+      start = vi.fn(() => {
+        this.state = 'recording'
+      })
+      stop = vi.fn(() => {
+        this.state = 'inactive'
+        if (this.ondataavailable) {
+          this.ondataavailable({ data: new Blob(['voice'], { type: 'audio/webm' }) })
+        }
+        if (this.onstop) this.onstop()
+      })
+    }
+    vi.stubGlobal(
+      'MediaRecorder',
+      MockMediaRecorder as unknown as typeof MediaRecorder,
+    )
+    vi.stubGlobal(
+      'navigator',
+      {
+        mediaDevices: {
+          getUserMedia: vi.fn(async () => ({
+            getTracks: () => [{ stop: vi.fn() }],
+          })),
+        },
+      },
+    )
+
+    render(<ChatPane messages={[]} onSend={vi.fn()} onJump={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: '开始录音' }))
+    await user.click(screen.getByRole('button', { name: '结束录音' }))
+
+    expect(await screen.findByText(/待发送附件/)).toBeInTheDocument()
+    expect(screen.getByText(/voice-/)).toBeInTheDocument()
+
+    vi.unstubAllGlobals()
+  })
 })

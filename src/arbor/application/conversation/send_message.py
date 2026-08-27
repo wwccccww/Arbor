@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from arbor.application.conversation.compress_thread_summary import compress_thread_summary
 from arbor.application.conversation.context_compiler import ContextCompiler
+from arbor.application.memory.conflict_detection import enrich_inbox_extract
 from arbor.application.tools.execute import execute_tool_calls
 from arbor.application.tools.run_tools import allowed_tool_names, run_persona_tools
 from arbor.domain.conversation.context_policy import ContextSlots
@@ -203,9 +204,10 @@ class SendMessage:
             )
             compiled = self._compiler().apply_tool_results(compiled, tool_results)
 
-        extracted = self.reasoner.extract(text) if self.reasoner else None
+        extracted = self.reasoner.extract(text, active_memories=active) if self.reasoner else None
         inbox_added = 0
         if extracted and extracted.get("text"):
+            extracted = enrich_inbox_extract(extracted, active)
             conflict_raw = extracted.get("conflicts_with")
             conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
             item = InboxItem(
@@ -321,6 +323,7 @@ class SendMessage:
             "context_token_estimate": ctx.compiled.token_estimate,
             "context_truncation_notes": list(ctx.compiled.truncation_notes),
             "retrieval_meta": dict(ctx.compiled.retrieval_meta),
+            "tool_results": list(ctx.prompt_slots.get("tool_results") or []),
             "inbox_added": ctx.inbox_added,
             "attachments": [{"filename": item["filename"]} for item in ctx.stored_attachments],
         }

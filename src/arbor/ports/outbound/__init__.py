@@ -78,7 +78,7 @@ class LLMClient(Protocol):
 
 
 class ReasoningClient(Protocol):
-    def extract(self, text: str) -> dict | None: ...
+    def extract(self, text: str, active_memories: list | None = None) -> dict | None: ...
 
 
 class EmbeddingClient(Protocol):

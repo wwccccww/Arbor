@@ -8,6 +8,7 @@ from arbor.adapters.inbound.eval_runner import ROOT, load_world
 from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
 from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
+    InMemoryMemoryRepository,
     InMemoryPersonaRepository,
     InMemoryStores,
     ScriptedReasoner,
@@ -56,6 +57,7 @@ def build_import_job_runtime(
         session.seed_demo_world_if_empty()
         personas = session.personas
         inbox = session.inbox
+        memories = session.memories
         import_jobs = PgImportJobRepository(session.conn)
         storage = build_object_storage(session=session, stores=None)
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
@@ -70,6 +72,7 @@ def build_import_job_runtime(
             linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
         personas = InMemoryPersonaRepository(stores)
         inbox = InMemoryInboxRepository(stores)
+        memories = InMemoryMemoryRepository(stores)
         import_jobs = InMemoryImportJobRepository()
         storage = build_object_storage(session=None, stores=stores)
 
@@ -80,6 +83,7 @@ def build_import_job_runtime(
         ids=ids,
         auth=AuthorizationPolicy(),
         reasoner=reasoner or ScriptedReasoner(),
+        memories=memories,
         parse_media=parse_media_bytes,
     )
     process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
