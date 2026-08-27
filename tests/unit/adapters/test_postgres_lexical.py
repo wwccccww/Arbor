@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from arbor.adapters.outbound.postgres.lexical import memory_lexical_tokens
-
-
 from arbor.application.retrieval_lexical import tokenize
 
 
