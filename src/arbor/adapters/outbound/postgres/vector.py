@@ -110,24 +110,22 @@ class PgVectorIndex:
             "status = 'active'",
             "text_tsv @@ plainto_tsquery('simple', %s)",
         ]
-        params: list = [tenant_id.value, persona_id.value, tokens]
+        where_params: list = [tenant_id.value, persona_id.value, tokens]
         if filters:
             event_ids = filters.get("event_ids")
             if event_ids:
                 clauses.append("event_id = ANY(%s::uuid[])")
-                params.append([str(value) for value in event_ids])
+                where_params.append([str(value) for value in event_ids])
             types = filters.get("types")
             if types:
                 clauses.append("type = ANY(%s::text[])")
-                params.append([str(value) for value in types])
+                where_params.append([str(value) for value in types])
             exclude_ids = filters.get("exclude_ids")
             if exclude_ids:
                 clauses.append("NOT (id = ANY(%s::uuid[]))")
-                params.append([str(value) for value in exclude_ids])
+                where_params.append([str(value) for value in exclude_ids])
         where_sql = " AND ".join(clauses)
-        rank_params = [tokens, tenant_id.value, persona_id.value, tokens]
-        rank_params.extend(params[2:])  # filter params after tenant/persona/tokens
-        rank_params.append(k)
+        exec_params = [tokens, *where_params, k]
         rows = self.conn.execute(
             f"""
             SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes,
@@ -137,7 +135,7 @@ class PgVectorIndex:
             ORDER BY score DESC
             LIMIT %s
             """,
-            tuple(rank_params),
+            tuple(exec_params),
         ).fetchall()
         hits: list[MemoryItem] = []
         for row in rows:
