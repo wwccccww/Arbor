@@ -61,6 +61,10 @@ export function CreatePersonaPane({
     <section className="create-persona">
       <h2>创建人设</h2>
       <p>可从模板起步，或附带聊天记录/文档导入进收件箱。</p>
+      <p className="form-hint">
+        <a href="/demo/sample-chat.txt" download="sample-chat.txt">下载演示聊天样例</a>
+        ，创建后自动导入并建树。
+      </p>
       <form onSubmit={submit}>
         <label>
           模板

@@ -67,7 +67,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev,api,postgres]"
-      - name: arbor-eval ragas-v1 with bge-m3
+      - name: arbor-eval ragas-v1 with bge-m3 (writes suite-ragas-v1-bge.json)
         if: ${{ env.EMBEDDING_API_KEY != '' || env.SILICONFLOW_API_KEY != '' }}
         run: |
           python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy layered_tree --backend postgres --embed bge

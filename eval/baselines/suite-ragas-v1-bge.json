@@ -1,0 +1,11 @@
+{
+  "suite_version": "ragas-v1",
+  "updated_at": "2026-08-27",
+  "mode": "retrieval",
+  "k": 5,
+  "n_cases": 477,
+  "embeddings": "bge-m3 (HTTP embed; updated by nightly when EMBEDDING_API_KEY set)",
+  "note": "真嵌入基线。勿与 eval/baselines/suite-ragas-v1.json（夹具哈希）混读。由 nightly bge 轨 --write-baseline 更新。",
+  "backend": "postgres",
+  "strategies": {}
+}

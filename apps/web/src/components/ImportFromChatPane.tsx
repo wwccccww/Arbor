@@ -35,6 +35,9 @@ export function ImportFromChatPane({
       <p className="muted">
         上传微信 / Telegram 等导出的文本或 JSON，系统会抽取档案线索、写入 Inbox，并自动生成第一批事件节点。
       </p>
+      <p className="muted">
+        <a href="/demo/sample-chat.txt" download="sample-chat.txt">下载演示聊天样例</a>
+      </p>
       <label className="field">
         <span>导入到人设</span>
         <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} disabled={busy}>

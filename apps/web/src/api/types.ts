@@ -193,6 +193,7 @@ export type InboxItem = {
   status?: string
   payload?: { text?: string; conflicts_with?: string }
   conflicts_with?: string
+  conflict_memory_text?: string
 }
 
 export type InboxList = {

@@ -277,6 +277,42 @@ class InMemoryVectorIndex:
             self.stores.vectors.pop(memory_id.value, None)
 
 
+def _is_fight_query(text: str) -> bool:
+    blob = (text or "").strip()
+    if "吵架" in blob:
+        return True
+    return "为什么" in blob and any(token in blob for token in ("吵", "闹", "生气", "冷战"))
+
+
+def _pick_fight_citation(injected_memory_ids: list[str]) -> str | None:
+    """Demo/suite-v1: episode memory for 面店争吵 event."""
+    preferred = "0a000000-0000-4000-a000-000000000303"
+    if preferred in injected_memory_ids:
+        return preferred
+    for mid in injected_memory_ids:
+        if mid.endswith("303"):
+            return mid
+    return None
+
+
+def _build_scripted_response(text: str, injected_memory_ids: list[str], extra_id: str | None) -> dict:
+    citations: list[str] = []
+    if _is_fight_query(text):
+        fight_id = _pick_fight_citation(injected_memory_ids)
+        if fight_id:
+            citations.append(fight_id)
+            reply = "上次是因为面里放了香菜，你们在杭州老张面馆吵了起来。"
+        else:
+            reply = "我这边没有找到上次吵架相关的记忆。"
+    else:
+        if injected_memory_ids:
+            citations.append(injected_memory_ids[0])
+        if extra_id and extra_id in injected_memory_ids and extra_id not in citations:
+            citations.append(extra_id)
+        reply = _scripted_reply(text, citations)
+    return {"text": reply, "citations": citations}
+
+
 class ScriptedLLM:
     def __init__(self, extra_citation_memory_id: str | None = None) -> None:
         self.extra_citation_memory_id = extra_citation_memory_id
@@ -288,10 +324,7 @@ class ScriptedLLM:
         self.last_slots = prompt_slots
         self.last_injected = list(injected_memory_ids)
         self.calls.append({"text": text, "slots": prompt_slots, "injected": list(injected_memory_ids)})
-        citations = list(injected_memory_ids[:1])
-        if self.extra_citation_memory_id:
-            citations.append(self.extra_citation_memory_id)
-        return {"text": f"(fake) {text}", "citations": citations}
+        return _build_scripted_response(text, list(injected_memory_ids), self.extra_citation_memory_id)
 
     def complete_stream(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]):
         """Deterministic byte-by-byte stream mirror of :meth:`complete`.
@@ -302,10 +335,9 @@ class ScriptedLLM:
         self.last_slots = prompt_slots
         self.last_injected = list(injected_memory_ids)
         self.calls.append({"text": text, "slots": prompt_slots, "injected": list(injected_memory_ids)})
-        citations = list(injected_memory_ids[:1])
-        if self.extra_citation_memory_id:
-            citations.append(self.extra_citation_memory_id)
-        reply = _scripted_reply(text, citations)
+        merged = _build_scripted_response(text, list(injected_memory_ids), self.extra_citation_memory_id)
+        citations = list(merged.get("citations") or [])
+        reply = str(merged.get("text") or "")
         yield from chunk_text(reply)
         raw = json.dumps({"text": reply, "citations": citations}, ensure_ascii=False)
         yield StreamFinished(raw)
