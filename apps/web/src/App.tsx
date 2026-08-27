@@ -5,11 +5,15 @@ import { clearSession, DEMO_TENANT, loadSession, pickTenantId, saveSession, type
 import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { Home } from './pages/Home'
+import { InboxPage } from './pages/InboxPage'
 import { Login } from './pages/Login'
 import { Workbench } from './pages/Workbench'
 import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from './api/types'
 
-function useHashRoute(): { page: 'home' | 'checkup' | 'audit' | 'workbench'; personaId?: string } {
+function useHashRoute(): {
+  page: 'home' | 'checkup' | 'audit' | 'workbench' | 'inbox'
+  personaId?: string
+} {
   const [hash, setHash] = useState(window.location.hash)
   useEffect(() => {
     const onChange = () => setHash(window.location.hash)
@@ -18,6 +22,8 @@ function useHashRoute(): { page: 'home' | 'checkup' | 'audit' | 'workbench'; per
   }, [])
   if (hash.startsWith('#/checkup')) return { page: 'checkup' }
   if (hash.startsWith('#/audit')) return { page: 'audit' }
+  const inboxMatch = hash.match(/^#\/personas\/([^/]+)\/inbox$/)
+  if (inboxMatch) return { page: 'inbox', personaId: inboxMatch[1] }
   const personaId = hash.match(/^#\/personas\/([^/]+)/)?.[1]
   if (personaId) return { page: 'workbench', personaId }
   return { page: 'home' }
@@ -94,55 +100,11 @@ export default function App() {
     const tenantId = session.tenantId
     let cancelled = false
 
-    async function enrichPersonas(items: Persona[]) {
-      const enriched = await Promise.all(
-        items.map(async (persona) => {
-          try {
-            const [memories, threads] = await Promise.all([
-              api.listMemories(persona.id, { limit: 1, offset: 0 }),
-              api.listThreads(persona.id),
-            ])
-            if (memories.forbidden) return persona
-            let lastInteraction: string | undefined
-            if (threads.length) {
-              try {
-                const threadId = threads[threads.length - 1].id
-                const head = await api.listMessages(threadId, { limit: 1, offset: 0 })
-                if (head.total > 0) {
-                  const tail = await api.listMessages(threadId, {
-                    limit: 1,
-                    offset: head.total - 1,
-                  })
-                  const last = tail.items[tail.items.length - 1]
-                  if (last?.text) {
-                    lastInteraction = last.text.length > 48 ? `${last.text.slice(0, 47)}…` : last.text
-                  }
-                }
-              } catch {
-                /* ignore per-persona message errors */
-              }
-            }
-            return {
-              ...persona,
-              stats: {
-                memory_count: memories.total,
-                thread_count: threads.length,
-                last_interaction: lastInteraction,
-              },
-            }
-          } catch {
-            return persona
-          }
-        }),
-      )
-      if (!cancelled) setPersonas(enriched)
-    }
-
     async function load() {
       try {
         const [me, items, listedTenants] = await Promise.all([
           api.getMe(),
-          api.listPersonas(),
+          api.listPersonas({ includeStats: true }),
           api.listTenants(),
         ])
         if (cancelled) return
@@ -160,7 +122,6 @@ export default function App() {
         } else {
           setMembers([])
         }
-        await enrichPersonas(items)
       } catch (err) {
         if (cancelled) return
         const status = (err as { status?: number }).status
@@ -339,6 +300,21 @@ export default function App() {
   const currentTenant = tenants.find((tenant) => tenant.id === session.tenantId)
   const workspaceAdmin = canCreatePersonas(currentTenant?.role)
 
+  if (route.page === 'inbox' && route.personaId) {
+    return (
+      <InboxPage
+        client={client}
+        personaId={route.personaId}
+        onBack={() => {
+          window.location.hash = '#/'
+        }}
+        onOpenWorkbench={() => {
+          window.location.hash = `#/personas/${route.personaId}`
+        }}
+      />
+    )
+  }
+
   if (route.page === 'workbench' && route.personaId) {
     return (
       <Workbench
@@ -394,6 +370,9 @@ export default function App() {
       inviting={inviting || changingRole}
       onOpen={(id) => {
         window.location.hash = `#/personas/${id}`
+      }}
+      onOpenInbox={(id) => {
+        window.location.hash = `#/personas/${id}/inbox`
       }}
       onCheckup={() => {
         window.location.hash = '#/checkup'

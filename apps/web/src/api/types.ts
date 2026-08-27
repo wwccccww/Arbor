@@ -25,6 +25,7 @@ export type Persona = {
   stats?: {
     memory_count?: number
     last_interaction?: string
+    last_interaction_at?: string
     thread_count?: number
   }
 }

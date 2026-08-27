@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from arbor.application.conversation.compress_thread_summary import compress_thread_summary
 from arbor.application.conversation.context_compiler import ContextCompiler
@@ -288,12 +289,14 @@ class SendMessage:
         citation_items = [_citation_item(cid, by_id.get(cid)) for cid in citations]
         user_message_id = self.ids.new_id()
         assistant_message_id = self.ids.new_id()
+        now = datetime.now(UTC).isoformat()
         ctx.thread.append_message(
             Message(
                 id=user_message_id,
                 role="user",
                 content=ctx.text,
                 attachments=ctx.stored_attachments,
+                created_at=now,
             ),
             can_chat=True,
         )
@@ -303,6 +306,7 @@ class SendMessage:
                 role="assistant",
                 content=llm_out.get("text", ""),
                 citations=[Citation(memory_id=MemoryId(c)) for c in citations],
+                created_at=now,
             ),
             can_chat=True,
         )

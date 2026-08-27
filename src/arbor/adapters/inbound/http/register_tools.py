@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from arbor.adapters.inbound.http.schemas import TicketToolIn
+from arbor.adapters.inbound.http.schemas import CalendarToolIn, TicketToolIn
 from arbor.application.tools.run_tools import allowed_tool_names
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy
@@ -14,6 +14,7 @@ from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 class ToolsHttpDeps:
     personas: object
     ticket_tool: object
+    calendar_tool: object
     auth: AuthorizationPolicy
     current_user: Callable
     resolve_tenant: Callable | None = None
@@ -51,3 +52,30 @@ def register_tools_routes(app, deps: ToolsHttpDeps) -> None:
             description=description,
         )
         return result
+
+    @app.post("/v1/personas/{persona_id}/tools/calendar")
+    def post_calendar_tool(
+        persona_id: str,
+        payload: CalendarToolIn = Body(),
+        authorization: str | None = Header(default=None),
+        x_tenant_id: str | None = Header(default=None),
+    ):
+        user = deps.current_user(authorization)
+        if deps.resolve_tenant is not None:
+            tenant = deps.resolve_tenant(user, x_tenant_id)
+        else:
+            tenant = TenantId(x_tenant_id or user.get("tenant_id") or "")
+        persona = deps.personas.get(tenant, PersonaId(persona_id))
+        if persona is None:
+            raise DomainError("NOT_FOUND", "not found")
+        if not deps.auth.can_chat(persona, UserId(user["user_id"])):
+            raise DomainError("FORBIDDEN_CHAT", "chat grant required")
+        allowed = allowed_tool_names(persona.tool_policy)
+        if "calendar" not in allowed:
+            raise DomainError("FORBIDDEN_TOOL", "calendar not allowed for persona")
+        query_text = (payload.query_text or "").strip() or "近期日程"
+        return deps.calendar_tool.list_upcoming(
+            tenant_id=tenant,
+            user_id=UserId(user["user_id"]),
+            query_text=query_text,
+        )

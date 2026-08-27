@@ -664,6 +664,12 @@ paths:
       summary: 列出人设
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
+        - name: include_stats
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: 人设列表
@@ -1195,6 +1201,51 @@ paths:
                     type: string
                   note:
                     type: string
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/tools/calendar:
+    post:
+      tags: [Personas]
+      summary: 查询日程（需 tool_policy 允许 calendar）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query_text:
+                  type: string
+                  default: 近期日程
+      responses:
+        "200":
+          description: 日程查询结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tool:
+                    type: string
+                  status:
+                    type: string
+                  summary:
+                    type: string
+                  events:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        start:
+                          type: string
         "403":
           $ref: "#/components/responses/Error"
         "404":

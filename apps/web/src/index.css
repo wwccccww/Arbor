@@ -1089,6 +1089,7 @@ td:first-child {
 }
 
 .ticket-tool,
+.calendar-tool,
 .tool-results {
   margin-top: 0.75rem;
   padding: 0.65rem 0.75rem;
@@ -1121,6 +1122,30 @@ td:first-child {
   border-radius: 6px;
   background: color-mix(in srgb, var(--fail) 8%, var(--surface));
   font-size: 0.85rem;
+}
+
+.inbox-page__main {
+  max-width: 720px;
+  margin: 1rem auto;
+  padding: 0 1rem;
+}
+
+.persona-grid__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.persona-grid__inbox {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.35rem;
+}
+
+.event-filter-row--group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .inbox-conflict-quote p {

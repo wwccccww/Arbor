@@ -60,6 +60,10 @@ class TicketToolIn(BaseModel):
     description: str = ""
 
 
+class CalendarToolIn(BaseModel):
+    query_text: str = "近期日程"
+
+
 class MemberPatchIn(BaseModel):
     role: str
 
