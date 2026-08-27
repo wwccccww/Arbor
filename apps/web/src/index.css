@@ -855,6 +855,27 @@ td:first-child {
   color: var(--blue);
 }
 
+.retrieval-meta {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.retrieval-meta summary {
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+
+.retrieval-meta__counts {
+  margin: 0.35rem 0 0;
+}
+
+.retrieval-meta__subs {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  list-style: disc;
+}
+
 .chat > form {
   display: flex;
   flex-direction: column;

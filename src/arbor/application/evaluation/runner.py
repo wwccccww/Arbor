@@ -31,6 +31,7 @@ def evaluate_retrieval(
     vector_search,
     embed,
     list_edges=None,
+    lexical_search=None,
 ) -> dict:
     import time
 
@@ -52,6 +53,7 @@ def evaluate_retrieval(
             summary=summary_for(persona_id),
             vector_search=vector_search,
             embed=embed,
+            lexical_search=lexical_search,
         )
         retrieved["latency_ms"] = (time.perf_counter() - started) * 1000
         row = score_case(case, retrieved)

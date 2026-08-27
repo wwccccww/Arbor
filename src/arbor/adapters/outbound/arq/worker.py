@@ -12,7 +12,34 @@ async def process_import_job(_ctx, payload: dict) -> None:
     execute_import_job(payload)
 
 
+async def sweep_object_blobs(_ctx) -> dict:
+    from arbor.application.storage.object_gc import (
+        object_uris_from_memory_source,
+        sweep_orphan_objects,
+    )
+    from arbor.env import database_url
+
+    if not database_url():
+        return {"deleted": [], "skipped": "no database"}
+    from arbor.adapters.outbound.object_storage import build_object_storage
+    from arbor.adapters.outbound.postgres import PostgresSession
+
+    session = PostgresSession.connect(database_url())
+    try:
+        storage = build_object_storage(session=session)
+        referenced: set[str] = set()
+        rows = session.conn.execute("SELECT source FROM memory_items WHERE source IS NOT NULL").fetchall()
+        for row in rows:
+            source = row["source"]
+            if isinstance(source, dict):
+                referenced.update(object_uris_from_memory_source(source))
+        deleted = sweep_orphan_objects(storage, referenced)
+        return {"deleted": deleted, "count": len(deleted)}
+    finally:
+        session.close()
+
+
 class WorkerSettings:
-    functions = [process_import_job]
+    functions = [process_import_job, sweep_object_blobs]
     redis_settings = RedisSettings.from_dsn(redis_url() or "redis://127.0.0.1:6379/0")
     job_timeout = 600

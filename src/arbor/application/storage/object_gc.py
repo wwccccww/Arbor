@@ -28,3 +28,25 @@ def object_uris_from_memory_source(source: dict | None) -> list[str]:
         if nested:
             keys.append(str(nested))
     return keys
+
+
+def list_stored_keys(storage: Any, prefix: str = "") -> list[str]:
+    """List object keys when the storage adapter implements list_keys."""
+    list_keys = getattr(storage, "list_keys", None)
+    if not callable(list_keys):
+        return []
+    keys = list_keys(prefix)
+    return [str(key) for key in keys if key]
+
+
+def sweep_orphan_objects(storage: Any, referenced_uris: set[str], prefix: str = "") -> list[str]:
+    """Delete stored objects not referenced by memory/import/chat metadata."""
+    referenced = {str(uri).replace("\\", "/").lstrip("/") for uri in referenced_uris if uri}
+    deleted: list[str] = []
+    for key in list_stored_keys(storage, prefix):
+        normalized = str(key).replace("\\", "/").lstrip("/")
+        if normalized in referenced:
+            continue
+        if delete_stored_object(storage, key):
+            deleted.append(key)
+    return deleted

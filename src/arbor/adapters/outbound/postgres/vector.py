@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from arbor.adapters.outbound.postgres.lexical import memory_lexical_tokens
 from arbor.adapters.outbound.postgres.mapping import memory_from_row
 from arbor.adapters.outbound.postgres.sql import require_tenant, vector_literal
 from arbor.domain.errors import DomainError
@@ -87,6 +88,62 @@ class PgVectorIndex:
             if not item.is_searchable():
                 continue
             hits.append((item, float(row["score"])))
+        return hits
+
+    def lexical_search(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+        query: str,
+        k: int,
+        filters: dict | None = None,
+    ) -> list[MemoryItem]:
+        require_tenant(tenant_id)
+        if persona_id is None:
+            raise DomainError("VALIDATION_ERROR", "persona_id required")
+        tokens = memory_lexical_tokens(query)
+        if not tokens:
+            return []
+        clauses = [
+            "tenant_id = %s::uuid",
+            "persona_id = %s::uuid",
+            "status = 'active'",
+            "text_tsv @@ plainto_tsquery('simple', %s)",
+        ]
+        params: list = [tenant_id.value, persona_id.value, tokens]
+        if filters:
+            event_ids = filters.get("event_ids")
+            if event_ids:
+                clauses.append("event_id = ANY(%s::uuid[])")
+                params.append([str(value) for value in event_ids])
+            types = filters.get("types")
+            if types:
+                clauses.append("type = ANY(%s::text[])")
+                params.append([str(value) for value in types])
+            exclude_ids = filters.get("exclude_ids")
+            if exclude_ids:
+                clauses.append("NOT (id = ANY(%s::uuid[]))")
+                params.append([str(value) for value in exclude_ids])
+        where_sql = " AND ".join(clauses)
+        rank_params = [tokens, tenant_id.value, persona_id.value, tokens]
+        rank_params.extend(params[2:])  # filter params after tenant/persona/tokens
+        rank_params.append(k)
+        rows = self.conn.execute(
+            f"""
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes,
+                   ts_rank_cd(text_tsv, plainto_tsquery('simple', %s)) AS score
+            FROM memory_items
+            WHERE {where_sql}
+            ORDER BY score DESC
+            LIMIT %s
+            """,
+            tuple(rank_params),
+        ).fetchall()
+        hits: list[MemoryItem] = []
+        for row in rows:
+            item = memory_from_row(row)
+            if item.is_searchable():
+                hits.append(item)
         return hits
 
     def delete(self, tenant_id: TenantId, memory_id: MemoryId) -> None:

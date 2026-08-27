@@ -46,3 +46,19 @@ class LocalFileObjectStorage:
 
     def count(self) -> int:
         return sum(1 for _ in self.root.rglob("*") if _.is_file())
+
+    def list_keys(self, prefix: str = "") -> list[str]:
+        base = self.root
+        if prefix:
+            base = self.root / prefix.replace("\\", "/").lstrip("/")
+        if not base.exists():
+            return []
+        keys: list[str] = []
+        if base.is_file():
+            rel = str(base.relative_to(self.root)) if base.is_relative_to(self.root) else str(base)
+            return [rel.replace("\\", "/")]
+        for path in base.rglob("*"):
+            if path.is_file():
+                rel = path.relative_to(self.root)
+                keys.append(str(rel).replace("\\", "/"))
+        return sorted(keys)

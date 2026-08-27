@@ -293,7 +293,7 @@ export function Checkup({
           </button>
         </div>
 
-        {run ? <MetricBar metrics={run.metrics} leakZero={run.p0_tenant_leak_zero} /> : null}
+        {run ? <MetricBar metrics={run.metrics} leakZero={run.p0_tenant_leak_zero} mode={run.mode} /> : null}
 
         {rows.length ? (
           <div className="table-wrap">

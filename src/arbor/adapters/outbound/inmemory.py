@@ -362,6 +362,13 @@ class InMemoryObjectStorage:
     def count(self) -> int:
         return len(self.stores.objects)
 
+    def list_keys(self, prefix: str = "") -> list[str]:
+        normalized = (prefix or "").replace("\\", "/").lstrip("/")
+        keys = list(self.stores.objects.keys())
+        if normalized:
+            keys = [key for key in keys if str(key).replace("\\", "/").lstrip("/").startswith(normalized)]
+        return sorted(str(key) for key in keys)
+
 
 class InMemoryAuditLogRepository:
     def __init__(self, stores: InMemoryStores) -> None:
