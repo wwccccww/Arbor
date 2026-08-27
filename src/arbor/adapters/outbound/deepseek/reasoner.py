@@ -122,4 +122,12 @@ def parse_extract(content: str) -> dict | None:
     kind = data.get("kind") or "fact"
     if kind not in ALLOWED_KINDS:
         kind = "fact"
-    return {"kind": kind, "text": text, "source_text": str(data.get("source_text") or "")}
+    if kind == "emotion":
+        kind = "fact"
+    memory_type = "episode_summary" if kind in {"event", "conflict"} else "fact"
+    return {
+        "kind": kind,
+        "text": text,
+        "source_text": str(data.get("source_text") or ""),
+        "memory_type": memory_type,
+    }

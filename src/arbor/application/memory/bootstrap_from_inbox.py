@@ -6,7 +6,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
-_EVENT_MARKERS = ("吵架", "见面", "分手", "结婚", "生日", "旅行", "事故", "离职", "入职")
+_EVENT_MARKERS = ("吵架", "吵起来", "见面", "分手", "结婚", "生日", "旅行", "事故", "离职", "入职")
 
 
 def _profile_hints_from_text(text: str) -> dict:
@@ -35,10 +35,12 @@ def _looks_like_event(kind: str, payload: dict) -> bool:
     if kind in {"event", "conflict"}:
         return True
     memory_type = str(payload.get("memory_type") or "")
+    text = str(payload.get("text") or "")
+    if memory_type == "file_chunk":
+        return any(marker in text for marker in _EVENT_MARKERS)
     if memory_type in {"episode_summary"}:
         return True
-    text = str(payload.get("text") or "")
-    if re.search(r"\d{4}年|\d{1,2}月", text):
+    if re.search(r"\d{4}年|\d{1,2}月|\d{4}-\d{2}-\d{2}", text):
         return True
     return any(marker in text for marker in _EVENT_MARKERS)
 

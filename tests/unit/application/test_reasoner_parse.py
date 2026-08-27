@@ -9,7 +9,13 @@ def test_parse_extract_skips_empty_and_skip_flag():
 
 def test_parse_extract_reads_fact_json():
     parsed = parse_extract('前言 {"kind": "fact", "text": "林夏开始喝美式", "skip": false} 结尾')
-    assert parsed == {"kind": "fact", "text": "林夏开始喝美式", "source_text": ""}
+    assert parsed == {"kind": "fact", "text": "林夏开始喝美式", "source_text": "", "memory_type": "fact"}
+
+
+def test_parse_extract_maps_event_kind_to_episode_summary():
+    parsed = parse_extract('{"kind": "event", "text": "在面馆吵架", "skip": false}')
+    assert parsed["kind"] == "event"
+    assert parsed["memory_type"] == "episode_summary"
 
 
 def test_parse_extract_defaults_unknown_kind_to_fact():
