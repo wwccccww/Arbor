@@ -8,7 +8,6 @@ import httpx
 from arbor.env import chat_api_key, chat_base_url, chat_model
 
 _SPLIT_MARKERS = (
-    "因为",
     "所以",
     "如果",
     "那么",
@@ -22,6 +21,19 @@ _SPLIT_MARKERS = (
 
 _PROFILE_HINTS = ("住", "禁忌", "讨厌", "喜欢", "是谁", "叫什么", "哪里人", "职业")
 _EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店")
+_CAUSAL_HINTS = (
+    "为什么",
+    "为何",
+    "怎么会",
+    "什么原因",
+    "有什么关系",
+    "导致",
+    "闹翻",
+    "是因为",
+    "除了",
+    "定了什么",
+    "定了哪些",
+)
 
 
 def plan_queries(query: str, mode: str) -> list[dict]:
@@ -111,7 +123,7 @@ def _llm_plan_prompt() -> str:
         "你是 Arbor 检索 query 规划器。把用户问题拆成最多 3 个子 query，用于从人设记忆里检索。"
         "只输出 JSON 数组，不要其它文字。"
         "元素格式：{\"query\": \"子问题\", \"intent\": \"profile|episode|general\"}。"
-        "profile：档案/喜好/禁忌；episode：具体事件/时间线；general：其它。"
+        "profile：档案/喜好/禁忌；episode：具体事件/时间线；causal：因果/为何/关系；general：其它。"
         "若无需拆分，返回单元素数组。不要编造用户没问的内容。"
     )
 
@@ -139,7 +151,7 @@ def _parse_llm_plan(content: str, fallback_query: str) -> list[dict] | None:
             continue
         seen.add(piece)
         intent = str(item.get("intent") or "general").strip().lower()
-        if intent not in {"profile", "episode", "general"}:
+        if intent not in {"profile", "episode", "general", "causal"}:
             intent = _intent_for(piece)
         planned.append({"query": piece, "intent": intent})
     if not planned:
@@ -148,6 +160,8 @@ def _parse_llm_plan(content: str, fallback_query: str) -> list[dict] | None:
 
 
 def _intent_for(text: str) -> str:
+    if any(hint in text for hint in _CAUSAL_HINTS):
+        return "causal"
     if any(hint in text for hint in _PROFILE_HINTS):
         return "profile"
     if any(hint in text for hint in _EPISODE_HINTS):
