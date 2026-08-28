@@ -21,6 +21,7 @@
 11. [RAGAS](ragas.md) — 仅评本轮注入文本上的生成忠实度
 12. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
 13. [简历材料](resume) — 对外投递口径；按 `001` 起递增，不写入实现边界
+14. [求职交付 · Sail](job/sail) — AI Agent 应用岗：调研、改后简历、面试准备
 
 ## 文档与代码的关系
 
