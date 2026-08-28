@@ -16,3 +16,4 @@
 | 编号 | 文件 | 面向岗位 | 说明 |
 |---|---|---|---|
 | 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | Java 后端、AI 应用开发 | 首版：数字员工统一口径，可直接粘贴的项目条目与口述稿 |
+| 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | Java 后端、AI 应用开发 | 可写入简历的技术点全表（★ 优先 / ▲ AI 加重 / · 口述备用） |
