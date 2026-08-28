@@ -10,10 +10,12 @@
 - 文件名：`NNN-短横线英文说明.md`，序号三位、从 `001` 起，不复用、不插号。
 - 本 README 的索引表同步追加一行。
 - 旧编号不改内容作为历史；若口径变更，开新编号并在新文件开头注明取代哪一份。
+- **对外粘贴用最新成稿（当前为 003）。** 带仓库字段名、类名、策略枚举的文件只作内部对照。
 
 ## 索引
 
 | 编号 | 文件 | 面向岗位 | 说明 |
 |---|---|---|---|
-| 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | Java 后端、AI 应用开发 | 首版：数字员工统一口径，可直接粘贴的项目条目与口述稿 |
-| 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | Java 后端、AI 应用开发 | 可写入简历的技术点全表（★ 优先 / ▲ AI 加重 / · 口述备用） |
+| 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | Java 后端、AI 应用开发 | 首版成稿（内部名偏多，对外改用 003） |
+| 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | Java 后端、AI 应用开发 | 内部技术点盘点，勿直接粘进简历 |
+| 003 | [003-polished-external-copy.md](003-polished-external-copy.md) | Java 后端、AI 应用 / Agent | 对外成稿：去字段名、补问题→做法→结果；对齐 Agent JD 用语 |
