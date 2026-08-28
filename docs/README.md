@@ -20,8 +20,8 @@
 10. [Nightly / Weekly CI](nightly-ci.md) — 仓库 Secrets 与 bge 基线
 11. [RAGAS](ragas.md) — 仅评本轮注入文本上的生成忠实度
 12. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
-13. [简历材料](resume) — 对外投递口径；按 `001` 起递增，[HTML 预览](resume/preview/index.html)
-14. [求职交付 · Sail](job/sail) — AI Agent 应用岗，[HTML 预览](job/sail/preview/index.html)
+13. [简历材料](resume) — Arbor 项目口径，按 `001` 起递增
+14. [求职交付 · Sail](job/sail) — AI Agent 应用岗；个人简历见 `001-改后简历.html`
 
 ## 文档与代码的关系
 

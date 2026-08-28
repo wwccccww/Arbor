@@ -3,16 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>002 改后简历 · Sail</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>001 改后简历 · Sail</title>
+  <style>
+:root { --ink:#1a1a1a; --muted:#5c5c5c; --line:#e6e2da; --accent:#1a535c; --paper:#fffcf7; }
+* { box-sizing: border-box; }
+body { margin:0; background:#f6f3ee; color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; line-height:1.65; }
+a { color:var(--accent); }
+.sheet { max-width:800px; margin:24px auto 64px; background:var(--paper);
+  border:1px solid var(--line); border-radius:16px; padding:40px 44px 48px; }
+.num { font-size:12px; letter-spacing:.14em; color:var(--accent); }
+h1 { font-size:26px; margin:6px 0 16px; }
+h2 { font-size:18px; margin:28px 0 10px; padding-top:10px; border-top:1px solid var(--line); }
+p, li { font-size:15px; }
+blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--accent); background:#e7f1f2; }
+table { width:100%; border-collapse:collapse; font-size:14px; margin:12px 0; }
+th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { background:#f3efe7; }
+@media print { body { background:#fff; } .sheet { border:0; margin:0; padding:0; } }
+</style>
 </head>
 <body>
-  <header class="top"><div class="top-inner">
-    <span class="brand">Sail · AI Agent</span>
-    <a class="nav" href="index.html">目录</a><a class="nav" href="001-岗位调研.html">001 调研</a><a class="nav active" href="002-改后简历.html">002 简历</a><a class="nav" href="003-面试准备.html">003 面试</a>
-  </div></header>
-  <main class="wrap"><article class="paper">
-    <p class="kicker">get-job preview</p>
+  <article class="sheet">
+    <div class="num">001</div>
     <h1>改后简历 · Sail</h1>
 <blockquote>
 <p>Stage 2。姓名按用户指定为 Sail。教育、实习公司与时间尚未提供，已留待补，未编造。</p>
@@ -86,7 +99,5 @@ Python · PostgreSQL（含向量检索）· Redis · 大模型对话与抽取 ·
 </table>
 <p>未编造：实习工作量占比、用户规模、线上 QPS、带团队。</p>
   </article>
-  <footer>编号从 001 递增。Markdown 源文件在上一级目录，本页仅供预览。</footer>
-  </main>
 </body>
 </html>
