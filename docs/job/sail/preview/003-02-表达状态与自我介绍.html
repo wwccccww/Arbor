@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>003 02-表达状态与自我介绍 · Sail</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <span class="brand">Sail · AI Agent</span>
+    <a class="nav" href="index.html">目录</a><a class="nav" href="001-岗位调研.html">001 调研</a><a class="nav" href="002-改后简历.html">002 简历</a><a class="nav" href="003-面试准备.html">003 面试</a>
+  </div></header>
+  <main class="wrap"><article class="paper">
+    <p class="kicker">get-job preview</p>
+    <h1>表达状态与自我介绍 · Sail</h1>
+<h2>面试姿态</h2>
+<table>
+<thead>
+<tr>
+<th>要做到</th>
+<th>不要这样</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>先讲问题，再讲结构和取舍</td>
+<td>先报技术栈</td>
+</tr>
+<tr>
+<td>数字带口径</td>
+<td>把评测分说成线上效果</td>
+</tr>
+<tr>
+<td>实习讲「我实现了哪些接口」</td>
+<td>「我负责星海数据中台」</td>
+</tr>
+<tr>
+<td>Agent 框架题承认边界</td>
+<td>临场背 LangChain 源码</td>
+</tr>
+</tbody>
+</table>
+<h2>通用自我介绍（45 秒口语版）</h2>
+<blockquote>
+<p>我是 Sail，想做 AI Agent 应用。实习在数据中台做 Java 开发，主要是把门户和海豚调度器打通，以及采集和一些业务接口。另外做了开源项目 Arbor：数字员工工作台。要解决的是多人共用时知识串线、回答没有依据。我把档案、摘要、经历和细节检索分开，工具按白名单调，知识要人确认才写入，并用冻结题集对比检索策略。我想投这个方向，是因为岗位要的记忆、上下文、工具和评测，我已经在一个可演示项目里完整走过。</p>
+</blockquote>
+<p>若学校/公司已补，把第一句改成「我是 Sail，某校某专业，在某某公司实习」。</p>
+<h2>关键字卡</h2>
+<ul>
+<li>Java 实习：门户 → 调度器（用户/租户/项目授权），SeaTunnel 采集</li>
+<li>Arbor：数字员工，知识不串、回答可指回</li>
+<li>分层：档案 / 摘要 / 经历 / 细节</li>
+<li>工具白名单 + 待确认写入</li>
+<li>评测：召回对比，泄漏为 0，数字非生产</li>
+<li>想做：记忆、上下文、接业务系统</li>
+</ul>
+<h2>项目逐字稿 · Arbor（90 秒）</h2>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>该怎么讲</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>背景</td>
+<td>客服、导师、面试官等数字员工要进同一个团队产品。纯聊天或纯向量会串知识和说不清依据。</td>
+</tr>
+<tr>
+<td>我做了什么</td>
+<td>可演示工作台：对话、知识导入、待确认、经历目录、评测页。</td>
+</tr>
+<tr>
+<td>分步</td>
+<td>档案每次必带；经历目录回答因果类问题；细节检索；引用必须来自本轮材料；导入异步解析后等人确认。</td>
+</tr>
+<tr>
+<td>结果</td>
+<td>自建金标上，分层相对只靠向量，身份题稳住，召回大约 0.70 到 0.92，跨空间泄漏 0。</td>
+</tr>
+<tr>
+<td>困难</td>
+<td>难在「什么能进模型」和「什么算串线」，不是调一个向量接口。</td>
+</tr>
+<tr>
+<td>下次</td>
+<td>工具失败的重试和可观测还偏演示；真嵌入与夹具评测要继续分轨看。</td>
+</tr>
+</tbody>
+</table>
+<h2>项目逐字稿 · 实习（45 秒）</h2>
+<table>
+<thead>
+<tr>
+<th>模块</th>
+<th>该怎么讲</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>背景</td>
+<td>业务同学要从统一门户用海豚调度器，不能自己去调度器开一堆账号。</td>
+</tr>
+<tr>
+<td>我做了什么</td>
+<td>Java 接口：登录跳转时建用户、给项目授权；建项目时补租户；采集走 SeaTunnel；查日志；用户、导出、通报、执行 SQL。</td>
+</tr>
+<tr>
+<td>结果</td>
+<td>联调里记了文档和字段、缺数、接口、前置流程共若干问题并反馈。</td>
+</tr>
+<tr>
+<td>边界</td>
+<td>我实现这些接口。中台整体架构、插件体系若只是熟悉，不说成我做的。</td>
+</tr>
+</tbody>
+</table>
+<h2>不会就不会</h2>
+<table>
+<thead>
+<tr>
+<th>被问到</th>
+<th>安全回答</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>为什么不用 LangChain？</td>
+<td>我了解它适合快速拼链路。Arbor 要把隔离和记忆规则做成可单测的领域逻辑，所以编排写在应用层。没有把框架当业务模型，也没有生产级 LangGraph 经验。</td>
+</tr>
+<tr>
+<td>MCP / A2A / 多智能体怎么做？</td>
+<td>没做过落地。工具目前是人设白名单加日历、工单适配。协议层我可以学，但不能说已经实现。</td>
+</tr>
+<tr>
+<td>工具调用失败怎么做生产级重试？</td>
+<td>演示里失败会返回错误、不在白名单不执行。指数退避、幂等键、补偿事务我没有在该项目里做成完整方案，这是我知道的缺口。</td>
+</tr>
+<tr>
+<td>线上召回怎么监控？</td>
+<td>我有离线冻结题集和检索元数据，没有线上 A/B。排查会先看过滤、再看是否走错层、再看融合。</td>
+</tr>
+<tr>
+<td>实习 SQL 执行安全？</td>
+<td>我提供的是平台执行入口。如果拦截规则不是我写的，我会说明以平台规范为准，不现场编一套网关。</td>
+</tr>
+<tr>
+<td>代码是不是全自己手写？</td>
+<td>Arbor 有 AI 辅助实现。分层、隔离、评测口径是我定的，我能讲到代码结构和测试。不装带人的 owner。</td>
+</tr>
+</tbody>
+</table>
+<h2>练习动作</h2>
+<ul>
+<li>录 45 秒自我介绍，删掉技术栈报菜名。</li>
+<li>录 90 秒 Arbor，数字必须带「自建金标、夹具嵌入」。</li>
+<li>请同学追问「工具挂了怎么办」「0.92 怎么来的」，卡住就回 <code>01</code> 对应条。</li>
+</ul>
+  </article>
+  <footer>编号从 001 递增。Markdown 源文件在上一级目录，本页仅供预览。</footer>
+  </main>
+</body>
+</html>

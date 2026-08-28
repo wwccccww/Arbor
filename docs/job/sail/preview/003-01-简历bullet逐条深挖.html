@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>003 01-简历bullet逐条深挖 · Sail</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <span class="brand">Sail · AI Agent</span>
+    <a class="nav" href="index.html">目录</a><a class="nav" href="001-岗位调研.html">001 调研</a><a class="nav" href="002-改后简历.html">002 简历</a><a class="nav" href="003-面试准备.html">003 面试</a>
+  </div></header>
+  <main class="wrap"><article class="paper">
+    <p class="kicker">get-job preview</p>
+    <h1>简历 bullet 逐条深挖 · Sail</h1>
+<p>覆盖 <code>改后简历.md</code> 每一条。面试官顺着简历问，不顺着题库问。</p>
+<h2>Bullet inventory</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>所属</th>
+<th>对应岗位能力</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1-B1</td>
+<td>Arbor 痛点与分层</td>
+<td>记忆管理、为什么需要 Agent 记忆而不是纯聊天</td>
+</tr>
+<tr>
+<td>P1-B2</td>
+<td>Arbor 隔离</td>
+<td>权限、多租户、记忆谁能进模型</td>
+</tr>
+<tr>
+<td>P1-B3</td>
+<td>Arbor 检索裁窗</td>
+<td>上下文工程、RAG</td>
+</tr>
+<tr>
+<td>P1-B4</td>
+<td>Arbor 写入与工具</td>
+<td>Human in the loop、工具调用</td>
+</tr>
+<tr>
+<td>P1-B5</td>
+<td>Arbor 评测</td>
+<td>自动化评测、召回与泄漏分家</td>
+</tr>
+<tr>
+<td>E1-B1</td>
+<td>实习 调度接入</td>
+<td>Agent 连接业务系统、身份与授权</td>
+</tr>
+<tr>
+<td>E1-B2</td>
+<td>实习 采集与日志</td>
+<td>数据通道、失败排查</td>
+</tr>
+<tr>
+<td>E1-B3</td>
+<td>实习 业务接口</td>
+<td>API 封装、副作用接口</td>
+</tr>
+<tr>
+<td>E1-B4</td>
+<td>实习 测试</td>
+<td>工程质量，不装测试负责人</td>
+</tr>
+<tr>
+<td>A1-B1</td>
+<td>竞赛</td>
+<td>算法基础，点到为止</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>P1-B1 痛点与分层</h3>
+<p><strong>原文</strong><br />
+团队要同时使用客服、导师、面试官等数字员工时，知识容易串、回答说不清依据。将档案、近期摘要、经历目录和细节检索分开处理，回复只引用本轮真正提供给模型的材料。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>如果把人设和资料一起丢进向量库，相似文本会把别人的知识召回来，回答也无法点回依据。所以身份用结构化档案每次必带，近期用摘要，经历用目录路由，只有细节走检索。模型引用必须是这轮塞进去的材料。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 为什么不只做 RAG？<br />
+- 这算 Agent 还是工作流？<br />
+- 档案改了为什么不重建向量？</p>
+<p><strong>证据</strong> ✅ 仓库分层记忆与引用校验。<br />
+<strong>不能说</strong> 生产上已服务多少团队。<br />
+<strong>二三层</strong> 被问 GraphRAG：经历目录只扩一两跳服务因果问句，不做社区检测。</p>
+<hr />
+<h3>P1-B2 隔离与权限</h3>
+<p><strong>原文</strong><br />
+隔离做成后端规则：一线可以对话，主管才能改知识；没有读权限时，知识不会进入模型上下文。查询过滤与数据库行级策略同时生效，隔离用例失败则不能合并。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>数字员工进团队，权限不能靠前端藏按钮。一线只能聊，主管才能改知识。没读权限时，模型上下文里不会出现知识细节。查询带工作空间和数字员工边界，数据库还有行级策略。隔离测试失败不能合代码。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 前端隐藏不够吗？<br />
+- 向量库为什么和业务库放一起？<br />
+- 行级策略关掉会怎样？</p>
+<p><strong>证据</strong> ✅ 领域授权、契约测试、评测禁读集。<br />
+<strong>不能说</strong> 已通过安全审计/等保。<br />
+<strong>二三层</strong> 模型胡编一个别的员工的记忆编号：不在本轮注入集合就丢弃。</p>
+<hr />
+<h3>P1-B3 检索与裁窗</h3>
+<p><strong>原文</strong><br />
+身份走结构化档案；因果类问题先定位经历再扩展相关节点；细节用向量检索与关键词检索融合。窗口不够时按相关度裁剪，模型给出的依据编号若不在本轮材料中则丢弃。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>「上次为什么升级」这类题，纯向量容易只命中表面相似句。先命中经历节点，沿时间或因果扩一两跳，再在相关范围内检索细节，并和关键词检索融合。窗口不够先丢掉低相关片段。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 召回变差怎么查？（美团一面凉点）<br />
+- 为什么还要关键词，不用纯向量？<br />
+- 扩跳会不会把无关经历带进来？</p>
+<p><strong>证据</strong> ✅ 有对比策略和检索元数据。排查顺序：先看有没有漏过滤 → 档案题是否根本没走向量 → 经历是否没命中 → 再看融合与裁窗。<br />
+<strong>不能说</strong> 线上 Hit Rate / NDCG。<br />
+<strong>二三层</strong> 复合问拆成子问题；没有密钥时用规则拆，不假装每次都 LLM 规划。</p>
+<hr />
+<h3>P1-B4 待确认写入与工具</h3>
+<p><strong>原文</strong><br />
+手册、工单、文档和语音异步解析后进入待确认队列，主管确认才写入；与旧设定冲突时标出，不静默覆盖。数字员工按白名单查询日历、登记工单。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>模型抽取不等于事实。解析走队列，候选进待确认，人点了才落知识。冲突标出来。工具按这个数字员工允许的列表执行，例如查日历、登记工单，不是全局开放。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 工具调用失败怎么办？（美团一面凉点）<br />
+- 为什么不让模型直接改档案？<br />
+- 日历没授权会怎样？</p>
+<p><strong>证据</strong> ⚠️ 工具失败路径是：不在白名单不执行；外部日历/工单依赖配置，失败应返回错误而不是假装成功。没有完整的指数退避生产方案，不要编。<br />
+<strong>不能说</strong> 已对接飞书生产租户、工单已上线业务。<br />
+<strong>二三层</strong> 写操作必须人确认；查日程相对只读。</p>
+<hr />
+<h3>P1-B5 评测数字与口径</h3>
+<p><strong>原文</strong><br />
+用冻结题集对比多种检索策略。……0.63 到 1.0……0.70 到约 0.92……泄漏为 0。……夹具嵌入，不是生产流量。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>我把测试和评测分开。测试保证不串租户、没权限的知识不进模型。评测在同一批冻结记忆上对比策略。分层相对只靠向量，身份题稳住，召回大约从 0.70 到 0.92，跨空间泄漏是 0。这些题是问法扩张，合入用的是确定性嵌入，不是拿线上模型刷分。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 477 题是大规模语料吗？<br />
+- 为什么身份一致能到 1.0？<br />
+- RAGAS 是不是证明隔离？</p>
+<p><strong>证据</strong> ✅ 基线文件。身份题靠档案层，不靠向量。生成忠实度只看本轮注入文本，隔离靠过滤测试。<br />
+<strong>不能说</strong> SOTA、刷榜、生产 AB。<br />
+<strong>二三层</strong> 真中文嵌入走夜间任务，和夹具表分轨，不混读。</p>
+<hr />
+<h3>E1-B1 门户对接海豚调度</h3>
+<p><strong>原文</strong><br />
+做门户到海豚调度器的登录跳转：管理员取得会话后，用户不存在则创建，项目存在则授权，项目不存在则失败返回。创建项目时检查并创建同名租户……</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>业务同学从门户进调度系统，不能每人自己开账号。接口用管理员会话：没有用户就建，有项目就授权，没项目就明确失败。建项目时先保证同名租户存在，避免调度里人和项目对不齐。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 租户、用户、项目三者关系？<br />
+- session 失效怎么办？<br />
+- 这是你设计的还是按文档实现的？</p>
+<p><strong>证据</strong> ⚠️ 流程来自用户原始笔记，公司/是否独立设计待补。能讲步骤，不讲成架构负责人。<br />
+<strong>不能说</strong> 我设计了海豚调度器插件体系。用户只写「熟悉如何自定义插件与源」，熟悉 ≠ 实现过，被问到说看过/了解，没落地就停。<br />
+<strong>二三层</strong> 和 Agent 的关系：接内部系统时先把身份和授权做成确定性接口，再考虑让模型去调。</p>
+<hr />
+<h3>E1-B2 采集与日志</h3>
+<p><strong>原文</strong><br />
+按通道配置……SeaTunnel……封装调度日志查询……</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>采集通道的配置在库里。接口读配置，用 SeaTunnel 把上游表同步到下游。另做查调度日志的接口，任务失败时能看到跑到哪一步。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 同步失败怎么补偿？<br />
+- 为什么用 SeaTunnel？<br />
+- 日志接口权限？</p>
+<p><strong>证据</strong> ⚠️ 实现过取配置和同步、查日志。没有用户提供的失败补偿方案，不要编 exactly-once。<br />
+<strong>不能说</strong> 我负责整条数仓。</p>
+<hr />
+<h3>E1-B3 用户、导出、通报、SQL</h3>
+<p><strong>原文</strong><br />
+封装用户新增与详情、导出表格、达到条件触发通报、低代码执行 SQL。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>这些是中台里的业务接口：用户增查、把查询结果导出表格、条件满足就通报、低代码页把 SQL 交到底层执行。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 通报会不会误发？原始笔记叫「短信炸弹提示」是什么？<br />
+- 执行 SQL 怎么防注入、防删库？<br />
+- Excel 导出量很大怎么办？</p>
+<p><strong>证据</strong> ⚠️ 「短信炸弹提示」按内部告警/通报讲，不要用攻击性表述。SQL 执行的防护如果不是你做的，就说接口是按平台约定转发，安全策略以平台为准，不装做过完整 SQL 网关。<br />
+<strong>不能说</strong> 我做了短信轰炸工具。<br />
+<strong>二三层</strong> 副作用接口（通报、执行 SQL）更要权限和审计；这和 Agent 工具分级是同一类问题。</p>
+<hr />
+<h3>E1-B4 接口测试缺陷</h3>
+<p><strong>原文</strong><br />
+字段问题 2、返回缺数据 3、接口问题 1、文档缺前置流程 1。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>联调时按文档和实际响应对过，记了四类问题：字段不对、返回少数据、接口行为不对、文档没写前置步骤，反馈给对接同学。</p>
+</blockquote>
+<p><strong>追问</strong><br />
+- 怎么发现的？有没有自动化？<br />
+- 这些问题后来修了吗？</p>
+<p><strong>证据</strong> ✅ 数字来自用户原始记录。修没修、是否自动化待补，不知道就说当时记录并反馈了。<br />
+<strong>不能说</strong> 我搭建了测试平台、缺陷率下降百分之几。</p>
+<hr />
+<h3>A1-B1 竞赛</h3>
+<p><strong>原文</strong><br />
+GDCPC 铜、蓝桥国二、睿抗国二、天梯个人国三/团体国二、数模省二、码蹄国二。</p>
+<p><strong>30 秒</strong>  </p>
+<blockquote>
+<p>本科阶段程序设计竞赛比较多，用来说明算法题能写，不是这段实习或 Arbor 的结果指标。</p>
+</blockquote>
+<p><strong>追问</strong> 某场比赛题型、排名口径。<br />
+<strong>证据</strong> ⚠️ 奖项名称按用户提供，证书细节待用户自己备。<br />
+<strong>不能说</strong> 用竞赛证明 Agent 项目水平。</p>
+  </article>
+  <footer>编号从 001 递增。Markdown 源文件在上一级目录，本页仅供预览。</footer>
+  </main>
+</body>
+</html>

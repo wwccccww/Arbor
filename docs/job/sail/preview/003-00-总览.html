@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>003 00-总览 · Sail</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <span class="brand">Sail · AI Agent</span>
+    <a class="nav" href="index.html">目录</a><a class="nav" href="001-岗位调研.html">001 调研</a><a class="nav" href="002-改后简历.html">002 简历</a><a class="nav" href="003-面试准备.html">003 面试</a>
+  </div></header>
+  <main class="wrap"><article class="paper">
+    <p class="kicker">get-job preview</p>
+    <h1>面试准备总览 · Sail · AI Agent 应用</h1>
+<h2>只能记 3 条</h2>
+<ol>
+<li>王牌是 Arbor：数字员工要进团队，先解决知识串线、回答无依据；档案 / 摘要 / 经历 / 细节检索分层，引用必须来自本轮材料。</li>
+<li>数字只能按评测口径讲：0.92 / 0.70 / 泄漏为 0 来自自建金标和夹具嵌入，不是生产、不是线上 embedding。</li>
+<li>实习是 Java 接口实现（门户对接调度、采集、告警），不要讲成中台负责人；Agent 框架、MCP、多智能体没做过，不会就说不会。</li>
+</ol>
+<h2>轮次地图</h2>
+<table>
+<thead>
+<tr>
+<th>轮次</th>
+<th>依据</th>
+<th>置信度</th>
+<th>可能面试官</th>
+<th>主要看什么</th>
+<th>是否生成文件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>项目深挖技术面</td>
+<td>JD1/JD3 要求讲记忆、上下文、工具、RAG；2026-08 美团 Agent 应用一面从项目开刀（B 级，候选人自述挂在异常处理与召回排查）</td>
+<td>⚠️ 高置信推断</td>
+<td>应用组工程师</td>
+<td>项目是不是你做的、记忆/检索/工具怎么落地、边界在哪</td>
+<td>是：<code>03-项目深挖技术面.md</code></td>
+</tr>
+<tr>
+<td>系统设计 / 二面</td>
+<td>D 级题库帖常写二面，无你的邀请、无目标公司流程</td>
+<td>❓ 待确认</td>
+<td>高年资工程师</td>
+<td>设计题、框架对比</td>
+<td>否</td>
+</tr>
+<tr>
+<td>HR 面</td>
+<td>应届常见但无证据</td>
+<td>❓ 待确认</td>
+<td>HR</td>
+<td>动机、时间</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p>收到具体公司邀请后，把公司名和轮次补进本表，再加 <code>04-</code>。</p>
+<h2>风险地图</h2>
+<table>
+<thead>
+<tr>
+<th>经历 / 句子</th>
+<th>状态</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Arbor 分层记忆与评测数字</td>
+<td>✅ 可讲清口径</td>
+<td>主动声明夹具嵌入 / 问法扩张</td>
+</tr>
+<tr>
+<td>「独立项目」</td>
+<td>⚠️ 易被听成独立带队</td>
+<td>说明可演示开源，决策是自己的，实现有 AI 辅助</td>
+</tr>
+<tr>
+<td>跨工作空间泄漏为 0</td>
+<td>✅ 有测试与评测</td>
+<td>讲过滤 + 行级策略 + 金标禁读集</td>
+</tr>
+<tr>
+<td>实习「封装/生成接口」</td>
+<td>⚠️ 角色边界不清</td>
+<td>讲清是实现具体接口，设计若是别人的就承认</td>
+</tr>
+<tr>
+<td>缺陷 2/3/1/1 处</td>
+<td>✅ 用户原始素材</td>
+<td>只报这四个数字，不延伸成质量体系</td>
+</tr>
+<tr>
+<td>LangChain / MCP / 多智能体</td>
+<td>🚨 简历未写、项目未做</td>
+<td>不会装；讲为什么自研编排</td>
+</tr>
+<tr>
+<td>生产高并发 / 线上成功率</td>
+<td>🚨 没有</td>
+<td>明确是可演示系统 + 评测，不是生产</td>
+</tr>
+</tbody>
+</table>
+<h2>Bullet coverage checklist</h2>
+<p>完整讲法见 <code>01-简历bullet逐条深挖.md</code>。</p>
+<ul>
+<li>[x] P1-B1 数字员工痛点与分层</li>
+<li>[x] P1-B2 隔离与权限</li>
+<li>[x] P1-B3 检索与裁窗</li>
+<li>[x] P1-B4 待确认写入与工具</li>
+<li>[x] P1-B5 评测数字与口径</li>
+<li>[x] E1-B1 门户对接海豚调度（租户/用户/项目）</li>
+<li>[x] E1-B2 SeaTunnel 采集与日志</li>
+<li>[x] E1-B3 用户、导出、通报、执行 SQL</li>
+<li>[x] E1-B4 接口测试缺陷计数</li>
+<li>[x] A1-B1 竞赛</li>
+</ul>
+<h2>表达状态 checklist</h2>
+<p>见 <code>02-表达状态与自我介绍.md</code>。</p>
+<ul>
+<li>[ ] 45 秒自我介绍脱稿</li>
+<li>[ ] 90 秒 Arbor 不超时、数字口径一次说清</li>
+<li>[ ] 实习 30 秒不升级成「负责中台」</li>
+<li>[ ] LangChain 题用边界句</li>
+</ul>
+  </article>
+  <footer>编号从 001 递增。Markdown 源文件在上一级目录，本页仅供预览。</footer>
+  </main>
+</body>
+</html>
