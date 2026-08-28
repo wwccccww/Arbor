@@ -33,7 +33,7 @@ th { background:#f3efe7; }
 
 
 def main() -> None:
-    files = sorted(p for p in ROOT.glob("*.md") if RESUME_RE.match(p.name))
+    files = sorted(p for p in ROOT.glob("**/*-改后简历.md") if RESUME_RE.match(p.name))
     if not files:
         raise SystemExit("no numbered resume markdown found")
     for path in files:
@@ -42,7 +42,7 @@ def main() -> None:
             path.read_text(encoding="utf-8"),
             extensions=["tables", "fenced_code", "sane_lists", "nl2br"],
         )
-        out = ROOT / f"{num}-改后简历.html"
+        out = path.with_suffix(".html")
         out.write_text(
             f"""<!DOCTYPE html>
 <html lang="zh-CN">
