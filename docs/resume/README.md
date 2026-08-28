@@ -1,22 +1,20 @@
 # 简历材料
 
-对外投递用的项目口径与成稿。产品文档仍以本目录之外的架构 / 评测文档为准；这里只保存「怎么写进简历」。
+对外投递用的 **Arbor 项目口径**。完整个人简历在 [../job/sail](../job/sail)（`001-改后简历` 起编号）。
 
 **统一口径：数字员工工作台。** 不要写陪伴、虚拟角色、消费向人设产品。
 
 ## 编号规则
 
-- 每次新生成一份简历 / 口述稿 / 投递口径，在本目录新增文件，序号 **+1**。
-- 文件名：`NNN-短横线英文说明.md`，序号三位、从 `001` 起，不复用、不插号。
-- 本 README 的索引表同步追加一行。
-- 旧编号不改内容作为历史；若口径变更，开新编号并在新文件开头注明取代哪一份。
-- **对外粘贴用最新成稿（当前为 003）。** 带仓库字段名、类名、策略枚举的文件只作内部对照。
-- **HTML 预览：** [preview/index.html](preview/index.html)
+- 每次新生成一份项目口径，序号 **+1**。
+- 文件名：`NNN-短横线英文说明.md`，从 `001` 起，不复用、不插号。
+- 旧编号不改内容作为历史；口径变更则开新编号。
+- **对外粘贴项目经历用 003。**
 
 ## 索引
 
-| 编号 | 文件 | HTML | 面向岗位 | 说明 |
-|---|---|---|---|---|
-| 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | [预览](preview/001-digital-employee-java-ai.html) | Java 后端、AI 应用开发 | 首版成稿（内部名偏多，对外改用 003） |
-| 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | [预览](preview/002-tech-points-inventory.html) | Java 后端、AI 应用开发 | 内部技术点盘点，勿直接粘进简历 |
-| 003 | [003-polished-external-copy.md](003-polished-external-copy.md) | [预览](preview/003-polished-external-copy.html) | Java 后端、AI 应用 / Agent | 对外成稿：去字段名、补问题→做法→结果 |
+| 编号 | 文件 | 面向岗位 | 说明 |
+|---|---|---|---|
+| 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | Java 后端、AI 应用开发 | 首版成稿（内部名偏多，对外改用 003） |
+| 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | Java 后端、AI 应用开发 | 内部技术点盘点，勿直接粘进简历 |
+| 003 | [003-polished-external-copy.md](003-polished-external-copy.md) | Java 后端、AI 应用 / Agent | 对外成稿：去字段名、补问题→做法→结果 |
