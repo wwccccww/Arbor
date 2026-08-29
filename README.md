@@ -115,6 +115,7 @@ docker compose -f infra/compose/postgres.yml up -d
 | [docs/evaluation.md](docs/evaluation.md) | 评测怎么办：体检页、金标、门槛、工作流 |
 | [docs/ragas.md](docs/ragas.md) | RAGAS 打分契约 + 评估集生成 |
 | [docs/adr](docs/adr) | 架构决策记录 |
+| [docs/resume](docs/resume) | 对外投递口径（按编号递增） |
 
 ## 目标目录（实现时）
 

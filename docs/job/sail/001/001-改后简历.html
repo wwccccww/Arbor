@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>001 改后简历 · Sail</title>
+  <style>
+:root { --ink:#1a1a1a; --muted:#5c5c5c; --line:#e6e2da; --accent:#1a535c; --paper:#fffcf7; }
+* { box-sizing: border-box; }
+body { margin:0; background:#f6f3ee; color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; line-height:1.65; }
+a { color:var(--accent); }
+.sheet { max-width:800px; margin:24px auto 64px; background:var(--paper);
+  border:1px solid var(--line); border-radius:16px; padding:40px 44px 48px; }
+.num { font-size:12px; letter-spacing:.14em; color:var(--accent); }
+h1 { font-size:26px; margin:6px 0 16px; }
+h2 { font-size:18px; margin:28px 0 10px; padding-top:10px; border-top:1px solid var(--line); }
+p, li { font-size:15px; }
+blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--accent); background:#e7f1f2; }
+table { width:100%; border-collapse:collapse; font-size:14px; margin:12px 0; }
+th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { background:#f3efe7; }
+@media print { body { background:#fff; } .sheet { border:0; margin:0; padding:0; } }
+</style>
+</head>
+<body>
+  <article class="sheet">
+    <div class="num">001</div>
+    <h1>改后简历 · Sail</h1>
+<blockquote>
+<p>Stage 2。姓名按用户指定为 Sail。教育、实习公司与时间尚未提供，已留待补，未编造。</p>
+</blockquote>
+<hr />
+<p><strong>Sail</strong><br />
+电话待补 | 邮箱待补 | 城市待补<br />
+GitHub：https://github.com/wwccccww/Arbor</p>
+<p><strong>求职意向</strong>：AI Agent 应用开发。Java 后端实习做过工作流与数据通道接入；独立项目 Arbor 把数字员工的记忆、检索、工具调用和评测做成可演示系统。希望做记忆管理、上下文编排，以及 Agent 与业务系统的连接。</p>
+<h2>教育背景</h2>
+<p><strong>学校待补 — 专业待补</strong>　　入学/毕业待补</p>
+<p>请按真实学历填写。<code>docs/jd/AI-Agent1.md</code> 写明毕业时间为 2026 年 9 月至 2027 年 8 月，投递前核对是否符合。</p>
+<h2>核心项目</h2>
+<p><strong>Arbor｜数字员工工作台</strong>　　独立项目 / 可演示<br />
+Python · PostgreSQL（含向量检索）· Redis · 大模型对话与抽取 · 中文嵌入</p>
+<ul>
+<li>团队要同时使用客服、导师、面试官等数字员工时，知识容易串、回答说不清依据。将档案、近期摘要、经历目录和细节检索分开处理，回复只引用本轮真正提供给模型的材料。</li>
+<li>隔离做成后端规则：一线可以对话，主管才能改知识；没有读权限时，知识不会进入模型上下文。查询过滤与数据库行级策略同时生效，隔离用例失败则不能合并。</li>
+<li>身份走结构化档案；「为什么、后来怎样」先定位经历再扩展相关节点；细节用向量检索与关键词检索融合。窗口不够时按相关度裁剪，模型随口给出的依据编号若不在本轮材料中则丢弃。</li>
+<li>手册、工单、文档和语音异步解析后进入待确认队列，主管确认才写入；与旧设定冲突时标出，不静默覆盖。数字员工按白名单查询日历、登记工单。</li>
+<li>用冻结题集对比多种检索策略。分层检索相对只靠向量：身份类问题由约 0.63 到 1.0，Top5 召回由约 0.70 到约 0.92，跨工作空间泄漏为 0。生成是否胡编只检查是否超出本轮已提供文本。上述数字来自自建金标与合入门禁用的夹具嵌入，不是生产流量。</li>
+</ul>
+<h2>实习经历</h2>
+<p><strong>公司待补 — Java 开发实习生</strong>　　时间待补<br />
+星海数据中台 · 海豚调度器 · SeaTunnel</p>
+<ul>
+<li>做门户到海豚调度器的登录跳转：管理员取得会话后，用户不存在则创建，项目存在则授权，项目不存在则失败返回。创建项目时检查并创建同名租户，避免调度侧账号与项目对不齐。</li>
+<li>按通道配置从库中取采集参数，用 SeaTunnel 将上游表数据同步到下游；封装调度日志查询，便于排查任务是否跑完、跑失败。</li>
+<li>封装用户新增与详情、将接口数据导出为表格、在达到既定条件时触发通报；为低代码平台提供执行 SQL 的接口。</li>
+<li>接口测试中定位字段问题 2 处、返回缺数据 3 处、接口问题 1 处、文档缺少前置流程 1 处，并反馈给对接同学。</li>
+</ul>
+<h2>竞赛</h2>
+<p>广东省大学生程序设计竞赛铜奖；蓝桥杯国赛二等奖；睿抗机器人开发者大赛编程赛道国赛二等奖；团体程序设计天梯赛个人国家级三等奖 / 团体国家级二等奖；全国大学生数学建模竞赛省级二等奖；码蹄杯程序设计大赛国家级二等奖。</p>
+<h2>技能</h2>
+<ul>
+<li><strong>Agent 应用</strong>：分层记忆、上下文编排、工具白名单调用、检索对比评测、流式对话</li>
+<li><strong>后端</strong>：Java、Python、PostgreSQL、Redis、工作流调度（海豚调度器）、数据集成（SeaTunnel）</li>
+<li><strong>工程</strong>：接口测试、异步任务、数据库迁移、自动化测试与 CI</li>
+</ul>
+<hr />
+<h2>素材缺口（投递前请补，不要空着投）</h2>
+<table>
+<thead>
+<tr>
+<th>缺口</th>
+<th>为什么要补</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学校、专业、入学与毕业时间</td>
+<td>背调硬信息；JD1 有毕业时间窗</td>
+</tr>
+<tr>
+<td>手机、邮箱、城市</td>
+<td>联系方式</td>
+</tr>
+<tr>
+<td>实习公司全称、部门、起止年月</td>
+<td>背调硬信息</td>
+</tr>
+<tr>
+<td>实习是独立完成还是在他人设计下实现接口</td>
+<td>避免面试时角色被追崩</td>
+</tr>
+<tr>
+<td>投递状态</td>
+<td>已投则不要再改已交版本的措辞</td>
+</tr>
+</tbody>
+</table>
+<p>未编造：实习工作量占比、用户规模、线上 QPS、带团队。</p>
+  </article>
+</body>
+</html>

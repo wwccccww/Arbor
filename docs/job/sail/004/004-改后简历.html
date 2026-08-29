@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>004 改后简历 · Sail</title>
+  <style>
+:root { --ink:#1a1a1a; --muted:#5c5c5c; --line:#e6e2da; --accent:#1a535c; --paper:#fffcf7; }
+* { box-sizing: border-box; }
+body { margin:0; background:#f6f3ee; color:var(--ink);
+  font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif; line-height:1.65; }
+a { color:var(--accent); }
+.sheet { max-width:800px; margin:24px auto 64px; background:var(--paper);
+  border:1px solid var(--line); border-radius:16px; padding:40px 44px 48px; }
+.num { font-size:12px; letter-spacing:.14em; color:var(--accent); }
+h1 { font-size:26px; margin:6px 0 16px; }
+h2 { font-size:18px; margin:28px 0 10px; padding-top:10px; border-top:1px solid var(--line); }
+p, li { font-size:15px; }
+blockquote { margin:12px 0; padding:8px 14px; border-left:3px solid var(--accent); background:#e7f1f2; }
+table { width:100%; border-collapse:collapse; font-size:14px; margin:12px 0; }
+th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+th { background:#f3efe7; }
+@media print { body { background:#fff; } .sheet { border:0; margin:0; padding:0; } }
+</style>
+</head>
+<body>
+  <article class="sheet">
+    <div class="num">004</div>
+    <p><strong>Sail</strong><br />
+电话 / 邮箱 / 城市待补<br />
+GitHub：https://github.com/wwccccww/Arbor</p>
+<p><strong>求职意向</strong>：AI Agent 应用开发。独立做出可演示的数字员工工作台，解决多人共用时知识串线、回答无依据；Java 实习把内部调度和数据通道接到统一门户。</p>
+<h2>教育背景</h2>
+<p>学校、专业、入学与毕业时间待补。</p>
+<h2>核心项目</h2>
+<p><strong>Arbor｜数字员工工作台</strong>　　独立项目 · 可演示开源<br />
+Python · PostgreSQL（含向量检索）· Redis · 大模型对话 / 抽取</p>
+<ul>
+<li>多人共用数字员工时，纯向量会把别人的知识召回来，回答也指不回依据。把档案、近期摘要、经历目录和细节检索分开，回复只引用本轮真正提供给模型的材料；一线可对话，主管才能改知识。没读权限的内容不会进入模型上下文。</li>
+<li>身份题靠向量不稳，因果题容易只命中表面相似句。身份改走结构化档案；因果类问题先定位经历再取细节，并与关键词检索融合；窗口不够按相关度裁剪。冻结题集上，分层相对只靠向量：身份约 0.63→1.0，Top5 召回约 0.70→0.92，跨工作空间泄漏为 0。数字来自自建金标与合入用的夹具嵌入，不是生产流量。</li>
+<li>模型抽取不等于可落库的事实，工具也不能全局乱调。文档和语音异步解析后进入待确认，人确认才写入，冲突不静默覆盖；日历查询、工单登记按数字员工白名单执行；对话支持流式。可演示闭环已跑通。实现使用 AI 编程辅助，分层、隔离和评测口径由自己定。</li>
+</ul>
+<h2>实习经历</h2>
+<p><strong>Java 开发实习生</strong>　　公司与时间待补<br />
+星海数据中台 · 海豚调度器 · SeaTunnel</p>
+<ul>
+<li>门户进调度器时人和项目容易对不齐。登录跳转里用户不存在则创建、已有项目则授权、项目不存在则失败；创建项目时先保证同名租户存在，避免账号和项目错位。</li>
+<li>采集是否跑完、跑失败不好查。按通道配置读取采集参数，用 SeaTunnel 把上游表同步到下游，并封装调度日志查询，用来确认任务成功或失败。</li>
+<li>中台一批业务能力要接到门户。封装用户增查、表格导出、达标通报和 SQL 执行入口；联调定位字段问题 2 处、返回缺数据 3 处、接口问题 1 处、文档缺前置 1 处并反馈。把内部系统做成可调用接口，也用在 Agent 接业务系统时。</li>
+</ul>
+<h2>竞赛</h2>
+<p>广东省大学生程序设计竞赛铜奖；蓝桥杯国赛二等奖；睿抗机器人开发者大赛编程赛道国赛二等奖；团体程序设计天梯赛个人国家级三等奖 / 团体国家级二等奖；全国大学生数学建模竞赛省级二等奖；码蹄杯程序设计大赛国家级二等奖。</p>
+<h2>技能</h2>
+<ul>
+<li><strong>Agent：</strong> 记忆分层、上下文编排、工具白名单 / 函数调用、RAG 对比评测、流式对话</li>
+<li><strong>后端：</strong> Java、Python、PostgreSQL、Redis、工作流调度、数据集成</li>
+<li><strong>工程：</strong> 接口测试、异步任务、自动化测试与 CI</li>
+</ul>
+  </article>
+</body>
+</html>
