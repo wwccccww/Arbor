@@ -7,6 +7,7 @@ from fastapi import Header, Query, Request, Response
 from fastapi.responses import StreamingResponse
 
 from arbor.adapters.inbound.http.chat import read_chat_payload, sse_stream
+from arbor.adapters.inbound.http.observability_middleware import bind_request_context
 from arbor.adapters.inbound.http.serialization import caps_for, citation_json, public_attachments
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import Capability
@@ -156,6 +157,12 @@ def register_thread_routes(app, deps: ThreadHttpDeps) -> None:
                 except DomainError:
                     continue
         if stream:
+            bind_request_context(
+                tenant_id=tenant.value,
+                persona_id=thread.persona_id.value,
+                thread_id=thread_id,
+                actor_id=user["user_id"],
+            )
             streamer = deps.send.stream_reply(
                 tenant_id=tenant,
                 user_id=UserId(user["user_id"]),
@@ -169,6 +176,12 @@ def register_thread_routes(app, deps: ThreadHttpDeps) -> None:
                 sse_stream(streamer, extra_inbox_created=chat_media_added),
                 media_type="text/event-stream",
             )
+        bind_request_context(
+            tenant_id=tenant.value,
+            persona_id=thread.persona_id.value,
+            thread_id=thread_id,
+            actor_id=user["user_id"],
+        )
         result = deps.send(
             tenant_id=tenant,
             user_id=UserId(user["user_id"]),
@@ -180,6 +193,7 @@ def register_thread_routes(app, deps: ThreadHttpDeps) -> None:
         )
         return {
             "message_id": result.get("message_id"),
+            "request_id": result.get("request_id"),
             "role": "assistant",
             "text": result["text"],
             "citations": result.get("citation_items") or [],
@@ -187,6 +201,8 @@ def register_thread_routes(app, deps: ThreadHttpDeps) -> None:
             "inbox_created": (result.get("inbox_added") or 0) + chat_media_added,
             "attachments": result.get("attachments") or [],
             "retrieval_meta": result.get("retrieval_meta") or {},
+            "decision_trace": result.get("decision_trace") or {},
+            "context_truncation_notes": result.get("context_truncation_notes") or [],
             "tool_results": result.get("tool_results") or [],
         }
 

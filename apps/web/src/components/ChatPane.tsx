@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
+import { DecisionTracePanel } from './DecisionTracePanel'
 import { RetrievalMetaPanel } from './RetrievalMetaPanel'
 import { ToolResultsPanel } from './ToolResultsPanel'
 
@@ -190,7 +191,13 @@ export function ChatPane({
             {message.role === 'assistant' ? (
               <CitationList citations={message.citations} onJump={onJump} />
             ) : null}
-            {message.role === 'assistant' ? <RetrievalMetaPanel meta={message.retrieval_meta} /> : null}
+            {message.role === 'assistant' ? (
+              <DecisionTracePanel
+                meta={message.retrieval_meta}
+                trace={message.decision_trace}
+                requestId={message.request_id}
+              />
+            ) : null}
             {message.role === 'assistant' ? <ToolResultsPanel results={message.tool_results} /> : null}
           </li>
         ))}

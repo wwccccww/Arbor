@@ -19,6 +19,7 @@ class DeepSeekChatLLM:
         self.timeout = timeout
         self.last_injected: list[str] = []
         self.last_slots: dict | None = None
+        self.observability_model = chat_model()
 
     def complete(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]) -> dict:
         key = chat_api_key()

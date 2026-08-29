@@ -108,7 +108,36 @@ export type RetrievalMeta = {
   sources?: Record<string, string>
   hit_scores?: Record<string, number>
   per_source_counts?: Record<string, number>
-  sub_queries?: { query: string; intent?: string }[]
+  sub_queries?: { query?: string; intent?: string; query_hash?: string }[]
+}
+
+export type DecisionTrace = {
+  retrieval?: {
+    strategy?: string
+    sub_queries?: { intent?: string; query_hash?: string }[]
+    candidate_count?: number
+    selected_count?: number
+    per_source_counts?: Record<string, number>
+    hit_ids?: string[]
+  }
+  context?: {
+    token_budget?: number
+    token_estimate?: number
+    injected_memory_ids?: string[]
+    truncation_notes?: string[]
+  }
+  reasoner?: {
+    called?: boolean
+    operation?: string
+    result_kind?: string | null
+    conflicts_with?: string | null
+    duration_ms?: number
+  }
+  generation?: {
+    model?: string
+    latency_ms?: number
+    citation_ids?: string[]
+  }
 }
 
 export type ChatAttachment = {
@@ -134,6 +163,8 @@ export type ChatMessage = {
   attachments?: ChatAttachment[]
   inbox_created?: number
   retrieval_meta?: RetrievalMeta
+  decision_trace?: DecisionTrace
+  request_id?: string
   tool_results?: ToolResult[]
 }
 
@@ -153,6 +184,8 @@ export type StreamEvent =
       inbox_created?: number
       attachments?: ChatAttachment[]
       retrieval_meta?: RetrievalMeta
+      decision_trace?: DecisionTrace
+      request_id?: string
       tool_results?: ToolResult[]
     }
 

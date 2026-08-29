@@ -45,6 +45,7 @@ class InMemoryStores:
     vectors: dict[str, tuple[str, str, list[float], MemoryStatus]] = field(default_factory=dict)
     objects: dict[str, bytes] = field(default_factory=dict)
     audit_logs: list[AuditLog] = field(default_factory=list)
+    decision_traces: list[dict] = field(default_factory=list)
     tenants: dict[str, Tenant] = field(default_factory=dict)
     users: dict[str, User] = field(default_factory=dict)
 
@@ -314,6 +315,8 @@ def _build_scripted_response(text: str, injected_memory_ids: list[str], extra_id
 
 
 class ScriptedLLM:
+    observability_model = "scripted"
+
     def __init__(self, extra_citation_memory_id: str | None = None) -> None:
         self.extra_citation_memory_id = extra_citation_memory_id
         self.last_slots: dict | None = None
@@ -439,6 +442,20 @@ class InMemoryAuditLogRepository:
         if until:
             items = [entry for entry in items if (entry.created_at or "") <= until]
         return sorted(items, key=lambda entry: (entry.created_at, entry.id), reverse=True)
+
+
+class InMemoryDecisionTraceRepository:
+    def __init__(self, stores: InMemoryStores) -> None:
+        self.stores = stores
+
+    def save(self, entry: dict) -> None:
+        self.stores.decision_traces.append(dict(entry))
+
+    def get_by_request_id(self, tenant_id: str, request_id: str) -> dict | None:
+        for item in reversed(self.stores.decision_traces):
+            if item.get("tenant_id") == tenant_id and item.get("request_id") == request_id:
+                return dict(item)
+        return None
 
 
 class FixedClock:
