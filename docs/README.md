@@ -19,9 +19,10 @@
 9. [五分钟演示脚本](demo-script.md) — 导入 → Inbox → 传记 → 引用 → 体检
 10. [Nightly / Weekly CI](nightly-ci.md) — 仓库 Secrets 与 bge 基线
 11. [RAGAS](ragas.md) — 仅评本轮注入文本上的生成忠实度
-12. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
-13. [简历材料](resume) — Arbor 项目口径，按 `001` 起递增
-14. [求职交付 · Sail](job/sail) — AI Agent 应用岗；主投简历为 [005](job/sail/005/005-改后简历.html)，另有 [003 扫读](job/sail/003/003-改后简历.html) / [004 完整](job/sail/004/004-改后简历.html)
+12. [可观测性](observability.md) — 指标、日志、Trace、决策轨迹与 Grafana 实现契约
+13. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
+14. [简历材料](resume) — Arbor 项目口径，按 `001` 起递增
+15. [求职交付 · Sail](job/sail) — AI Agent 应用岗；主投简历为 [005](job/sail/005/005-改后简历.html)，另有 [003 扫读](job/sail/003/003-改后简历.html) / [004 完整](job/sail/004/004-改后简历.html)
 
 ## 文档与代码的关系
 
