@@ -19,7 +19,8 @@
 9. [五分钟演示脚本](demo-script.md) — 导入 → Inbox → 传记 → 引用 → 体检
 10. [Nightly / Weekly CI](nightly-ci.md) — 仓库 Secrets 与 bge 基线
 11. [RAGAS](ragas.md) — 仅评本轮注入文本上的生成忠实度
-12. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
+12. [可观测性](observability.md) — 指标、日志、Trace、决策轨迹与 Grafana 实现契约
+13. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
 
 ## 文档与代码的关系
 
