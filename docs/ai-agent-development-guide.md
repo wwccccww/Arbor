@@ -899,9 +899,11 @@ src/arbor/
 - Start/Advance/Get/Cancel；
 - ARQ 异步推进和重启恢复；
 - Runtime spans/metrics。
+- 保留现有 `SendMessage` HTTP 响应字段，将原单轮路径映射为 `max_steps=1` 的兼容运行模式。
 
 验收：
 
+- 改造前后的 `retrieval_meta`、`decision_trace`、引用和 SSE 结束事件保持兼容；
 - worker 中断后可从最后已提交 Step 恢复；
 - 并发消费不会重复推进；
 - 达到任一预算立即终止；
@@ -948,6 +950,7 @@ src/arbor/
 交付：
 
 - `memory_class`、来源 Run/Step 与有效期；
+- `VectorIndex.search(filters)` 支持 `memory_class`，现有稳定金标 ID 不迁移；
 - Run 完成后的候选经验提取；
 - Inbox 去重、冲突、确认；
 - consolidation、失效与删除传播；
@@ -977,7 +980,25 @@ src/arbor/
 - 感知错、检索错、生成错能分别归因；
 - 原始对象删除后派生内容按策略清理。
 
-### Phase 6：数字员工治理与演示
+### Phase 6：Agent Eval 与运行观测
+
+交付：
+
+- `agent-v1` 评测 runner 与版本化 baseline；
+- Fake Planner、Fake Tool、故障注入和虚拟时钟；
+- PR 使用无外部密钥的 `agent-smoke`，nightly 使用真实模型轨；
+- AgentRun → Step → RAG/Tool/Approval trace 树；
+- Task、工具、安全、恢复、成本与延迟指标。
+
+验收：
+
+- 至少覆盖正常完成、二次检索、审批、拒绝、越权、超时、幂等和重启恢复；
+- `Unauthorized Action Rate`、`Approval Bypass Rate`、`Duplicate Side-effect Rate` 和跨租户泄漏均为 0；
+- 任务成功率与效率指标写入 `eval/baselines/`，可按 runtime/planner 版本比较；
+- Agent Eval 不替代现有检索泄漏和 citation subset 门禁；
+- Tempo 可从一个 Run 定位完整步骤树，指标标签不包含 prompt 或敏感工具参数。
+
+### Phase 7：数字员工治理与演示
 
 交付：
 
@@ -994,7 +1015,7 @@ src/arbor/
 - 发布新版本不改变执行中的 Run；
 - 演示可通过一次故障注入证明恢复和幂等。
 
-### Phase 7：MCP 与可选多 Agent
+### Phase 8：MCP 与可选多 Agent
 
 先完成 MCP Adapter。只有以下条件至少满足一项才拆多 Agent：
 
