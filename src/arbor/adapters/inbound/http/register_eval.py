@@ -11,10 +11,10 @@ class EvalHttpDeps:
     start_persona_eval: object
     seed_eval_world: object
     personas: object
-    session: object | None
-    stores: object | None
     current_user: Callable
     workspace_admin_for: Callable
+    session: object | None = None
+    stores: object | None = None
     resolve_tenant: Callable | None = None
     list_baselines: object | None = None
 

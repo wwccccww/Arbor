@@ -608,6 +608,7 @@ def create_app(
     from arbor.application.agent.advance_run import AdvanceAgentRun
     from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
     from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
+    from arbor.application.agent.start_run import StartAgentRun
     from arbor.application.agent.employee_templates import default_employee_templates
     from arbor.application.agent.extract_memory import ExtractRunMemory
     from arbor.application.agent.list_runs import GetAgentRunSteps, ListAgentRuns

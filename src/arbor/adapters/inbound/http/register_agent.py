@@ -24,9 +24,9 @@ class AgentHttpDeps:
     personas: object
     agent_runs: object
     agent_job_queue: object
-    start_agent_eval: object | None = None
     current_user: Callable
     workspace_admin_for: Callable
+    start_agent_eval: object | None = None
 
 
 def register_agent_routes(app, deps: AgentHttpDeps) -> None:
