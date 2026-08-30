@@ -1667,6 +1667,25 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /personas/{persona_id}/employee-eval:
+    post:
+      tags: [Employee]
+      summary: 岗位评测门禁（发布前跑 evaluation_suite）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: version
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 评测报告（含 gate_passed）
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /personas/{persona_id}/agent-runs:
     get:
       tags: [Agent]

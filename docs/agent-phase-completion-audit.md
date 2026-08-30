@@ -77,7 +77,7 @@
 
 | 交付 | 证据 |
 |------|------|
-| 三模板 + 版本固定 | `employee_templates.py`；`test_employee_templates.py`；`test_start_run_pins_employee_definition_version` |
+| 三模板 + 版本固定 | `employee_templates.py`；`test_employee_templates.py`；`test_start_run_pins_employee_definition_version`；`test_employee_definition_version_pinning.py` |
 | 岗位评测门禁 | `POST /v1/personas/{id}/employee-eval`；`StartEmployeeEvalRun`；`test_start_employee_eval.py`；`AgentRunsPage` 按钮 |
 | Run/Approval/Eval UI | `AgentRunsPage.tsx`、`Checkup.tsx`（基线表 + Agent 对比） |
 | 演示脚本 | `docs/demo-script.md` |
@@ -103,8 +103,24 @@
 | 指标/trace | `advance_run` spans；`metadata.metrics`；Grafana/Tempo 链接 Debug 页 |
 | 演示 | demo-script + 录屏 |
 
+## §16.1 逐能力完成定义（10 项）
+
+每项能力须同时满足：领域模型、端口+适配器、迁移+租户隔离、HTTP/OpenAPI、测试、冻结场景+baseline、日志指标 trace、安全/TTL/删除、演示路径、文档同步。
+
+| 能力 | 领域 | 端口/适配器 | 迁移/RLS | HTTP/OpenAPI | 测试 | 场景/baseline | 观测 | 安全/删除 | 演示 | 文档 |
+|------|------|-------------|----------|--------------|------|---------------|------|-----------|------|------|
+| Agent Runtime | `domain/agent/run.py` `step.py` | inmemory + `postgres/agent.py` | 0014/0015 | `register_agent.py` | unit + contract + agent-v1 | `agent-v1` + smoke baseline | spans + Tempo 集成测 | 租户隔离 PG 契约 | demo-script | ADR 0010 |
+| Tool/审批 | `tool_executor.py` `approval.py` | tool_executions PG | 0014 | approvals API | idempotency + agent-v1 | forbidden-tool case | executor metrics | 审批绕过率=0 | 故障注入录屏 | ADR 0011 |
+| Step RAG/上下文 | `step_retrieval.py` `context_engine.py` | vector + memory repos | memory RLS | manifest in run metadata | second-retrieve case | RAG baseline gate | context manifest UI | injection 检测 | — | ADR 0011 |
+| Agent Memory | `memory_class` `validity` `decay` | memory PG | memory migrations | memory HTTP | memory-v1 9 cases | memory-smoke baseline | — | 删除传播 invalidate | — | guide §9 |
+| 多模态证据链 | `application/multimodal/` | artifacts PG | 0016/0017 | artifact routes | multimodal-v1 5层 | multimodal-smoke | lineage UI | 对象删除失效 | — | guide §9.5 |
+| Agent Eval | `agent_runner.py` | eval_runs repo | eval_runs table | `/agent-eval/runs` | `test_start_agent_eval` | `agent-v1-smoke.json` | eval_runs metrics | P0 安全指标 | 录屏 | Checkup 对比表 |
+| 数字员工 | `employee.py` templates | inmemory templates | employee_definitions | employee-definition + employee-eval | templates + pinning + employee eval | evaluation_suite 门禁 | AgentRunsPage | 岗位评测 gate | AgentRunsPage | guide §10 |
+| MCP | `adapters/outbound/mcp/` | jsonrpc + http transport | — | tools via MCP | `test_mcp_external_http_e2e` | agent smoke MCP | — | — | — | guide §8 |
+
 ## 仍依赖外部环境验证的项
 
-- Nightly 真实模型轨（`ARBOR_JUDGE_API_KEY` / DeepSeek）
-- 生产 Tempo 从 Agent Run trace_id 端到端（本地 observability job `continue-on-error`）
+- Nightly 真实模型轨（`ARBOR_JUDGE_API_KEY` / DeepSeek）— `nightly.yml` generation-llm job
+- Nightly Agent smoke（Fake Planner）— `nightly.yml` agent-smoke job
+- 生产 Tempo Agent Run 端到端 — `test_tempo_trace_search_by_agent_run_request_id`（observability job `continue-on-error`）
 - 全量多 Agent（Phase 8 明确为可选，当前未拆分）

@@ -41,6 +41,15 @@ jobs:
       - name: RAGAS faithfulness pytest
         if: ${{ env.DEEPSEEK_API_KEY != '' && env.ARBOR_JUDGE_API_KEY != '' }}
         run: python3 -m pytest tests/eval/test_generation_llm.py::test_suite_v1_generation_ragas_when_judge_configured -q -m llm
+  agent-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api]"
+      - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_memory_smoke.py tests/eval/test_multimodal_smoke.py tests/eval/test_retrieval_baseline_gate.py tests/unit/application/test_start_employee_eval.py tests/unit/application/test_employee_definition_version_pinning.py -q --tb=short
   bge-retrieval:
     runs-on: ubuntu-latest
     services:

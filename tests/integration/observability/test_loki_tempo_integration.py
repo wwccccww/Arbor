@@ -98,6 +98,60 @@ def test_tempo_trace_search_by_request_id():
 
 
 @pytest.mark.integration
+def test_tempo_trace_search_by_agent_run_request_id():
+    tempo_url = os.environ.get("TEMPO_URL", "http://localhost:3200")
+    otel_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+    if not _service_ready(tempo_url, "/ready"):
+        pytest.skip("Tempo not available")
+    os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_endpoint
+    os.environ["OBSERVABILITY_ENABLED"] = "true"
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    headers = {
+        "Authorization": "Bearer token-a",
+        "X-Tenant-Id": "0a000000-0000-4000-a000-000000000001",
+    }
+    persona_id = "0a000000-0000-4000-a000-000000000010"
+    body = {
+        "goal": "查询退货政策",
+        "plan_script": [
+            {
+                "schema_version": 1,
+                "action": "retrieve",
+                "query": "退货政策",
+                "scopes": ["semantic_memory"],
+                "reason": "policy lookup",
+            },
+            {
+                "schema_version": 1,
+                "action": "answer",
+                "text": "7天无理由退货",
+                "citations": [],
+                "completion": True,
+            },
+        ],
+    }
+    created = client.post(f"/v1/personas/{persona_id}/agent-runs", headers=headers, json=body)
+    assert created.status_code == 202
+    run_id = created.json()["id"]
+    detail = client.get(f"/v1/agent-runs/{run_id}", headers=headers)
+    assert detail.status_code == 200
+    payload = detail.json()
+    run = payload["run"]
+    request_id = run.get("request_id") or (run.get("metadata") or {}).get("request_id")
+    assert request_id
+    deadline = time.time() + 45
+    found = False
+    while time.time() < deadline:
+        search_payload = _tempo_search(tempo_url, request_id)
+        traces = search_payload.get("traces") or []
+        if traces:
+            found = True
+            break
+        time.sleep(3)
+    assert found, f"agent run trace for {request_id} not indexed in Tempo"
+
+
+@pytest.mark.integration
 def test_metrics_include_new_observability_series():
     client = TestClient(create_app(), raise_server_exceptions=False)
     client.get("/ready")
