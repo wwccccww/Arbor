@@ -609,8 +609,10 @@ def create_app(
     from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
     from arbor.application.agent.employee_templates import default_employee_templates
     from arbor.application.agent.extract_memory import ExtractRunMemory
+    from arbor.application.agent.list_runs import GetAgentRunSteps, ListAgentRuns
+    from arbor.application.agent.resume_run import ResumeAgentRun
     from arbor.application.agent.queries import GetEmployeeDefinition, ListEmployeeTemplates
-    from arbor.application.agent.start_run import StartAgentRun
+    from arbor.application.evaluation.start_agent_eval import StartAgentEvalRun
     from arbor.application.agent.tool_executor import (
         build_default_tool_registry,
         register_mcp_stub_tools,
@@ -644,6 +646,7 @@ def create_app(
     extract_run_memory = ExtractRunMemory(
         personas=personas,
         inbox=inbox,
+        memories=memories,
         ids=ids,
         auth=AuthorizationPolicy(),
     )
@@ -699,6 +702,32 @@ def create_app(
         personas=personas,
         employee_definitions=employee_definitions,
         auth=AuthorizationPolicy(),
+    )
+    list_agent_runs = ListAgentRuns(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+    )
+    get_agent_run_steps = GetAgentRunSteps(
+        runs=agent_runs,
+        steps=agent_steps,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
+    resume_agent_run = ResumeAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+        job_queue=agent_job_queue,
+        advance=advance_agent_run,
+    )
+    start_agent_eval = StartAgentEvalRun(
+        start_run=start_agent_run,
+        approve_step=approve_agent_step,
+        reject_step=reject_agent_step,
+        personas=personas,
+        runs=agent_runs,
+        observability=observability,
     )
     list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
 
@@ -965,6 +994,9 @@ def create_app(
         AgentHttpDeps(
             start_run=start_agent_run,
             get_run=get_agent_run,
+            list_runs=list_agent_runs,
+            get_steps=get_agent_run_steps,
+            resume_run=resume_agent_run,
             cancel_run=cancel_agent_run,
             approve_step=approve_agent_step,
             reject_step=reject_agent_step,
@@ -972,6 +1004,7 @@ def create_app(
             personas=personas,
             agent_runs=agent_runs,
             agent_job_queue=agent_job_queue,
+            start_agent_eval=start_agent_eval,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
         ),

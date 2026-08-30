@@ -1,6 +1,9 @@
 import type { Session } from '../session'
 import type {
   ApiError,
+  AgentApproval,
+  AgentRunDetail,
+  AgentRunSummary,
   AuthTokens,
   AuditList,
   ChatAttachment,
@@ -694,6 +697,48 @@ export function createClient(
 
     async deleteDebugRequest(requestId: string): Promise<void> {
       await request(`/debug/requests/${encodeURIComponent(requestId)}`, { method: 'DELETE' })
+    },
+
+    async listAgentRuns(personaId: string, limit = 20): Promise<{ items: AgentRunSummary[] }> {
+      return (await request(`/personas/${personaId}/agent-runs?limit=${limit}`)) as {
+        items: AgentRunSummary[]
+      }
+    },
+
+    async createAgentRun(
+      personaId: string,
+      payload: { goal: string; max_steps?: number; token_budget?: number },
+    ): Promise<{ id: string; status: string; version: number }> {
+      return (await request(`/personas/${personaId}/agent-runs`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as { id: string; status: string; version: number }
+    },
+
+    async getAgentRun(runId: string): Promise<AgentRunDetail> {
+      return (await request(`/agent-runs/${runId}`)) as AgentRunDetail
+    },
+
+    async listAgentApprovals(): Promise<{ items: AgentApproval[] }> {
+      return (await request('/approvals')) as { items: AgentApproval[] }
+    },
+
+    async approveAgentAction(approvalId: string): Promise<Record<string, unknown>> {
+      return (await request(`/approvals/${approvalId}/approve`, { method: 'POST' })) as Record<
+        string,
+        unknown
+      >
+    },
+
+    async rejectAgentAction(approvalId: string): Promise<Record<string, unknown>> {
+      return (await request(`/approvals/${approvalId}/reject`, { method: 'POST' })) as Record<
+        string,
+        unknown
+      >
+    },
+
+    async startAgentEval(): Promise<Record<string, unknown>> {
+      return (await request('/agent-eval/runs', { method: 'POST' })) as Record<string, unknown>
     },
   }
 }

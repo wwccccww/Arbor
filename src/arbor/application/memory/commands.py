@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
-from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
 from arbor.observability.inbox_age import inbox_age_seconds
@@ -86,6 +86,13 @@ class ConfirmInboxItem:
             mem_type = MemoryType.FACT
         event_id = self._maybe_key_event(tenant_id, persona_id, text) if mark_key_event else None
         source = _source_from_inbox_payload(item.payload)
+        memory_class_raw = item.payload.get("memory_class")
+        memory_class = None
+        if memory_class_raw:
+            try:
+                memory_class = MemoryClass(str(memory_class_raw))
+            except ValueError:
+                memory_class = None
         new_mem = MemoryItem(
             id=MemoryId(self.ids.new_id()),
             tenant_id=tenant_id,
@@ -95,6 +102,7 @@ class ConfirmInboxItem:
             status=MemoryStatus.ACTIVE,
             event_id=event_id,
             source=source,
+            memory_class=memory_class,
         )
         item.confirm(new_mem, old)
         self.memories.save(new_mem)

@@ -108,6 +108,7 @@ def build_agent_runtime(
     extract_memory = ExtractRunMemory(
         personas=personas,
         inbox=inbox,
+        memories=memories,
         ids=ids,
         auth=AuthorizationPolicy(),
     )

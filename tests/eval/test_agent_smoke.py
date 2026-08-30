@@ -19,7 +19,7 @@ from arbor.adapters.outbound.inmemory_agent import (
     SyncAgentJobQueue,
 )
 from arbor.application.agent.advance_run import AdvanceAgentRun
-from arbor.application.agent.approve_step import ApproveAgentStep
+from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
 from arbor.application.evaluation.agent_runner import run_agent_smoke
@@ -63,6 +63,12 @@ def test_agent_smoke_ticket_approval_flow():
         ids=SeqIdGenerator(start=100),
         job_queue=queue,
     )
+    reject = RejectAgentStep(
+        runs=runs,
+        approvals=approvals,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
     approve = ApproveAgentStep(
         runs=runs,
         approvals=approvals,
@@ -74,6 +80,7 @@ def test_agent_smoke_ticket_approval_flow():
         fixture_path=ROOT / "eval" / "fixtures" / "agent-v1" / "cases.json",
         start_run=start,
         approve_step=approve,
+        reject_step=reject,
         personas=personas,
         runs=runs,
     )

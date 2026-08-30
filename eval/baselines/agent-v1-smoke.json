@@ -4,6 +4,8 @@
   "cases": [
     {"id": "ticket-with-approval", "ok": true, "status": "completed"},
     {"id": "retrieve-only-handoff", "ok": true, "status": "completed"},
-    {"id": "second-retrieve-after-tool", "ok": true, "status": "completed"}
+    {"id": "second-retrieve-after-tool", "ok": true, "status": "completed"},
+    {"id": "approval-rejected", "ok": true, "status": "failed"},
+    {"id": "forbidden-tool", "ok": true, "status": "failed"}
   ]
 }

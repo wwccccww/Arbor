@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from arbor.application.memory.conflict_detection import (
+    enrich_inbox_extract,
+    find_conflicting_memory,
+)
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
-from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
 
 
 def _now_iso() -> str:
@@ -14,9 +18,10 @@ def _now_iso() -> str:
 class ExtractRunMemory:
     """Create pending Inbox candidates from completed agent runs (no auto-write)."""
 
-    def __init__(self, *, personas, inbox, ids, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, inbox, memories, ids, auth: AuthorizationPolicy) -> None:
         self.personas = personas
         self.inbox = inbox
+        self.memories = memories
         self.ids = ids
         self.auth = auth
 
@@ -39,6 +44,12 @@ class ExtractRunMemory:
         text = str((final_output or {}).get("text") or "").strip()
         if not text and not tool_results:
             return 0
+
+        pending = self.inbox.list_pending(tenant_id, persona_id)
+        for item in pending:
+            if str(item.payload.get("source_run_id") or "") == run_id:
+                return 0
+
         summary_parts = [f"任务：{goal}"]
         if text:
             summary_parts.append(f"结果：{text}")
@@ -51,13 +62,22 @@ class ExtractRunMemory:
             "memory_class": "episodic",
             "source_run_id": run_id,
         }
+        active = self.memories.list_active(tenant_id, persona_id)
+        enrich_inbox_extract(payload, active)
+        conflict = find_conflicting_memory(payload["text"], active)
+        if conflict is not None:
+            payload["conflicts_with"] = conflict.value
+            payload["kind"] = "conflict"
+
+        conflict_raw = payload.get("conflicts_with")
         self.inbox.add(
             InboxItem(
                 id=self.ids.new_id(),
                 tenant_id=tenant_id,
                 persona_id=persona_id,
-                kind="fact",
+                kind="conflict" if conflict_raw else "fact",
                 payload=payload,
+                conflicts_with=MemoryId(str(conflict_raw)) if conflict_raw else None,
             )
         )
         return 1

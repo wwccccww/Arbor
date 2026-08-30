@@ -6,6 +6,45 @@ export type FeishuCalendarStatus = {
   calendar_id?: string
 }
 
+export type AgentRunSummary = {
+  id: string
+  goal: string
+  status: string
+  current_step: number
+  max_steps: number
+  version: number
+  created_at?: string
+  updated_at?: string
+}
+
+export type AgentStep = {
+  id: string
+  sequence: number
+  kind: string
+  status: string
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+  observation: Record<string, unknown>
+}
+
+export type AgentRunDetail = {
+  run: AgentRunSummary & {
+    final_output?: Record<string, unknown> | null
+    failure?: Record<string, unknown> | null
+    metadata?: Record<string, unknown>
+  }
+  steps: AgentStep[]
+  lineage?: Array<Record<string, unknown>>
+}
+
+export type AgentApproval = {
+  id: string
+  run_id: string
+  tool_name: string
+  status: string
+  reason?: string
+}
+
 export type PersonaGrant = {
   user_id: string
   capabilities: Capability[]

@@ -85,6 +85,53 @@
       "expect_waiting_approval": true,
       "expect_second_retrieval": true,
       "expect_final_status": "completed"
+    },
+    {
+      "id": "approval-rejected",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：审批拒绝场景",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单流程",
+          "scopes": ["semantic_memory"],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "审批拒绝测试", "priority": "normal"},
+          "evidence_ids": [],
+          "reason": "create ticket"
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_reject_approval": true,
+      "expect_final_status": "failed"
+    },
+    {
+      "id": "forbidden-tool",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "越权登记工单",
+      "strip_tools": true,
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "越权工单", "priority": "high"},
+          "evidence_ids": [],
+          "reason": "unauthorized ticket"
+        }
+      ],
+      "expect_final_status": "failed",
+      "expect_forbidden_tool": true
     }
   ]
 }

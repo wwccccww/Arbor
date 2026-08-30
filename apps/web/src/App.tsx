@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient, login as loginRequest, logout as logoutRequest } from './api/client'
 import type { AuthTokens } from './api/types'
 import { clearSession, DEMO_TENANT, loadSession, pickTenantId, saveSession, type Session } from './session'
+import { AgentRunsPage } from './pages/AgentRunsPage'
 import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
 import { DebugPage } from './pages/DebugPage'
@@ -12,7 +13,7 @@ import { Workbench } from './pages/Workbench'
 import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from './api/types'
 
 function useHashRoute(): {
-  page: 'home' | 'checkup' | 'audit' | 'workbench' | 'inbox' | 'debug'
+  page: 'home' | 'checkup' | 'audit' | 'workbench' | 'inbox' | 'debug' | 'agent'
   personaId?: string
 } {
   const [hash, setHash] = useState(window.location.hash)
@@ -26,6 +27,8 @@ function useHashRoute(): {
   if (hash.startsWith('#/debug')) return { page: 'debug' }
   const inboxMatch = hash.match(/^#\/personas\/([^/]+)\/inbox$/)
   if (inboxMatch) return { page: 'inbox', personaId: inboxMatch[1] }
+  const agentMatch = hash.match(/^#\/personas\/([^/]+)\/agent$/)
+  if (agentMatch) return { page: 'agent', personaId: agentMatch[1] }
   const personaId = hash.match(/^#\/personas\/([^/]+)/)?.[1]
   if (personaId) return { page: 'workbench', personaId }
   return { page: 'home' }
@@ -311,6 +314,19 @@ export default function App() {
           window.location.hash = '#/'
         }}
         onOpenWorkbench={() => {
+          window.location.hash = `#/personas/${route.personaId}`
+        }}
+      />
+    )
+  }
+
+  if (route.page === 'agent' && route.personaId) {
+    return (
+      <AgentRunsPage
+        client={client}
+        personaId={route.personaId}
+        workspaceAdmin={workspaceAdmin}
+        onBack={() => {
           window.location.hash = `#/personas/${route.personaId}`
         }}
       />

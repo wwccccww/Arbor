@@ -6,7 +6,7 @@ from arbor.application.agent.planner import ScriptedPlanner
 from arbor.application.agent.step_retrieval import StepRetrieval, build_step_context_items
 from arbor.application.agent.tool_executor import ToolExecutor
 from arbor.application.retrieval_config import RetrievalConfig
-from arbor.application.tools.run_tools import allowed_tool_names
+from arbor.application.tools.run_tools import allowed_tool_names, normalize_tool_name
 from arbor.domain.agent.action import validate_planner_action
 from arbor.domain.agent.approval import ApprovalRequest
 from arbor.domain.agent.run import AgentRun, AgentRunStatus
@@ -156,8 +156,8 @@ class AdvanceAgentRun:
                     prior_steps=prior_steps,
                 )
             except DomainError as exc:
-                step.mark_failed(exc.code, exc.message)
-                run.mark_failed({"kind": exc.code, "message": exc.message})
+                step.mark_failed(exc.code, str(exc))
+                run.mark_failed({"kind": exc.code, "message": str(exc)})
                 run.updated_at = _now_iso()
                 self.steps.add(step)
                 self.runs.save(run)
@@ -265,6 +265,14 @@ class AdvanceAgentRun:
                 raise DomainError("FORBIDDEN_TOOL", f"unknown tool: {tool_name}")
             allowed = allowed_tool_names(persona.tool_policy)
             canonical = tool_def.name
+            allowed_normalized = set(allowed)
+            for name in allowed:
+                normalized = normalize_tool_name(str(name))
+                if normalized:
+                    allowed_normalized.add(normalized)
+            canonical_short = normalize_tool_name(canonical) or canonical.split(".", 1)[0]
+            if canonical not in allowed_normalized and canonical_short not in allowed_normalized:
+                raise DomainError("FORBIDDEN_TOOL", f"tool not allowed: {canonical}")
             if tool_def.approval_required:
                 approval = ApprovalRequest(
                     id=self.ids.new_id(),

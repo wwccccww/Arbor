@@ -1666,3 +1666,54 @@ paths:
           description: 岗位定义
         "404":
           $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/agent-runs:
+    get:
+      tags: [Agent]
+      summary: 列出 Persona 的 Agent Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: Run 列表
+
+  /agent-runs/{run_id}/steps:
+    get:
+      tags: [Agent]
+      summary: 查询 Run 步骤
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 步骤列表
+
+  /agent-runs/{run_id}/resume:
+    post:
+      tags: [Agent]
+      summary: 恢复非终态 Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已恢复
+
+  /agent-eval/runs:
+    post:
+      tags: [Agent]
+      summary: 运行 agent-v1 冻结场景评测
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 评测报告
