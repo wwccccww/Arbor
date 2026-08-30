@@ -5,6 +5,7 @@ from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
+from arbor.observability.noop import NoopObservability
 
 
 def _source_from_inbox_payload(payload: dict) -> dict | None:
@@ -33,6 +34,7 @@ class ConfirmInboxItem:
         auth: AuthorizationPolicy,
         events=None,
         audit=None,
+        observability: object | None = None,
     ) -> None:
         self.personas = personas
         self.memories = memories
@@ -43,6 +45,10 @@ class ConfirmInboxItem:
         self.auth = auth
         self.events = events
         self.audit = audit
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(
         self,
@@ -67,6 +73,7 @@ class ConfirmInboxItem:
             item = self.inbox.get(tenant_id, inbox_id)
             if item is None or item.persona_id != persona_id:
                 raise DomainError("NOT_FOUND", "no pending inbox")
+        from_status = item.status
         old = None
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)
@@ -95,6 +102,46 @@ class ConfirmInboxItem:
             self.vectors.delete(tenant_id, old.id)
         self.inbox.save(item)
         self.vectors.upsert(tenant_id, persona_id, new_mem.id, self.embed.embed(new_mem.text), new_mem.status)
+        obs = self._obs()
+        obs.event(
+            "inbox.transition",
+            from_status=from_status,
+            to_status=item.status,
+            kind=item.kind,
+        )
+        obs.increment(
+            "arbor_inbox_transitions_total",
+            kind=item.kind,
+            from_status=from_status,
+            to_status=item.status,
+        )
+        obs.event(
+            "memory.transition",
+            from_status="none",
+            to_status=new_mem.status.value,
+            type=new_mem.type.value,
+            source="inbox",
+        )
+        obs.increment(
+            "arbor_memory_transitions_total",
+            from_status="none",
+            to_status=new_mem.status.value,
+            type=new_mem.type.value,
+        )
+        if old is not None:
+            obs.event(
+                "memory.transition",
+                from_status=MemoryStatus.ACTIVE.value,
+                to_status=old.status.value,
+                type=old.type.value,
+                source="inbox",
+            )
+            obs.increment(
+                "arbor_memory_transitions_total",
+                from_status=MemoryStatus.ACTIVE.value,
+                to_status=old.status.value,
+                type=old.type.value,
+            )
         if self.audit:
             self.audit(
                 tenant_id=tenant_id,
@@ -128,10 +175,14 @@ class ConfirmInboxItem:
 
 
 class DismissInboxItem:
-    def __init__(self, *, personas, inbox, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, inbox, auth: AuthorizationPolicy, observability: object | None = None) -> None:
         self.personas = personas
         self.inbox = inbox
         self.auth = auth
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(
         self,
@@ -149,8 +200,22 @@ class DismissInboxItem:
         item = self.inbox.get(tenant_id, inbox_id)
         if item is None or item.persona_id != persona_id:
             raise DomainError("NOT_FOUND", "no pending inbox")
+        from_status = item.status
         item.dismiss()
         self.inbox.save(item)
+        obs = self._obs()
+        obs.event(
+            "inbox.transition",
+            from_status=from_status,
+            to_status=item.status,
+            kind=item.kind,
+        )
+        obs.increment(
+            "arbor_inbox_transitions_total",
+            kind=item.kind,
+            from_status=from_status,
+            to_status=item.status,
+        )
 
 
 class ImportArtifact:

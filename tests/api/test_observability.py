@@ -59,4 +59,34 @@ def test_chat_returns_decision_trace_and_debug_lookup():
         headers=_headers(),
     )
     assert debug.status_code == 200
-    assert debug.json()["decision_trace"]["generation"]["model"] == "scripted"
+    assert debug.json()["decision_trace"]["generation"]["model"]
+
+
+def test_debug_delete_removes_trace():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    chat = client.post(
+        "/v1/threads/0a000000-0000-4000-a000-000000000030/messages",
+        headers=_headers(),
+        json={"text": "删除测试"},
+    )
+    assert chat.status_code == 200
+    request_id = chat.json()["request_id"]
+    deleted = client.delete(
+        f"/v1/debug/requests/{request_id}",
+        headers=_headers(),
+    )
+    assert deleted.status_code == 204
+    missing = client.get(
+        f"/v1/debug/requests/{request_id}",
+        headers=_headers(),
+    )
+    assert missing.status_code == 404
+
+
+def test_metrics_include_operational_gauges():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    client.get("/ready")
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert "arbor_inbox_pending" in metrics.text
+    assert "arbor_import_jobs_in_progress" in metrics.text

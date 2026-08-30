@@ -7,6 +7,29 @@ from datetime import UTC, datetime
 
 from arbor.observability.context import current_request_context, tenant_id_hash
 
+_REDACTED_KEYS = frozenset(
+    {
+        "authorization",
+        "api_key",
+        "prompt",
+        "user_message",
+        "model_response",
+        "reasoning_content",
+        "password",
+        "token",
+        "cookie",
+    }
+)
+
+
+def _sanitize_log_field(key: str, value: object) -> object:
+    lowered = key.lower()
+    if lowered in _REDACTED_KEYS or lowered.endswith(("_token", "_key")):
+        return "[REDACTED]"
+    if lowered in {"content", "text", "body"} and isinstance(value, str) and len(value) > 256:
+        return f"[REDACTED len={len(value)}]"
+    return value
+
 
 class JsonEventLogger:
     def __init__(self, *, service: str, logger: logging.Logger | None = None) -> None:
@@ -35,7 +58,7 @@ class JsonEventLogger:
                 payload["actor_id"] = ctx.actor_id
         for key, value in fields.items():
             if value is not None:
-                payload[key] = value
+                payload[key] = _sanitize_log_field(key, value)
         level_no = logging.INFO
         if level.upper() == "WARNING":
             level_no = logging.WARNING

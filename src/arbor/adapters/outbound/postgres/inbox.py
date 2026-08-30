@@ -36,6 +36,21 @@ class PgInboxRepository:
         ).fetchall()
         return [inbox_from_row(row) for row in rows]
 
+    def count_pending(self, tenant_id: TenantId | None = None) -> int:
+        if tenant_id is None:
+            row = self.conn.execute(
+                "SELECT COUNT(*) AS n FROM inbox_items WHERE status = 'pending'"
+            ).fetchone()
+        else:
+            row = self.conn.execute(
+                """
+                SELECT COUNT(*) AS n FROM inbox_items
+                WHERE tenant_id = %s::uuid AND status = 'pending'
+                """,
+                (tenant_id.value,),
+            ).fetchone()
+        return int(row["n"] if row else 0)
+
     def save(self, item: InboxItem) -> None:
         self.conn.execute(
             """

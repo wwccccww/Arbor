@@ -238,7 +238,11 @@ def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
             data=data,
             hint=hint,
             capabilities=caps,
+            execution_mode="async" if deps.job_queue_holder.is_async else "sync",
         )
+        from arbor.observability.context import current_request_context
+
+        request_ctx = current_request_context()
         payload = {
             "job_id": job["id"],
             "tenant_id": x_tenant_id,
@@ -247,6 +251,7 @@ def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
             "filename": job["filename"],
             "hint": hint,
             "user_id": user["user_id"],
+            "request_id": request_ctx.request_id if request_ctx is not None else job["id"],
         }
         await deps.job_queue_holder.enqueue_import_job(payload)
         if deps.job_queue_holder.is_async:

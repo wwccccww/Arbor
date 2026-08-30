@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import re
+import time
 
 import httpx
 
 from arbor.domain.memory.memory import MemoryItem
 from arbor.env import chat_api_key, chat_base_url, reasoner_model
+from arbor.observability.helpers import http_status_class
+from arbor.observability.llm import observed_llm_call, record_llm_usage
 
 ALLOWED_KINDS = frozenset({"fact", "event", "conflict", "emotion"})
 
@@ -14,9 +17,12 @@ ALLOWED_KINDS = frozenset({"fact", "event", "conflict", "emotion"})
 class DeepSeekReasoner:
     """Extract durable facts into Inbox. Failures return None so chat still works."""
 
-    def __init__(self, *, timeout: float = 60.0) -> None:
+    def __init__(self, *, timeout: float = 60.0, observability: object | None = None) -> None:
         self.timeout = timeout
+        self.observability = observability
         self.last_text: str | None = None
+        self.observability_model = reasoner_model()
+        self.last_reasoning_content: str | None = None
 
     def extract(self, text: str, active_memories: list | None = None) -> dict | None:
         self.last_text = text
@@ -25,7 +31,7 @@ class DeepSeekReasoner:
         key = chat_api_key()
         if not key:
             return None
-        model = reasoner_model()
+        model = self.observability_model
         user_content = _format_extract_user(text, active_memories)
         payload: dict = {
             "model": model,
@@ -37,25 +43,73 @@ class DeepSeekReasoner:
         }
         if "reasoner" not in model:
             payload["temperature"] = 0.2
+        started = time.perf_counter()
         try:
-            response = httpx.post(
-                f"{chat_base_url()}/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json=payload,
-                timeout=self.timeout,
-            )
+            with observed_llm_call(self.observability, operation="extract", model=model):
+                response = httpx.post(
+                    f"{chat_base_url()}/chat/completions",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=self.timeout,
+                )
         except httpx.HTTPError:
             return None
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         if response.status_code >= 400:
+            if self.observability is not None:
+                from arbor.observability.helpers import obs_or_noop
+
+                obs_or_noop(self.observability).increment(
+                    "arbor_llm_upstream_errors_total",
+                    operation="extract",
+                    status_class=http_status_class(response.status_code),
+                )
             return None
         try:
-            content = response.json()["choices"][0]["message"]["content"]
+            body = response.json()
+            message = body["choices"][0]["message"]
+            content = message["content"]
+            reasoning = message.get("reasoning_content")
+            self.last_reasoning_content = str(reasoning) if reasoning else None
+            usage = body.get("usage") or {}
+            record_llm_usage(
+                self.observability,
+                operation="extract",
+                model=model,
+                input_tokens=usage.get("prompt_tokens"),
+                output_tokens=usage.get("completion_tokens"),
+            )
         except (KeyError, IndexError, TypeError, ValueError):
             return None
         parsed = parse_extract(content)
         if parsed is None:
+            if self.observability is not None:
+                from arbor.observability.helpers import obs_or_noop
+
+                obs_or_noop(self.observability).event(
+                    "llm.extract",
+                    model=model,
+                    duration_ms=duration_ms,
+                    result="skipped",
+                )
             return None
         parsed.setdefault("source_text", text)
+        if self.observability is not None:
+            from arbor.observability.helpers import obs_or_noop
+
+            obs_or_noop(self.observability).event(
+                "llm.extract",
+                model=model,
+                duration_ms=duration_ms,
+                result_kind=parsed.get("kind"),
+                result="parsed",
+            )
+            obs_or_noop(self.observability).increment(
+                "arbor_llm_requests_total",
+                operation="extract",
+                model=model,
+                result="success",
+            )
         return parsed
 
     def summarize(self, dialogue: str, prior: str = "") -> str | None:
@@ -65,7 +119,7 @@ class DeepSeekReasoner:
         key = chat_api_key()
         if not key:
             return None
-        model = reasoner_model()
+        model = self.observability_model
         system = (
             "你是会话摘要器。把最近对话压缩成 2-4 句中文摘要，保留事实、约定与情绪转折。"
             "不要编造。若与旧摘要冲突，以最新对话为准。"
@@ -84,19 +138,47 @@ class DeepSeekReasoner:
         }
         if "reasoner" not in model:
             payload["temperature"] = 0.2
+        started = time.perf_counter()
         try:
-            response = httpx.post(
-                f"{chat_base_url()}/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json=payload,
-                timeout=self.timeout,
-            )
+            with observed_llm_call(self.observability, operation="summarize", model=model):
+                response = httpx.post(
+                    f"{chat_base_url()}/chat/completions",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=self.timeout,
+                )
         except httpx.HTTPError:
             return None
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
         if response.status_code >= 400:
             return None
         try:
-            return str(response.json()["choices"][0]["message"]["content"]).strip()
+            body = response.json()
+            content = str(body["choices"][0]["message"]["content"]).strip()
+            usage = body.get("usage") or {}
+            record_llm_usage(
+                self.observability,
+                operation="summarize",
+                model=model,
+                input_tokens=usage.get("prompt_tokens"),
+                output_tokens=usage.get("completion_tokens"),
+            )
+            if self.observability is not None:
+                from arbor.observability.helpers import obs_or_noop
+
+                obs_or_noop(self.observability).event(
+                    "llm.summarize",
+                    model=model,
+                    duration_ms=duration_ms,
+                    result="success",
+                )
+                obs_or_noop(self.observability).increment(
+                    "arbor_llm_requests_total",
+                    operation="summarize",
+                    model=model,
+                    result="success",
+                )
+            return content
         except (KeyError, IndexError, TypeError, ValueError):
             return None
 

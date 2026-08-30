@@ -1,6 +1,6 @@
-from contextlib import asynccontextmanager
 import logging
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -10,12 +10,17 @@ from fastapi.staticfiles import StaticFiles
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
 from arbor.adapters.inbound.http.errors import error_response
-from arbor.adapters.inbound.http.observability_middleware import bind_request_context, register_observability_middleware
-from arbor.adapters.inbound.http.register_observability import ObservabilityHttpDeps, register_observability_routes
+from arbor.adapters.inbound.http.observability_middleware import (
+    register_observability_middleware,
+)
 from arbor.adapters.inbound.http.register_audit import AuditHttpDeps, register_audit_routes
 from arbor.adapters.inbound.http.register_auth import AuthHttpDeps, register_auth_routes
 from arbor.adapters.inbound.http.register_eval import EvalHttpDeps, register_eval_routes
 from arbor.adapters.inbound.http.register_feishu import FeishuHttpDeps, register_feishu_routes
+from arbor.adapters.inbound.http.register_observability import (
+    ObservabilityHttpDeps,
+    register_observability_routes,
+)
 from arbor.adapters.inbound.http.register_personas import PersonaHttpDeps, register_persona_routes
 from arbor.adapters.inbound.http.register_tenants import TenantHttpDeps, register_tenant_routes
 from arbor.adapters.inbound.http.register_threads import ThreadHttpDeps, register_thread_routes
@@ -43,22 +48,23 @@ from arbor.adapters.outbound.inmemory import (
 )
 from arbor.adapters.outbound.job_queue import ArqJobQueue, arq_redis_settings
 from arbor.adapters.outbound.job_queue_holder import JobQueueHolder
+from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
 from arbor.adapters.outbound.object_storage import build_object_storage, object_store_label
+from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
+from arbor.adapters.outbound.postgres.decision_traces import PgDecisionTraceRepository
+from arbor.adapters.outbound.postgres.eval_runs import (
+    InMemoryEvalRunRepository,
+    PgEvalRunRepository,
+)
+from arbor.adapters.outbound.postgres.import_jobs import (
+    InMemoryImportJobRepository,
+    PgImportJobRepository,
+)
 from arbor.adapters.outbound.tools.credential_store import FileFeishuCredentialStore
 from arbor.adapters.outbound.tools.feishu_calendar import FeishuCalendarTool, StubCalendarTool
 from arbor.adapters.outbound.tools.feishu_client import FeishuClient
 from arbor.adapters.outbound.tools.http_ticket import HttpTicketTool
 from arbor.adapters.outbound.tools.stub_ticket import StubTicketTool
-from arbor.adapters.outbound.postgres.auth_sessions import PgAuthSessionStore
-from arbor.adapters.outbound.postgres.eval_runs import (
-    InMemoryEvalRunRepository,
-    PgEvalRunRepository,
-)
-from arbor.adapters.outbound.postgres.decision_traces import PgDecisionTraceRepository
-from arbor.adapters.outbound.postgres.import_jobs import (
-    InMemoryImportJobRepository,
-    PgImportJobRepository,
-)
 from arbor.application.audit.commands import RecordAudit
 from arbor.application.audit.queries import ListAuditLogs
 from arbor.application.conversation.send_message import SendMessage
@@ -83,30 +89,36 @@ from arbor.application.identity.commands import (
 )
 from arbor.application.memory.bootstrap_from_inbox import BootstrapFromInbox
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
-from arbor.adapters.outbound.multimodal.factory import parse_media_bytes
-from arbor.application.memory.media_to_inbox import MediaToInbox
-from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
+from arbor.application.memory.media_to_inbox import MediaToInbox
+from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
-from arbor.observability.runtime import build_observability
-from arbor.domain.identity.tenant import Role
 from arbor.domain.errors import DomainError
+from arbor.domain.identity.tenant import Role
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
-from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, redis_url as env_redis_url, strict_tenant_membership
 from arbor.env import (
     calendar_backend,
+    chat_api_key,
+    data_dir,
+    demo_tokens_disabled,
     feishu_app_id,
     feishu_app_secret,
     feishu_redirect_uri,
     feishu_web_success_url,
+    strict_tenant_membership,
     ticket_api_key,
     ticket_api_url,
     ticket_backend,
 )
+from arbor.env import redis_url as env_redis_url
+from arbor.observability.cleanup import cleanup_expired_traces
+from arbor.observability.dependency import ObservedObjectStorage
+from arbor.observability.instrumentation import instrument_fastapi, instrument_httpx
+from arbor.observability.runtime import build_observability
 from arbor.paths import repo_root
 
 from .demo_auth import (
@@ -292,6 +304,11 @@ def create_app(
         resolved_embed = FixtureEmbeddingClient()
     eval_backend = "postgres" if database_url else "memory"
     observability = build_observability()
+    instrument_httpx()
+    if isinstance(llm, DeepSeekChatLLM):
+        llm.observability = observability
+    if isinstance(reasoner, DeepSeekReasoner):
+        reasoner.observability = observability
     decision_traces = None
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
@@ -352,7 +369,10 @@ def create_app(
         auth_sessions = InMemoryAuthSessionStore(static_tokens)
     ids = SeqIdGenerator(start=_highest_seq_id(session) if session is not None else 0)
     record_audit = RecordAudit(logs=audit_logs, ids=ids, clock=FixedClock())
-    storage = build_object_storage(session=session, stores=stores)
+    storage = ObservedObjectStorage(
+        build_object_storage(session=session, stores=stores),
+        observability,
+    )
     calendar_tool, feishu_client, feishu_credentials = _build_calendar_stack()
     ticket_tool = _build_ticket_tool()
     vision_enrich = (
@@ -389,14 +409,21 @@ def create_app(
         auth=AuthorizationPolicy(),
         events=events,
         audit=record_audit,
+        observability=observability,
     )
-    dismiss = DismissInboxItem(personas=personas, inbox=inbox, auth=AuthorizationPolicy())
+    dismiss = DismissInboxItem(
+        personas=personas,
+        inbox=inbox,
+        auth=AuthorizationPolicy(),
+        observability=observability,
+    )
     delete_memory = DeleteMemory(
         personas=personas,
         memories=memories,
         vectors=vectors,
         auth=AuthorizationPolicy(),
         storage=storage,
+        observability=observability,
     )
     bootstrap_inbox = BootstrapFromInbox(
         personas=personas,
@@ -425,12 +452,14 @@ def create_app(
         reasoner=reasoner or ScriptedReasoner(),
         memories=memories,
         parse_media=parse_media_bytes,
+        observability=observability,
     )
     process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
     run_import = RunImportJob(
         import_jobs=import_jobs,
         storage=storage,
         process_import=process_import,
+        observability=observability,
     )
     submit_import = SubmitImportJob(
         personas=personas,
@@ -439,6 +468,7 @@ def create_app(
         ids=ids,
         auth=AuthorizationPolicy(),
         audit=record_audit,
+        observability=observability,
     )
     job_queue_holder = JobQueueHolder(run_import)
     list_memories = ListMemories(personas=personas, memories=memories, auth=AuthorizationPolicy())
@@ -569,6 +599,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        cleanup_expired_traces(decision_traces)
         pool = None
         if redis_url:
             from arq.connections import create_pool
@@ -582,6 +613,7 @@ def create_app(
 
     app = FastAPI(lifespan=lifespan)
     register_observability_middleware(app, observability)
+    instrument_fastapi(app)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=os.environ.get("ARBOR_CORS_ORIGINS", "*").split(","),
@@ -816,8 +848,11 @@ def create_app(
             redis_url=redis_url or env_redis_url() or None,
             object_store_backend=object_store_backend,
             decision_traces=decision_traces,
+            inbox=inbox,
+            import_jobs=import_jobs,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
+            record_audit=record_audit,
         ),
     )
 
@@ -828,13 +863,14 @@ def create_app(
 def create_app_from_env() -> FastAPI:
     import logging
 
-    from arbor.env import chat_api_key
+    import arbor.env as env
     from arbor.env import database_url as env_database_url
-    from arbor.env import job_queue_backend, redis_url as env_redis_url
+    from arbor.env import job_queue_backend
+    from arbor.env import redis_url as env_redis_url
 
     llm = None
     reasoner = None
-    if chat_api_key():
+    if env.chat_api_key():
         llm = DeepSeekChatLLM()
         reasoner = DeepSeekReasoner()
     url = env_database_url() or None

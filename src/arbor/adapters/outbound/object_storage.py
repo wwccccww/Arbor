@@ -43,6 +43,10 @@ def build_object_storage(
 
 
 def object_store_label(storage: object) -> str:
+    from arbor.observability.dependency import ObservedObjectStorage
+
+    if isinstance(storage, ObservedObjectStorage):
+        return object_store_label(storage._inner)
     if isinstance(storage, S3ObjectStorage):
         return "s3"
     if isinstance(storage, PgBlobObjectStorage):

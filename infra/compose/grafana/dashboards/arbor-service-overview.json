@@ -1,0 +1,93 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_http_requests_total[5m]))",
+          "legendFormat": "HTTP QPS",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP QPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_chat_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "Chat P95",
+          "refId": "A"
+        }
+      ],
+      "title": "Chat latency P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "arbor_inbox_pending",
+          "legendFormat": "pending",
+          "refId": "A"
+        }
+      ],
+      "title": "Inbox pending",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "arbor_import_jobs_in_progress",
+          "legendFormat": "running",
+          "refId": "A"
+        }
+      ],
+      "title": "Import jobs in progress",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "min(arbor_dependency_up)",
+          "legendFormat": "dependencies",
+          "refId": "A"
+        }
+      ],
+      "title": "Dependency health",
+      "type": "stat"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["arbor"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Arbor Service Overview",
+  "uid": "arbor-service-overview",
+  "version": 1
+}
