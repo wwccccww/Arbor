@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 
+from arbor.application.memory.validity import is_memory_expired
 from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
@@ -42,6 +43,8 @@ def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
         allowed_classes = {str(value) for value in memory_classes}
         if item.memory_class is None or item.memory_class.value not in allowed_classes:
             return False
+    if is_memory_expired(item):
+        return False
     return True
 
 

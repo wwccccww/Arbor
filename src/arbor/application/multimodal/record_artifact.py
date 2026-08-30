@@ -54,6 +54,12 @@ class RecordArtifactEvidence:
         if Capability.WRITE_MEMORY not in self.auth.capabilities_for(persona, user_id):
             raise DomainError("FORBIDDEN", "write_memory required")
 
+        if not supersedes:
+            for prior in self.artifacts.list_for_persona(tenant_id, persona_id, limit=200):
+                if prior.object_uri == object_uri and prior.status == "active":
+                    supersedes = prior.id
+                    break
+
         if supersedes:
             prior = self.artifacts.get(tenant_id, supersedes)
             if prior is not None:

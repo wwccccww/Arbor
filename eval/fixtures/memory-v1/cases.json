@@ -1,0 +1,47 @@
+{
+  "suite_version": "memory-v1",
+  "description": "Deterministic memory lifecycle checks for agent memory gates.",
+  "cases": [
+    {
+      "id": "expired-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_expired",
+      "memory_id": "mem-expired-001",
+      "text": "过期政策：不可检索",
+      "valid_until": "2020-01-01T00:00:00Z",
+      "query": "过期政策"
+    },
+    {
+      "id": "superseded-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_superseded",
+      "active_id": "mem-active-001",
+      "superseded_id": "mem-super-001",
+      "active_text": "现行退货政策",
+      "superseded_text": "旧退货政策",
+      "query": "退货政策"
+    },
+    {
+      "id": "delete-completeness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "delete_removes_vector",
+      "memory_id": "mem-delete-001",
+      "text": "待删除事实",
+      "query": "待删除事实"
+    },
+    {
+      "id": "consolidation-reduces-duplicates",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "consolidate_episodic",
+      "episodes": [
+        {"id": "ep-a", "text": "林夏讨厌香菜"},
+        {"id": "ep-b", "text": "林夏不喜欢香菜"}
+      ]
+    }
+  ]
+}

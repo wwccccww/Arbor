@@ -1,0 +1,10 @@
+{
+  "suite_version": "memory-v1",
+  "gate_pass_rate": 1.0,
+  "cases": [
+    {"id": "expired-excluded", "ok": true},
+    {"id": "superseded-excluded", "ok": true},
+    {"id": "delete-completeness", "ok": true},
+    {"id": "consolidation-reduces-duplicates", "ok": true}
+  ]
+}
