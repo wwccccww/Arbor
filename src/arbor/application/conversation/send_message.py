@@ -18,6 +18,7 @@ from arbor.domain.memory.memory import InboxItem, MemoryItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.env import tool_mode
+from arbor.observability.content_capture import build_encrypted_content_sample
 from arbor.observability.context import current_request_context
 from arbor.observability.decision_trace import (
     build_decision_trace_summary,
@@ -68,6 +69,30 @@ class SendMessage:
         label = getattr(self.llm, "observability_model", None)
         return str(label) if label else "scripted"
 
+    def _record_llm_chat_metrics(self, *, model: str, duration_ms: float, stream: str) -> None:
+        obs = self._obs()
+        obs.event(
+            "llm.chat",
+            model=model,
+            stream=stream,
+            duration_ms=duration_ms,
+            result="success",
+            input_tokens=getattr(self.llm, "last_input_tokens", None),
+            output_tokens=getattr(self.llm, "last_output_tokens", None),
+        )
+        if model != "scripted":
+            from arbor.observability.llm import record_llm_usage
+
+            record_llm_usage(
+                obs,
+                operation="chat",
+                model=model,
+                input_tokens=getattr(self.llm, "last_input_tokens", None),
+                output_tokens=getattr(self.llm, "last_output_tokens", None),
+                first_token_ms=getattr(self.llm, "last_first_token_ms", None),
+            )
+            obs.increment("arbor_llm_requests_total", operation="chat", model=model, result="success")
+
     def __call__(
         self,
         *,
@@ -106,13 +131,7 @@ class SendMessage:
                     injected_memory_ids=list(ctx.slots.injected_memory_ids),
                 )
                 ctx.llm_duration_ms = round((time.perf_counter() - llm_started) * 1000, 2)
-                obs.event(
-                    "llm.chat",
-                    model=model,
-                    stream="false",
-                    duration_ms=ctx.llm_duration_ms,
-                    result="success",
-                )
+                self._record_llm_chat_metrics(model=model, duration_ms=ctx.llm_duration_ms, stream="false")
                 llm_out = self._maybe_llm_tool_round(ctx, llm_out)
                 return self._finish(ctx, llm_out)
         except Exception:
@@ -201,13 +220,7 @@ class SendMessage:
                         yield chunk
 
                 ctx.llm_duration_ms = round((time.perf_counter() - llm_started) * 1000, 2)
-                obs.event(
-                    "llm.chat",
-                    model=model,
-                    stream="true",
-                    duration_ms=ctx.llm_duration_ms,
-                    result="success",
-                )
+                self._record_llm_chat_metrics(model=model, duration_ms=ctx.llm_duration_ms, stream="true")
                 merged = dict(parsed or {})
                 merged["text"] = merged.get("text", "") or "".join(deltas)
                 citations = [c for c in (merged.get("citations") or []) if c in ctx.slots.injected_memory_ids]
@@ -291,11 +304,17 @@ class SendMessage:
         for source, count in (retrieval_meta.get("per_source_counts") or {}).items():
             if int(count or 0) > 0:
                 obs.increment("arbor_rag_hits_total", float(count), source=str(source))
-        obs.event(
-            "rag.retrieve",
+        with obs.span("rag.retrieve", strategy=strategy, hit_count=hit_count):
+            obs.event(
+                "rag.retrieve",
+                strategy=strategy,
+                hit_count=hit_count,
+                per_source_counts=retrieval_meta.get("per_source_counts") or {},
+            )
+        obs.observe(
+            "arbor_rag_retrieval_duration_seconds",
+            time.perf_counter() - compile_started,
             strategy=strategy,
-            hit_count=hit_count,
-            per_source_counts=retrieval_meta.get("per_source_counts") or {},
         )
         for note in compiled.truncation_notes:
             reason = str(note).split(":", 1)[0]
@@ -380,6 +399,7 @@ class SendMessage:
             query_text=ctx.llm_text,
             calendar_tool=self.calendar_tool,
             ticket_tool=self.ticket_tool,
+            observability=self.observability,
         )
         if not extra:
             return llm_out
@@ -447,10 +467,9 @@ class SendMessage:
             "model": model,
             "latency_ms": ctx.llm_duration_ms,
             "citation_ids": list(citations),
+            "input_tokens": getattr(self.llm, "last_input_tokens", None),
+            "output_tokens": getattr(self.llm, "last_output_tokens", None),
         }
-        if model != "scripted":
-            obs = self._obs()
-            obs.increment("arbor_llm_requests_total", operation="chat", model=model, result="success")
         decision_summary = build_decision_trace_summary(
             retrieval_meta=dict(ctx.compiled.retrieval_meta),
             token_budget=ctx.compiled.token_budget,
@@ -462,20 +481,29 @@ class SendMessage:
         )
         if self.decision_traces is not None:
             now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-            self.decision_traces.save(
-                {
-                    "id": self.ids.new_id(),
-                    "request_id": request_id,
-                    "tenant_id": ctx.tenant_id.value,
-                    "persona_id": ctx.persona_id.value,
-                    "thread_id": ctx.thread.id.value,
-                    "message_id": assistant_message_id,
-                    "trace_version": 1,
-                    "summary_json": decision_summary,
-                    "created_at": now,
-                    "expires_at": decision_trace_expires_at(decision_trace_retention_days()),
-                }
+            encrypted_payload, content_sampled = build_encrypted_content_sample(
+                tenant_id=ctx.tenant_id.value,
+                user_message=ctx.text,
+                model_response=llm_out.get("text", ""),
+                prompt_slots=ctx.prompt_slots,
+                reasoning_content=getattr(self.llm, "last_reasoning_content", None)
+                or getattr(self.reasoner, "last_reasoning_content", None),
             )
+            entry = {
+                "id": self.ids.new_id(),
+                "request_id": request_id,
+                "tenant_id": ctx.tenant_id.value,
+                "persona_id": ctx.persona_id.value,
+                "thread_id": ctx.thread.id.value,
+                "message_id": assistant_message_id,
+                "trace_version": 1,
+                "summary_json": decision_summary,
+                "created_at": now,
+                "expires_at": decision_trace_expires_at(decision_trace_retention_days()),
+                "encrypted_payload": encrypted_payload,
+                "content_sampled": content_sampled,
+            }
+            self.decision_traces.save(entry)
         return {
             "message_id": assistant_message_id,
             "request_id": request_id,

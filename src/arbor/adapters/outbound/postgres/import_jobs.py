@@ -116,6 +116,13 @@ class PgImportJobRepository:
             "chunks_parsed": int(row.get("chunks_parsed") or 0),
         }
 
+    def count_by_status(self, status: str) -> int:
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS n FROM import_jobs WHERE status = %s",
+            (status,),
+        ).fetchone()
+        return int(row["n"] if row else 0)
+
 
 class InMemoryImportJobRepository:
     def __init__(self) -> None:
@@ -160,3 +167,6 @@ class InMemoryImportJobRepository:
         if job is None or job.get("tenant_id") != tenant_id:
             return None
         return dict(job)
+
+    def count_by_status(self, status: str) -> int:
+        return sum(1 for job in self._jobs.values() if job.get("status") == status)

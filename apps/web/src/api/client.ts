@@ -21,6 +21,7 @@ import type {
   PersonaGrant,
   PersonaPatch,
   DecisionTrace,
+  DebugRequest,
   RetrievalMeta,
   StreamEvent,
   ToolResult,
@@ -679,6 +680,20 @@ export function createClient(
 
     async disconnectFeishu(): Promise<void> {
       await request('/me/feishu/disconnect', { method: 'DELETE' })
+    },
+
+    async getDebugRequest(requestId: string): Promise<DebugRequest> {
+      return (await request(`/debug/requests/${encodeURIComponent(requestId)}`)) as DebugRequest
+    },
+
+    async getDebugRequestContent(requestId: string): Promise<{ content: Record<string, unknown> }> {
+      return (await request(`/debug/requests/${encodeURIComponent(requestId)}/content`)) as {
+        content: Record<string, unknown>
+      }
+    },
+
+    async deleteDebugRequest(requestId: string): Promise<void> {
+      await request(`/debug/requests/${encodeURIComponent(requestId)}`, { method: 'DELETE' })
     },
   }
 }

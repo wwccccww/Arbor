@@ -39,7 +39,23 @@ async def sweep_object_blobs(_ctx) -> dict:
         session.close()
 
 
+async def cleanup_decision_traces(_ctx) -> dict:
+    from arbor.env import database_url
+    from arbor.observability.cleanup import cleanup_expired_traces
+
+    if not database_url():
+        return {"deleted": 0, "skipped": "no database"}
+    from arbor.adapters.outbound.postgres import PostgresSession
+
+    session = PostgresSession.connect(database_url())
+    try:
+        deleted = cleanup_expired_traces(session.decision_traces)
+        return {"deleted": deleted}
+    finally:
+        session.close()
+
+
 class WorkerSettings:
-    functions = [process_import_job, sweep_object_blobs]
+    functions = [process_import_job, sweep_object_blobs, cleanup_decision_traces]
     redis_settings = RedisSettings.from_dsn(redis_url() or "redis://127.0.0.1:6379/0")
     job_timeout = 600

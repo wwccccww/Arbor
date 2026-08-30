@@ -172,6 +172,12 @@ class InMemoryInboxRepository:
             if i.tenant_id == tenant_id and i.persona_id == persona_id and i.status == "pending"
         ]
 
+    def count_pending(self, tenant_id: TenantId | None = None) -> int:
+        items = self.stores.inbox.values()
+        if tenant_id is not None:
+            items = [item for item in items if item.tenant_id == tenant_id]
+        return sum(1 for item in items if item.status == "pending")
+
     def save(self, item: InboxItem) -> None:
         self.stores.inbox[item.id] = item
 
@@ -456,6 +462,27 @@ class InMemoryDecisionTraceRepository:
             if item.get("tenant_id") == tenant_id and item.get("request_id") == request_id:
                 return dict(item)
         return None
+
+    def delete_by_request_id(self, tenant_id: str, request_id: str) -> bool:
+        before = len(self.stores.decision_traces)
+        self.stores.decision_traces = [
+            item
+            for item in self.stores.decision_traces
+            if not (item.get("tenant_id") == tenant_id and item.get("request_id") == request_id)
+        ]
+        return len(self.stores.decision_traces) < before
+
+    def delete_expired(self, now_iso: str) -> int:
+        kept: list[dict] = []
+        deleted = 0
+        for item in self.stores.decision_traces:
+            expires_at = item.get("expires_at")
+            if expires_at and str(expires_at) <= now_iso:
+                deleted += 1
+            else:
+                kept.append(item)
+        self.stores.decision_traces = kept
+        return deleted
 
 
 class FixedClock:

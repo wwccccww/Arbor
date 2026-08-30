@@ -1,25 +1,35 @@
 from __future__ import annotations
 
 import json
+import time
 
 import httpx
 
 from arbor.domain.conversation.stream import StreamFinished, extract_text_delta, parse_model_out
 from arbor.env import chat_api_key, chat_base_url, chat_model
+from arbor.observability.helpers import http_status_class
+from arbor.observability.llm import observed_llm_call, record_llm_usage
 
 
 class DeepSeekUnavailable(RuntimeError):
-    pass
+    def __init__(self, message: str, *, status_code: int = 503) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class DeepSeekChatLLM:
     """Chat completion adapter. Does not log the API key."""
 
-    def __init__(self, *, timeout: float = 60.0) -> None:
+    def __init__(self, *, timeout: float = 60.0, observability: object | None = None) -> None:
         self.timeout = timeout
+        self.observability = observability
         self.last_injected: list[str] = []
         self.last_slots: dict | None = None
         self.observability_model = chat_model()
+        self.last_input_tokens: int | None = None
+        self.last_output_tokens: int | None = None
+        self.last_reasoning_content: str | None = None
+        self.last_first_token_ms: float | None = None
 
     def complete(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]) -> dict:
         key = chat_api_key()
@@ -36,26 +46,49 @@ class DeepSeekChatLLM:
             "temperature": 0.2,
             "max_tokens": 2048,
         }
-        response = httpx.post(
-            f"{chat_base_url()}/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=self.timeout,
-        )
-        if response.status_code >= 400:
-            raise DeepSeekUnavailable(f"deepseek HTTP {response.status_code}")
-        content = response.json()["choices"][0]["message"]["content"]
+        model = self.observability_model
+        with observed_llm_call(self.observability, operation="chat", model=model, stream="false"):
+            response = httpx.post(
+                f"{chat_base_url()}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout,
+            )
+            if response.status_code >= 400:
+                err = DeepSeekUnavailable(f"deepseek HTTP {response.status_code}", status_code=response.status_code)
+                if self.observability is not None:
+                    from arbor.observability.helpers import obs_or_noop
+
+                    obs_or_noop(self.observability).increment(
+                        "arbor_llm_upstream_errors_total",
+                        operation="chat",
+                        status_class=http_status_class(response.status_code),
+                    )
+                raise err
+            body = response.json()
+            message = body["choices"][0]["message"]
+            content = message["content"]
+            self._capture_usage(body, message)
+            record_llm_usage(
+                self.observability,
+                operation="chat",
+                model=model,
+                input_tokens=self.last_input_tokens,
+                output_tokens=self.last_output_tokens,
+            )
+            if self.observability is not None:
+                from arbor.observability.helpers import obs_or_noop
+
+                obs_or_noop(self.observability).increment(
+                    "arbor_llm_requests_total",
+                    operation="chat",
+                    model=model,
+                    result="success",
+                )
         return parse_model_out(content)
 
     def complete_stream(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]):
-        """Stream the ``text`` portion of the model reply, token by token.
-
-        The model is instructed to emit a JSON envelope; the streamed deltas are
-        that envelope. We extract only the human-readable ``text`` field and
-        yield it incrementally, so the UI can typewriter-render it. After the
-        stream closes we yield a :class:`StreamFinished` sentinel carrying the
-        raw envelope, so the caller can parse ``citations`` reliably.
-        """
+        """Stream the ``text`` portion of the model reply, token by token."""
         key = chat_api_key()
         if not key:
             raise DeepSeekUnavailable("DEEPSEEK_API_KEY missing")
@@ -73,33 +106,74 @@ class DeepSeekChatLLM:
         }
         buffer = ""
         emitted = 0
-        with httpx.stream(
-            "POST",
-            f"{chat_base_url()}/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=self.timeout,
-        ) as response:
-            if response.status_code >= 400:
-                raise DeepSeekUnavailable(f"deepseek HTTP {response.status_code}")
-            for line in response.iter_lines():
-                if not line or not line.startswith("data:"):
-                    continue
-                data = line[len("data:") :].strip()
-                if data == "[DONE]":
-                    break
-                try:
-                    delta = json.loads(data)["choices"][0]["delta"].get("content", "")
-                except (KeyError, IndexError, json.JSONDecodeError):
-                    continue
-                if not delta:
-                    continue
-                buffer += delta
-                current = extract_text_delta(buffer)
-                if len(current) > emitted:
-                    yield current[emitted:]
-                    emitted = len(current)
+        model = self.observability_model
+        started = time.perf_counter()
+        first_token_at: float | None = None
+        with (
+            observed_llm_call(self.observability, operation="chat", model=model, stream="true"),
+            httpx.stream(
+                "POST",
+                f"{chat_base_url()}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout,
+            ) as response,
+        ):
+                if response.status_code >= 400:
+                    raise DeepSeekUnavailable(
+                        f"deepseek HTTP {response.status_code}",
+                        status_code=response.status_code,
+                    )
+                for line in response.iter_lines():
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data = line[len("data:") :].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk["choices"][0]["delta"].get("content", "")
+                        usage = chunk.get("usage")
+                        if usage:
+                            self.last_input_tokens = usage.get("prompt_tokens")
+                            self.last_output_tokens = usage.get("completion_tokens")
+                    except (KeyError, IndexError, json.JSONDecodeError):
+                        continue
+                    if not delta:
+                        continue
+                    if first_token_at is None:
+                        first_token_at = time.perf_counter()
+                        self.last_first_token_ms = round((first_token_at - started) * 1000, 2)
+                    buffer += delta
+                    current = extract_text_delta(buffer)
+                    if len(current) > emitted:
+                        yield current[emitted:]
+                        emitted = len(current)
+        record_llm_usage(
+            self.observability,
+            operation="chat",
+            model=model,
+            input_tokens=self.last_input_tokens,
+            output_tokens=self.last_output_tokens,
+            first_token_ms=self.last_first_token_ms,
+        )
+        if self.observability is not None:
+            from arbor.observability.helpers import obs_or_noop
+
+            obs_or_noop(self.observability).increment(
+                "arbor_llm_requests_total",
+                operation="chat",
+                model=model,
+                result="success",
+            )
         yield StreamFinished(buffer)
+
+    def _capture_usage(self, body: dict, message: dict) -> None:
+        usage = body.get("usage") or {}
+        self.last_input_tokens = usage.get("prompt_tokens")
+        self.last_output_tokens = usage.get("completion_tokens")
+        reasoning = message.get("reasoning_content")
+        self.last_reasoning_content = str(reasoning) if reasoning else None
 
 
 def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:

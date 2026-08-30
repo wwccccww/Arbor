@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 
 from arbor.application.memory.media_to_inbox import MediaInboxResult
@@ -7,6 +8,9 @@ from arbor.application.storage.object_gc import delete_stored_object
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+from arbor.domain.shared.media_kinds import media_kind_for_filename
+from arbor.observability.helpers import size_bucket
+from arbor.observability.noop import NoopObservability
 from arbor.ports.outbound import IdGenerator, ObjectStorage, PersonaRepository
 
 
@@ -22,6 +26,7 @@ class SubmitImportJob:
         ids: IdGenerator,
         auth: AuthorizationPolicy,
         audit: Callable | None = None,
+        observability: object | None = None,
     ) -> None:
         self.personas = personas
         self.storage = storage
@@ -29,6 +34,10 @@ class SubmitImportJob:
         self.ids = ids
         self.auth = auth
         self.audit = audit
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(
         self,
@@ -40,6 +49,7 @@ class SubmitImportJob:
         data: bytes,
         hint: str | None = None,
         capabilities: list[Capability] | None = None,
+        execution_mode: str = "sync",
     ) -> dict:
         persona = self.personas.get(tenant_id, persona_id)
         caps = capabilities or (self.auth.capabilities_for(persona, user_id) if persona else [])
@@ -63,6 +73,15 @@ class SubmitImportJob:
             "error": None,
         }
         self.import_jobs.save(job)
+        media_kind = media_kind_for_filename(safe_name).value
+        obs = self._obs()
+        obs.event(
+            "import.submitted",
+            media_kind=media_kind,
+            size_bucket=size_bucket(len(data)),
+            execution_mode=execution_mode,
+        )
+        obs.increment("arbor_import_jobs_total", parser="pending", status="pending")
         if self.audit:
             self.audit(
                 tenant_id=tenant_id,
@@ -79,10 +98,14 @@ class SubmitImportJob:
 class RunImportJob:
     """Worker: read stored bytes, parse into Inbox, finalize job status."""
 
-    def __init__(self, *, import_jobs, storage, process_import) -> None:
+    def __init__(self, *, import_jobs, storage, process_import, observability: object | None = None) -> None:
         self.import_jobs = import_jobs
         self.storage = storage
         self.process_import = process_import
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(self, payload: dict) -> None:
         job_id = str(payload["job_id"])
@@ -108,6 +131,11 @@ class RunImportJob:
             error=None,
         )
         data = self.storage.get(object_uri) or b""
+        started = time.perf_counter()
+        parser = "unknown"
+        status = "failed"
+        chunks_parsed = 0
+        obs = self._obs()
         try:
             from arbor.domain.persona.authorization import Capability
             from arbor.domain.shared.ids import PersonaId, TenantId
@@ -123,12 +151,12 @@ class RunImportJob:
             )
             if isinstance(result, MediaInboxResult):
                 inbox_created = result.inbox_created
-                parser = result.parser
+                parser = result.parser or "unknown"
                 media_kind = result.media_kind
                 chunks_parsed = result.chunks_parsed
             else:
                 inbox_created = int(result)
-                parser = None
+                parser = "unknown"
                 media_kind = None
                 chunks_parsed = inbox_created
             self.import_jobs.update(
@@ -142,6 +170,7 @@ class RunImportJob:
                 media_kind=media_kind,
                 chunks_parsed=chunks_parsed,
             )
+            status = "completed"
         except Exception as exc:
             self.import_jobs.update(
                 job_id,
@@ -150,5 +179,16 @@ class RunImportJob:
                 error=str(exc),
                 finished=True,
             )
+            status = "failed"
         finally:
+            duration = time.perf_counter() - started
+            obs.event(
+                "import.process",
+                parser=parser,
+                chunk_count=chunks_parsed if status == "completed" else 0,
+                result=status,
+                duration_ms=round(duration * 1000, 2),
+            )
+            obs.increment("arbor_import_jobs_total", parser=parser, status=status)
+            obs.observe("arbor_import_job_duration_seconds", duration, parser=parser, status=status)
             delete_stored_object(self.storage, object_uri)

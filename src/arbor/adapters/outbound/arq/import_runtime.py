@@ -41,6 +41,7 @@ def build_import_job_runtime(
     database_url: str | None = None,
     embed=None,
     reasoner=None,
+    observability: object | None = None,
 ) -> ImportJobRuntime:
     if embed is not None:
         resolved_embed = embed
@@ -85,11 +86,13 @@ def build_import_job_runtime(
         reasoner=reasoner or ScriptedReasoner(),
         memories=memories,
         parse_media=parse_media_bytes,
+        observability=observability,
     )
     process_import = ProcessImportJob(media_to_inbox=media_to_inbox)
     run_import = RunImportJob(
         import_jobs=import_jobs,
         storage=storage,
         process_import=process_import,
+        observability=observability,
     )
     return ImportJobRuntime(import_jobs=import_jobs, run_import=run_import)

@@ -137,7 +137,21 @@ export type DecisionTrace = {
     model?: string
     latency_ms?: number
     citation_ids?: string[]
+    input_tokens?: number | null
+    output_tokens?: number | null
   }
+}
+
+export type DebugRequest = {
+  request_id: string
+  tenant_id: string
+  persona_id?: string | null
+  thread_id?: string | null
+  message_id?: string | null
+  created_at?: string | null
+  expires_at?: string | null
+  content_sampled?: boolean
+  decision_trace: DecisionTrace
 }
 
 export type ChatAttachment = {

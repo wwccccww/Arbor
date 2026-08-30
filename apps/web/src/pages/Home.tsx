@@ -22,6 +22,7 @@ export function Home({
   onOpenInbox,
   onCheckup,
   onAudit,
+  onDebug,
   onCreate,
   onImportChat,
   onInvite,
@@ -47,6 +48,7 @@ export function Home({
   onOpenInbox?: (personaId: string) => void
   onCheckup: () => void
   onAudit?: () => void
+  onDebug?: () => void
   onCreate?: (draft: PersonaDraft, bootstrapFile?: File) => void
   onImportChat?: (personaId: string, file: File) => void
   onInvite?: (email: string, role: string) => void
@@ -71,6 +73,11 @@ export function Home({
           {onAudit ? (
             <button type="button" className="btn--ghost" onClick={onAudit}>
               审计日志
+            </button>
+          ) : null}
+          {onDebug ? (
+            <button type="button" className="btn--ghost" onClick={onDebug}>
+              请求调试
             </button>
           ) : null}
           {email ? <span className="topbar__user">{email}</span> : null}

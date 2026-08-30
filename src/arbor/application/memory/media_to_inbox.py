@@ -8,6 +8,7 @@ from arbor.application.memory.conflict_detection import enrich_inbox_extract
 from arbor.domain.memory.memory import InboxItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
+from arbor.observability.noop import NoopObservability
 
 
 @dataclass
@@ -31,6 +32,7 @@ class MediaToInbox:
         reasoner=None,
         memories=None,
         parse_media: Callable[[bytes, str], Any] | None = None,
+        observability: object | None = None,
     ) -> None:
         self.personas = personas
         self.inbox = inbox
@@ -39,6 +41,10 @@ class MediaToInbox:
         self.reasoner = reasoner
         self.memories = memories
         self.parse_media = parse_media
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(
         self,
@@ -98,6 +104,12 @@ class MediaToInbox:
                             conflicts_with=conflicts_with,
                         )
                     )
+                    self._obs().event(
+                        "inbox.created",
+                        kind=kind_name,
+                        conflict=bool(conflicts_with),
+                        count=1,
+                    )
                     return MediaInboxResult(
                         inbox_created=1,
                         parser="reasoner",
@@ -137,6 +149,8 @@ class MediaToInbox:
         active_memories: list,
     ) -> int:
         created = 0
+        conflicts_with = None
+        kind = "fact"
         for chunk in parsed.chunks:
             if not (chunk.text or "").strip():
                 continue
@@ -193,4 +207,11 @@ class MediaToInbox:
                 )
             )
             created += 1
+        if created:
+            self._obs().event(
+                "inbox.created",
+                kind=kind if created == 1 else "batch",
+                conflict=bool(conflicts_with),
+                count=created,
+            )
         return created

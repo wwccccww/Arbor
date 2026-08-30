@@ -1,0 +1,34 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: arbor
+    folder: Arbor
+    interval: 1m
+    rules:
+      - uid: arbor-high-5xx
+        title: Arbor HTTP 5xx rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(arbor_http_requests_total{status_class="5xx"}[5m])) / sum(rate(arbor_http_requests_total[5m]))
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0.01]
+                    type: gt
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: HTTP 5xx above 1%

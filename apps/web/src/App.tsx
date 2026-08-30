@@ -4,6 +4,7 @@ import type { AuthTokens } from './api/types'
 import { clearSession, DEMO_TENANT, loadSession, pickTenantId, saveSession, type Session } from './session'
 import { AuditLogs } from './pages/AuditLogs'
 import { Checkup } from './pages/Checkup'
+import { DebugPage } from './pages/DebugPage'
 import { Home } from './pages/Home'
 import { InboxPage } from './pages/InboxPage'
 import { Login } from './pages/Login'
@@ -11,7 +12,7 @@ import { Workbench } from './pages/Workbench'
 import type { Persona, PersonaDraft, RuntimeInfo, Tenant, TenantMember } from './api/types'
 
 function useHashRoute(): {
-  page: 'home' | 'checkup' | 'audit' | 'workbench' | 'inbox'
+  page: 'home' | 'checkup' | 'audit' | 'workbench' | 'inbox' | 'debug'
   personaId?: string
 } {
   const [hash, setHash] = useState(window.location.hash)
@@ -22,6 +23,7 @@ function useHashRoute(): {
   }, [])
   if (hash.startsWith('#/checkup')) return { page: 'checkup' }
   if (hash.startsWith('#/audit')) return { page: 'audit' }
+  if (hash.startsWith('#/debug')) return { page: 'debug' }
   const inboxMatch = hash.match(/^#\/personas\/([^/]+)\/inbox$/)
   if (inboxMatch) return { page: 'inbox', personaId: inboxMatch[1] }
   const personaId = hash.match(/^#\/personas\/([^/]+)/)?.[1]
@@ -341,6 +343,17 @@ export default function App() {
     )
   }
 
+  if (route.page === 'debug') {
+    return (
+      <DebugPage
+        client={client}
+        onBack={() => {
+          window.location.hash = '#/'
+        }}
+      />
+    )
+  }
+
   if (route.page === 'audit') {
     return (
       <AuditLogs
@@ -379,6 +392,9 @@ export default function App() {
       }}
       onAudit={() => {
         window.location.hash = '#/audit'
+      }}
+      onDebug={() => {
+        window.location.hash = '#/debug'
       }}
       onCreate={(draft, bootstrapFile) => void createPersona(draft, bootstrapFile)}
       onImportChat={(personaId, file) => void importChatToPersona(personaId, file)}
