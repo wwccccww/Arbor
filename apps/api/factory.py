@@ -756,6 +756,20 @@ def create_app(
         eval_runs=eval_runs,
         ids=ids,
     )
+    from arbor.application.evaluation.start_employee_eval import StartEmployeeEvalRun
+
+    start_employee_eval = StartEmployeeEvalRun(
+        start_run=start_agent_run,
+        approve_step=approve_agent_step,
+        reject_step=reject_agent_step,
+        personas=personas,
+        runs=agent_runs,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+        resume_run=resume_agent_run,
+        eval_runs=eval_runs,
+        ids=ids,
+    )
     list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
     from arbor.application.agent.compat_chat import AgentCompatRecorder
 
@@ -1052,6 +1066,8 @@ def create_app(
             get_definition=get_employee_definition,
             list_templates=list_employee_templates,
             current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+            start_employee_eval=start_employee_eval,
         ),
     )
     object_store_backend = object_store_label(storage)

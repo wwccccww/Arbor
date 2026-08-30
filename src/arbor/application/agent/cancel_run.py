@@ -64,10 +64,13 @@ class GetAgentRun:
 
 
 def _run_dict(run) -> dict:
+    metadata = dict(run.metadata)
+    request_id = str(metadata.get("request_id") or "")
     return {
         "id": run.id,
         "tenant_id": run.tenant_id.value,
         "persona_id": run.persona_id.value,
+        "request_id": request_id or None,
         "thread_id": run.thread_id.value if run.thread_id else None,
         "goal": run.goal,
         "status": run.status.value,
@@ -81,7 +84,7 @@ def _run_dict(run) -> dict:
         "employee_definition_version": run.employee_definition_version,
         "final_output": run.final_output,
         "failure": run.failure,
-        "metadata": dict(run.metadata),
+        "metadata": metadata,
         "created_at": run.created_at,
         "updated_at": run.updated_at,
         "finished_at": run.finished_at,
@@ -103,4 +106,5 @@ def _step_dict(step) -> dict:
         "error_message": step.error_message,
         "started_at": step.started_at,
         "finished_at": step.finished_at,
+        "trace_id": step.trace_id,
     }

@@ -6,6 +6,7 @@ from arbor.domain.agent.run import AgentRun, AgentRunStatus
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
+from arbor.observability.context import current_request_context, merge_request_context
 
 
 def _now_iso() -> str:
@@ -67,6 +68,15 @@ class StartAgentRun:
                 budget_policy = dict(definition.run_budget_policy or {})
 
         now = _now_iso()
+        request_id = self.ids.new_id()
+        ctx = current_request_context()
+        if ctx is not None and ctx.request_id:
+            request_id = ctx.request_id
+        metadata: dict = {"plan_script": plan_script or [], "request_id": request_id}
+        if self.employee_definitions is not None:
+            definition = self.employee_definitions.get(persona_id, version=employee_definition_version)
+            if definition is not None and definition.evaluation_suite:
+                metadata["evaluation_suite"] = definition.evaluation_suite
         run = AgentRun(
             id=self.ids.new_id(),
             tenant_id=tenant_id,
@@ -79,7 +89,7 @@ class StartAgentRun:
             token_budget=int(budget_policy.get("token_budget") or token_budget),
             cost_budget_micros=int(budget_policy.get("cost_budget_micros") or cost_budget_micros),
             employee_definition_version=definition_version,
-            metadata={"plan_script": plan_script or []},
+            metadata=metadata,
             created_at=now,
             updated_at=now,
         )

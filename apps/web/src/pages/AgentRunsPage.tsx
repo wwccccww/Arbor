@@ -1,7 +1,28 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
-import type { AgentApproval, AgentRunDetail, AgentRunSummary } from '../api/types'
+import type { AgentApproval, AgentRunDetail, AgentRunSummary, EmployeeDefinition } from '../api/types'
 import { AgentStepTree } from '../components/AgentStepTree'
+
+const GRAFANA_BASE = (import.meta.env.VITE_GRAFANA_URL as string | undefined)?.replace(/\/$/, '') || 'http://localhost:3000'
+
+function grafanaExploreLink(requestId: string, datasource: 'loki' | 'tempo') {
+  if (datasource === 'loki') {
+    const left = encodeURIComponent(
+      JSON.stringify({
+        datasource: 'loki',
+        queries: [{ expr: `{service=~"arbor-.*"} |= "${requestId}"`, refId: 'A' }],
+      }),
+    )
+    return `${GRAFANA_BASE}/explore?left=${left}`
+  }
+  const left = encodeURIComponent(
+    JSON.stringify({
+      datasource: 'tempo',
+      queries: [{ query: requestId, queryType: 'traceql', refId: 'A' }],
+    }),
+  )
+  return `${GRAFANA_BASE}/explore?left=${left}`
+}
 
 type Props = {
   client: ArborClient
@@ -18,6 +39,8 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
   const [goal, setGoal] = useState('登记工单：会议室设备故障')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | undefined>()
+  const [employeeDef, setEmployeeDef] = useState<EmployeeDefinition | null>(null)
+  const [employeeEval, setEmployeeEval] = useState<Record<string, unknown> | null>(null)
 
   const refresh = useCallback(async () => {
     const listed = await client.listAgentRuns(personaId)
@@ -30,7 +53,11 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
 
   useEffect(() => {
     void refresh().catch((err) => setError((err as Error).message))
-  }, [refresh])
+    void client
+      .getEmployeeDefinition(personaId)
+      .then(setEmployeeDef)
+      .catch(() => setEmployeeDef(null))
+  }, [refresh, client, personaId])
 
   async function loadDetail(runId: string) {
     setSelectedId(runId)
@@ -73,6 +100,24 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
     }
   }
 
+  async function runEmployeeEval() {
+    setBusy(true)
+    setError(undefined)
+    try {
+      const report = await client.startEmployeeEval(personaId)
+      setEmployeeEval(report)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const traceRequestId =
+    detail?.run.request_id ||
+    (detail?.run.metadata?.request_id as string | undefined) ||
+    detail?.steps.find((s) => s.trace_id)?.trace_id
+
   async function reject(approvalId: string) {
     setBusy(true)
     try {
@@ -94,7 +139,32 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
         </button>
         <h1>数字员工 Agent</h1>
         <p className="muted">任务 Run 时间线、审批队列与步骤账本。</p>
+        {employeeDef ? (
+          <p className="muted">
+            岗位 {employeeDef.role} v{employeeDef.version} · 评测套件 {employeeDef.evaluation_suite} ·{' '}
+            {employeeDef.release_status}
+          </p>
+        ) : null}
       </header>
+
+      {workspaceAdmin && employeeDef ? (
+        <section className="card">
+          <h2>岗位评测门禁</h2>
+          <p className="muted">发布前跑 {employeeDef.evaluation_suite}，对比基线 task_success_rate 与 P0 安全指标。</p>
+          <div className="inline-form">
+            <button type="button" disabled={busy} onClick={() => void runEmployeeEval()}>
+              跑岗位评测
+            </button>
+            {employeeEval ? (
+              <span className={employeeEval.gate_passed ? 'ok' : 'error'}>
+                {employeeEval.gate_passed ? '门禁通过' : '门禁未通过'} · 成功率{' '}
+                {String(employeeEval.task_success_rate)} / 基线{' '}
+                {String(employeeEval.baseline_task_success_rate)}
+              </span>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="card">
         <label htmlFor="agent-goal">任务目标</label>
@@ -154,6 +224,26 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
               ? ` · 成本 ${detail.run.consumed_cost_micros}µ`
               : ''}
           </p>
+          {traceRequestId ? (
+            <p className="inline-form">
+              <a
+                className="link-button"
+                href={grafanaExploreLink(traceRequestId, 'tempo')}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Tempo 追踪
+              </a>
+              <a
+                className="link-button"
+                href={grafanaExploreLink(traceRequestId, 'loki')}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Loki 日志
+              </a>
+            </p>
+          ) : null}
           {detail.step_tree ? (
             <details className="agent-trace" open>
               <summary>步骤树（Run → Step → RAG/Tool/Approval）</summary>

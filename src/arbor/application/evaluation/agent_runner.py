@@ -20,6 +20,7 @@ def run_agent_smoke(
     personas,
     runs,
     flaky_ticket_tool=None,
+    persona_id: PersonaId | None = None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     results: list[dict] = []
@@ -29,7 +30,13 @@ def run_agent_smoke(
     latency_samples: list[float] = []
     cost_samples: list[int] = []
 
-    for case in payload.get("cases") or []:
+    cases = list(payload.get("cases") or [])
+    if persona_id is not None:
+        filtered = [c for c in cases if str(c.get("persona_id")) == persona_id.value]
+        if filtered:
+            cases = filtered
+
+    for case in cases:
         tenant_id = TenantId(str(case["tenant_id"]))
         persona_id = PersonaId(str(case["persona_id"]))
         user_id = UserId(str(case["user_id"]))

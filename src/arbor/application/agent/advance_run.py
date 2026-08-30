@@ -15,6 +15,7 @@ from arbor.domain.agent.step import AgentStep, StepKind, StepStatus
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import TenantId, UserId
+from arbor.observability.context import current_request_context
 from arbor.observability.helpers import obs_or_noop
 
 
@@ -132,6 +133,14 @@ class AdvanceAgentRun:
         action = validate_planner_action(action)
 
         step_id = self.ids.new_id()
+        trace_id = str(run.metadata.get("request_id") or "")
+        ctx = current_request_context()
+        if not trace_id and ctx is not None:
+            trace_id = ctx.request_id
+        if not trace_id:
+            trace_id = run.id
+        if not run.metadata.get("request_id"):
+            run.metadata["request_id"] = trace_id
         step = AgentStep(
             id=step_id,
             run_id=run.id,
@@ -142,6 +151,7 @@ class AdvanceAgentRun:
             status=StepStatus.RUNNING,
             input=action,
             started_at=now,
+            trace_id=trace_id,
         )
 
         with obs.span("agent.step", kind=step.kind.value, sequence=sequence):

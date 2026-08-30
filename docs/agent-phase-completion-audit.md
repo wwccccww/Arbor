@@ -70,6 +70,7 @@
 | agent-v1 runner + baseline | `agent_runner.py`；`eval/baselines/agent-v1-smoke.json` |
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
+| Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
 | 演示录屏 | `artifacts/agent-eval-fault-injection-demo.mp4` |
 
 ## Phase 7：数字员工治理
@@ -77,6 +78,7 @@
 | 交付 | 证据 |
 |------|------|
 | 三模板 + 版本固定 | `employee_templates.py`；`test_employee_templates.py`；`test_start_run_pins_employee_definition_version` |
+| 岗位评测门禁 | `POST /v1/personas/{id}/employee-eval`；`StartEmployeeEvalRun`；`test_start_employee_eval.py`；`AgentRunsPage` 按钮 |
 | Run/Approval/Eval UI | `AgentRunsPage.tsx`、`Checkup.tsx`（基线表 + Agent 对比） |
 | 演示脚本 | `docs/demo-script.md` |
 

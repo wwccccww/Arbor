@@ -25,6 +25,7 @@ import type {
   PersonaPatch,
   DecisionTrace,
   DebugRequest,
+  EmployeeDefinition,
   RetrievalMeta,
   StreamEvent,
   ToolResult,
@@ -743,6 +744,17 @@ export function createClient(
 
     async startAgentEval(): Promise<Record<string, unknown>> {
       return (await request('/agent-eval/runs', { method: 'POST' })) as Record<string, unknown>
+    },
+
+    async getEmployeeDefinition(personaId: string): Promise<EmployeeDefinition> {
+      return (await request(`/personas/${personaId}/employee-definition`)) as EmployeeDefinition
+    },
+
+    async startEmployeeEval(personaId: string): Promise<Record<string, unknown>> {
+      return (await request(`/personas/${personaId}/employee-eval`, { method: 'POST' })) as Record<
+        string,
+        unknown
+      >
     },
   }
 }

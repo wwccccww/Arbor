@@ -13,6 +13,7 @@ export type AgentRunSummary = {
   current_step: number
   max_steps: number
   version: number
+  request_id?: string
   created_at?: string
   updated_at?: string
 }
@@ -25,6 +26,7 @@ export type AgentStep = {
   input: Record<string, unknown>
   output: Record<string, unknown>
   observation: Record<string, unknown>
+  trace_id?: string
 }
 
 export type AgentStepTreeNode = {
@@ -54,6 +56,22 @@ export type AgentRunDetail = {
   steps: AgentStep[]
   step_tree?: AgentStepTreeNode
   lineage?: Array<Record<string, unknown>>
+}
+
+export type EmployeeDefinition = {
+  persona_id: string
+  version: string
+  role: string
+  goals: string[]
+  skills: string[]
+  knowledge_scopes: string[]
+  tool_policy: Record<string, unknown>
+  approval_policy: Record<string, unknown>
+  memory_policy: Record<string, unknown>
+  escalation_policy: Record<string, unknown>
+  run_budget_policy: Record<string, unknown>
+  evaluation_suite: string
+  release_status: string
 }
 
 export type AgentApproval = {
