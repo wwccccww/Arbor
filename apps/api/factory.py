@@ -727,9 +727,17 @@ def create_app(
         reject_step=reject_agent_step,
         personas=personas,
         runs=agent_runs,
+        resume_run=resume_agent_run,
         observability=observability,
     )
     list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
+    from arbor.application.agent.compat_chat import AgentCompatRecorder
+
+    send.agent_compat = AgentCompatRecorder(
+        start_run=start_agent_run,
+        runs=agent_runs,
+        job_queue=agent_job_queue,
+    )
 
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
         raw = (x_tenant_id or user.get("tenant_id") or "").strip()

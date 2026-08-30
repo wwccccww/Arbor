@@ -323,3 +323,13 @@ def chunk_max_chars() -> int:
 
 def chunk_overlap_chars() -> int:
     return _retrieval_int("ARBOR_CHUNK_OVERLAP_CHARS", 150, minimum=0, maximum=1000)
+
+
+def agent_compat_chat() -> bool:
+    load_dotenv()
+    return (os.environ.get("ARBOR_AGENT_COMPAT_CHAT") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }

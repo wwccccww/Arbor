@@ -16,6 +16,7 @@ def run_agent_smoke(
     start_run: StartAgentRun,
     approve_step: ApproveAgentStep,
     reject_step: RejectAgentStep | None = None,
+    resume_run=None,
     personas,
     runs,
 ) -> dict:
@@ -47,14 +48,30 @@ def run_agent_smoke(
                 )
 
         try:
+            enqueue = not case.get("simulate_worker_restart")
             run = start_run(
                 tenant_id=tenant_id,
                 user_id=user_id,
                 persona_id=persona_id,
                 goal=str(case.get("goal") or ""),
                 plan_script=list(case.get("plan_script") or []),
-                enqueue=True,
+                enqueue=enqueue,
             )
+            if case.get("simulate_worker_restart") and resume_run is not None:
+                approve_step.advance(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    run_id=run.id,
+                    expected_version=run.version,
+                    enqueue_next=False,
+                )
+                resume_run(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    run_id=run.id,
+                    enqueue=True,
+                )
+                run = runs.get(tenant_id, run.id)
         except DomainError as exc:
             if case.get("expect_error"):
                 results.append({"id": case["id"], "ok": True, "error": str(exc)})

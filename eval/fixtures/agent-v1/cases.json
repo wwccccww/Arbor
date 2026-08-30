@@ -114,6 +114,31 @@
       "expect_final_status": "failed"
     },
     {
+      "id": "worker-resume",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "查询退货政策（worker 重启恢复）",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "退货政策",
+          "scopes": ["semantic_memory"],
+          "reason": "policy lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "7天无理由退货",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "simulate_worker_restart": true,
+      "expect_final_status": "completed"
+    },
+    {
       "id": "forbidden-tool",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
       "persona_id": "0a000000-0000-4000-a000-000000000010",

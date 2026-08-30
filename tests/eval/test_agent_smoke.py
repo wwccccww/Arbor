@@ -20,6 +20,7 @@ from arbor.adapters.outbound.inmemory_agent import (
 )
 from arbor.application.agent.advance_run import AdvanceAgentRun
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
+from arbor.application.agent.resume_run import ResumeAgentRun
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
 from arbor.application.evaluation.agent_runner import run_agent_smoke
@@ -76,11 +77,19 @@ def test_agent_smoke_ticket_approval_flow():
         auth=AuthorizationPolicy(),
         advance=advance,
     )
+    resume = ResumeAgentRun(
+        personas=personas,
+        runs=runs,
+        auth=AuthorizationPolicy(),
+        job_queue=queue,
+        advance=advance,
+    )
     report = run_agent_smoke(
         fixture_path=ROOT / "eval" / "fixtures" / "agent-v1" / "cases.json",
         start_run=start,
         approve_step=approve,
         reject_step=reject,
+        resume_run=resume,
         personas=personas,
         runs=runs,
     )

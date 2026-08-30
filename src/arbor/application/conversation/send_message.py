@@ -17,7 +17,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import InboxItem, MemoryItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
-from arbor.env import tool_mode
+from arbor.env import agent_compat_chat, tool_mode
 from arbor.observability.content_storage import store_encrypted_content_sample
 from arbor.observability.context import current_request_context
 from arbor.observability.decision_trace import (
@@ -62,6 +62,7 @@ class SendMessage:
     context_compiler: ContextCompiler | None = None
     observability: object | None = None
     decision_traces: object | None = None
+    agent_compat: object | None = None
 
     def _obs(self):
         return self.observability or NoopObservability()
@@ -494,9 +495,22 @@ class SendMessage:
                 "content_sampled": content_sampled,
             }
             self.decision_traces.save(entry)
+        agent_run_id = None
+        if agent_compat_chat() and self.agent_compat is not None:
+            agent_run_id = self.agent_compat.record_completed_turn(
+                tenant_id=ctx.tenant_id,
+                user_id=ctx.user_id,
+                persona_id=ctx.persona_id,
+                thread_id=ctx.thread.id,
+                goal=ctx.text,
+                text=llm_out.get("text", ""),
+                citations=list(citations),
+                retrieval_meta=dict(ctx.compiled.retrieval_meta),
+            )
         return {
             "message_id": assistant_message_id,
             "request_id": request_id,
+            "agent_run_id": agent_run_id,
             "text": llm_out.get("text", ""),
             "citations": citations,
             "citation_items": citation_items,

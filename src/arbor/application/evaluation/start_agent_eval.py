@@ -8,12 +8,23 @@ from arbor.paths import repo_root
 
 
 class StartAgentEvalRun:
-    def __init__(self, *, start_run, approve_step, reject_step, personas, runs, observability=None) -> None:
+    def __init__(
+        self,
+        *,
+        start_run,
+        approve_step,
+        reject_step,
+        personas,
+        runs,
+        resume_run=None,
+        observability=None,
+    ) -> None:
         self.start_run = start_run
         self.approve_step = approve_step
         self.reject_step = reject_step
         self.personas = personas
         self.runs = runs
+        self.resume_run = resume_run
         self.observability = observability
 
     def __call__(
@@ -32,6 +43,7 @@ class StartAgentEvalRun:
             start_run=self.start_run,
             approve_step=self.approve_step,
             reject_step=self.reject_step,
+            resume_run=self.resume_run,
             personas=self.personas,
             runs=self.runs,
         )
