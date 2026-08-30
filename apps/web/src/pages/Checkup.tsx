@@ -105,6 +105,7 @@ export function Checkup({
   const [run, setRun] = useState<EvalRun | null>(null)
   const [rows, setRows] = useState<EvalRun[]>([])
   const [agentEval, setAgentEval] = useState<Record<string, unknown> | null>(null)
+  const [baselines, setBaselines] = useState<Array<Record<string, unknown>>>([])
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [forbidden, setForbidden] = useState(false)
@@ -117,6 +118,12 @@ export function Checkup({
   useEffect(() => {
     if (!personaId && personas.length) setPersonaId(personas[0].id)
   }, [personas, personaId])
+
+  useEffect(() => {
+    void client.listEvalBaselines()
+      .then((payload) => setBaselines(payload.items))
+      .catch(() => setBaselines([]))
+  }, [client])
 
   async function fetchRun(
     strategy: string,
@@ -401,6 +408,34 @@ export function Checkup({
             Agent Eval（agent-v1）
           </button>
         </div>
+
+        {baselines.length ? (
+          <div className="table-wrap">
+            <table>
+              <caption>冻结评测基线（agent / memory / multimodal）</caption>
+              <thead>
+                <tr>
+                  <th>套件</th>
+                  <th>指标</th>
+                  <th>用例数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baselines.map((row) => (
+                  <tr key={String(row.id)}>
+                    <td>{String(row.suite_version ?? row.id)}</td>
+                    <td>
+                      {Object.entries((row.metrics as Record<string, unknown>) || {})
+                        .map(([key, value]) => `${key}=${String(value)}`)
+                        .join(' · ') || '—'}
+                    </td>
+                    <td>{String(row.case_count ?? '—')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
 
         {agentEval ? (
           <div className="table-wrap">

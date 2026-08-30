@@ -29,6 +29,7 @@ export type AgentStep = {
 
 export type AgentRunDetail = {
   run: AgentRunSummary & {
+    employee_definition_version?: string
     final_output?: Record<string, unknown> | null
     failure?: Record<string, unknown> | null
     metadata?: Record<string, unknown>

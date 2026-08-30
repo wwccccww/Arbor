@@ -24,6 +24,26 @@
 | 4:45 | 记忆体检 → **Agent Eval（agent-v1）** | 任务成功率 1.0；越权/审批绕过/重复副作用均为 0 |
 | 5:00 | 工作台 → **Agent 任务** | 可查看 Run 步骤与审批队列 |
 
+## Agent 故障注入彩排（约 3 分钟）
+
+本地无需 Redis，smoke 使用 Fake Planner / Fake Tool：
+
+```bash
+# agent-v1：审批、越权、超时重试、worker 恢复（7 cases）
+python3 -m pytest tests/eval/test_agent_smoke.py -q
+
+# memory-v1：过期 / superseded / 删除 / consolidation（4 gates）
+python3 -m pytest tests/eval/test_memory_smoke.py -q
+
+# multimodal-v1：页码 / 时间戳 / lineage（3 layers）
+python3 -m pytest tests/eval/test_multimodal_smoke.py -q
+```
+
+UI 路径：
+
+1. **记忆体检** → **Agent Eval（agent-v1）** → 确认 P0 安全指标为 0
+2. **Agent 任务** → 创建 Run → 在待审批中批准/拒绝 → 展开 **上下文 manifest** 与 **多模态证据链**
+
 ## 窄屏提示
 
 宽度 &lt; 900px 时，导入/Inbox 在 **「授权与导入」** Tab；有待处理收件箱时会自动切到该 Tab。

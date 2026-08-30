@@ -18,6 +18,7 @@ class DeleteMemory:
         auth: AuthorizationPolicy,
         storage=None,
         observability: object | None = None,
+        invalidate_artifacts=None,
     ) -> None:
         self.personas = personas
         self.memories = memories
@@ -25,6 +26,19 @@ class DeleteMemory:
         self.auth = auth
         self.storage = storage
         self.observability = observability
+        self.invalidate_artifacts = invalidate_artifacts
+
+    def _invalidate_artifacts(
+        self, tenant_id: TenantId, persona_id: PersonaId, user_id: UserId, uri: str
+    ) -> None:
+        if self.invalidate_artifacts is None:
+            return
+        self.invalidate_artifacts(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            persona_id=persona_id,
+            object_uri=uri,
+        )
 
     def _obs(self):
         return self.observability or NoopObservability()
@@ -76,4 +90,5 @@ class DeleteMemory:
         )
         if self.storage is not None:
             for uri in object_uris_from_memory_source(item.source):
-                delete_stored_object(self.storage, uri)
+                if delete_stored_object(self.storage, uri):
+                    self._invalidate_artifacts(tenant_id, persona_id, user_id, uri)

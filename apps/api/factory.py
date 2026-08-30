@@ -593,6 +593,7 @@ def create_app(
     from arbor.adapters.outbound.agent_job_queue import AgentJobQueueHolder
     from arbor.adapters.outbound.inmemory_artifacts import (
         InMemoryArtifactLineageRepository,
+        InMemoryArtifactRepository,
         InMemoryArtifactStores,
     )
     from arbor.adapters.outbound.inmemory_agent import (
@@ -625,6 +626,7 @@ def create_app(
         agent_approvals = session.approvals
         tool_executions = session.tool_executions
         artifact_lineage = session.artifact_lineage
+        artifact_repo = session.artifacts
     else:
         agent_stores = InMemoryAgentStores()
         agent_runs = InMemoryAgentRunRepository(agent_stores)
@@ -632,7 +634,16 @@ def create_app(
         agent_approvals = InMemoryApprovalRepository(agent_stores)
         tool_executions = InMemoryToolExecutionRepository(agent_stores)
         artifact_stores = InMemoryArtifactStores()
+        artifact_repo = InMemoryArtifactRepository(artifact_stores)
         artifact_lineage = InMemoryArtifactLineageRepository(artifact_stores)
+
+    from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
+
+    delete_memory.invalidate_artifacts = InvalidateArtifactsForObjectUri(
+        personas=personas,
+        artifacts=artifact_repo,
+        auth=AuthorizationPolicy(),
+    )
 
     tool_registry = build_default_tool_registry()
     from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
@@ -892,6 +903,8 @@ def create_app(
             return True
         return False
 
+    from arbor.application.evaluation.list_baselines import list_eval_baselines
+
     register_eval_routes(
         app,
         EvalHttpDeps(
@@ -902,6 +915,7 @@ def create_app(
             personas=personas,
             session=session,
             stores=stores,
+            list_baselines=list_eval_baselines,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
             resolve_tenant=resolve_tenant,

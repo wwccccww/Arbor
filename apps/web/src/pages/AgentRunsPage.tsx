@@ -141,7 +141,26 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
       {detail ? (
         <section className="card">
           <h2>Run {detail.run.id}</h2>
-          <p className="muted">状态：{detail.run.status} · 版本 {detail.run.version}</p>
+          <p className="muted">
+            状态：{detail.run.status} · 版本 {detail.run.version}
+            {detail.run.employee_definition_version
+              ? ` · 岗位 v${detail.run.employee_definition_version}`
+              : ''}
+          </p>
+          {detail.run.metadata?.context_manifest ? (
+            <details className="agent-trace">
+              <summary>上下文 manifest</summary>
+              <pre className="code-block">
+                {JSON.stringify(detail.run.metadata.context_manifest, null, 2)}
+              </pre>
+            </details>
+          ) : null}
+          {detail.lineage?.length ? (
+            <details className="agent-trace">
+              <summary>多模态证据链（{detail.lineage.length}）</summary>
+              <pre className="code-block">{JSON.stringify(detail.lineage, null, 2)}</pre>
+            </details>
+          ) : null}
           <ol className="agent-steps">
             {detail.steps.map((step) => (
               <li key={step.id}>

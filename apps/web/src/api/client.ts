@@ -737,6 +737,10 @@ export function createClient(
       >
     },
 
+    async listEvalBaselines(): Promise<{ items: Array<Record<string, unknown>> }> {
+      return (await request('/eval/baselines')) as { items: Array<Record<string, unknown>> }
+    },
+
     async startAgentEval(): Promise<Record<string, unknown>> {
       return (await request('/agent-eval/runs', { method: 'POST' })) as Record<string, unknown>
     },
