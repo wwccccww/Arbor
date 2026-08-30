@@ -78,6 +78,13 @@ def run_multimodal_smoke(
                 if found:
                     break
             ok = found
+        elif layer == "generation":
+            seg = segs[0] if segs else None
+            ok = seg is not None
+            if case.get("expect_page_number") is not None and seg is not None:
+                ok = seg.page_number == int(case["expect_page_number"])
+            if case.get("expect_citation_text") and seg is not None:
+                ok = ok and str(case["expect_citation_text"]) in (seg.text or "")
         elif layer == "agent":
             rows = lineage.list_for_run(tenant_id, str(case.get("expect_run_id") or run_id))
             ok = any(row.get("artifact_id") == artifact_id for row in rows)

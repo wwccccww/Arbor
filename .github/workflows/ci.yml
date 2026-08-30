@@ -43,7 +43,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev,api]"
-      - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_multimodal_smoke.py tests/eval/test_memory_smoke.py -q --tb=short
+      - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_multimodal_smoke.py tests/eval/test_memory_smoke.py tests/eval/test_retrieval_baseline_gate.py -q --tb=short
   web:
     defaults:
       run:

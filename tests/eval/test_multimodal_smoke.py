@@ -51,4 +51,4 @@ def test_multimodal_v1_layered_smoke():
         lineage=lineage,
     )
     assert report["layer_pass_rate"] == 1.0
-    assert len(report["cases"]) == 4
+    assert len(report["cases"]) == 5

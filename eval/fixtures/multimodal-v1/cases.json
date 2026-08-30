@@ -58,6 +58,25 @@
       "expect_page_number": 7
     },
     {
+      "id": "generation-citation-page",
+      "layer": "generation",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "grant_write_memory": true,
+      "object_uri": "s3://bucket/manual.pdf",
+      "mime_type": "application/pdf",
+      "parser": "pdf",
+      "parser_version": "1.0",
+      "segment": {
+        "modality": "text",
+        "text": "维修手册第 8 页：更换滤芯",
+        "page_number": 8
+      },
+      "expect_page_number": 8,
+      "expect_citation_text": "滤芯"
+    },
+    {
       "id": "lineage-agent-binding",
       "layer": "agent",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
