@@ -82,16 +82,27 @@ class ApproveAgentStep:
         run.status = AgentRunStatus.RUNNING
         run.metadata.pop("pending_approval_id", None)
         run.metadata.setdefault("tool_results", []).append(result)
+        pending = str(result.get("title") or result.get("ticket_id") or "").strip()
+        if pending:
+            run.metadata["pending_retrieve_query"] = f"{pending} 处理方案"
         run.updated_at = _now_iso()
         run.bump_version()
         self.runs.save(run)
 
-        self.advance(
-            tenant_id=tenant_id,
-            user_id=user_id,
-            run_id=run.id,
-            expected_version=run.version,
-        )
+        expected_version = run.version
+        guard = 0
+        while guard < 16:
+            guard += 1
+            run = self.runs.get(tenant_id, run.id)
+            if run is None or run.is_terminal() or run.status == AgentRunStatus.WAITING_APPROVAL:
+                break
+            run = self.advance(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                run_id=run.id,
+                expected_version=expected_version,
+            )
+            expected_version = run.version
         return {"approval_id": approval.id, "status": approval.status.value, "result": result}
 
 

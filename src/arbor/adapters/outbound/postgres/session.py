@@ -10,6 +10,11 @@ from arbor.adapters.outbound.postgres.agent import (
     PgToolExecutionRepository,
 )
 from arbor.adapters.outbound.postgres.alembic_runner import upgrade_head
+from arbor.adapters.outbound.postgres.artifacts import (
+    PgArtifactLineageRepository,
+    PgArtifactRepository,
+    PgArtifactSegmentRepository,
+)
 from arbor.adapters.outbound.postgres.audit import PgAuditLogRepository
 from arbor.adapters.outbound.postgres.connection import connect, wipe_public_schema
 from arbor.adapters.outbound.postgres.decision_traces import PgDecisionTraceRepository
@@ -51,6 +56,9 @@ class PostgresSession:
         self.agent_steps = PgAgentStepRepository(self.conn)
         self.approvals = PgApprovalRepository(self.conn)
         self.tool_executions = PgToolExecutionRepository(self.conn)
+        self.artifacts = PgArtifactRepository(self.conn)
+        self.artifact_segments = PgArtifactSegmentRepository(self.conn)
+        self.artifact_lineage = PgArtifactLineageRepository(self.conn)
 
     def checkout(self) -> tuple[object, bool]:
         if self._pool is None:

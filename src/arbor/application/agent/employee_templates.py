@@ -3,6 +3,8 @@ from __future__ import annotations
 from arbor.domain.agent.employee import DigitalEmployeeDefinition, EmployeeReleaseStatus
 from arbor.domain.shared.ids import PersonaId
 
+LINXIA_PERSONA_ID = PersonaId("0a000000-0000-4000-a000-000000000010")
+
 
 class InMemoryEmployeeDefinitions:
     def __init__(self) -> None:
@@ -66,6 +68,20 @@ def default_employee_templates() -> InMemoryEmployeeDefinitions:
             tool_policy={"allowed_tools": []},
             approval_policy={"final_decision": True},
             run_budget_policy={"max_steps": 6, "token_budget": 12000},
+            evaluation_suite="agent-v1",
+        )
+    )
+    store.register(
+        DigitalEmployeeDefinition(
+            persona_id=LINXIA_PERSONA_ID,
+            version="1.0",
+            role="customer_service",
+            goals=["resolve incidents", "create tickets when needed"],
+            skills=["policy_lookup", "ticket.create", "calendar.list"],
+            knowledge_scopes=["semantic_memory", "procedural_memory", "episodic_memory"],
+            tool_policy={"allowed_tools": ["calendar", "ticket"]},
+            approval_policy={"ticket.create": True},
+            run_budget_policy={"max_steps": 8, "token_budget": 16000},
             evaluation_suite="agent-v1",
         )
     )

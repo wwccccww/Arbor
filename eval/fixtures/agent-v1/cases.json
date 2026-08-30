@@ -58,6 +58,33 @@
         }
       ],
       "expect_final_status": "completed"
+    },
+    {
+      "id": "second-retrieve-after-tool",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：会议室空调故障需二次检索",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "空调故障",
+          "scopes": ["semantic_memory"],
+          "reason": "initial lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "会议室空调故障", "priority": "high"},
+          "evidence_ids": [],
+          "reason": "create ticket"
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_second_retrieval": true,
+      "expect_final_status": "completed"
     }
   ]
 }

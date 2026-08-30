@@ -67,6 +67,10 @@ def run_agent_smoke(
             run = runs.get(tenant_id, run.id)
         expect_status = str(case.get("expect_final_status") or "completed")
         ok = run is not None and run.status.value == expect_status
+        if ok and case.get("expect_second_retrieval"):
+            step_list = approve_step.advance.steps.list_for_run(tenant_id, run.id)
+            retrieve_count = sum(1 for s in step_list if s.kind.value == "retrieve")
+            ok = retrieve_count >= 2
         results.append(
             {
                 "id": case["id"],

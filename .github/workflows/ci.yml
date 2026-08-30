@@ -35,8 +35,16 @@ jobs:
       - run: python3 -m pytest tests/integration/observability/test_prometheus_integration.py -q --tb=short
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres
-  web:
+  agent-smoke:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api]"
+      - run: python3 -m pytest tests/eval/test_agent_smoke.py -q --tb=short
+  web:
     defaults:
       run:
         working-directory: apps/web

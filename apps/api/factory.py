@@ -589,6 +589,12 @@ def create_app(
     )
 
     from arbor.adapters.inbound.http.register_agent import AgentHttpDeps, register_agent_routes
+    from arbor.adapters.inbound.http.register_employee import EmployeeHttpDeps, register_employee_routes
+    from arbor.adapters.outbound.agent_job_queue import AgentJobQueueHolder
+    from arbor.adapters.outbound.inmemory_artifacts import (
+        InMemoryArtifactLineageRepository,
+        InMemoryArtifactStores,
+    )
     from arbor.adapters.outbound.inmemory_agent import (
         InMemoryAgentRunRepository,
         InMemoryAgentStepRepository,
@@ -597,32 +603,49 @@ def create_app(
         InMemoryToolExecutionRepository,
         SyncAgentJobQueue,
     )
+    from arbor.adapters.outbound.mcp.stub_adapter import default_mcp_stub
     from arbor.application.agent.advance_run import AdvanceAgentRun
     from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
     from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
     from arbor.application.agent.employee_templates import default_employee_templates
+    from arbor.application.agent.extract_memory import ExtractRunMemory
+    from arbor.application.agent.queries import GetEmployeeDefinition, ListEmployeeTemplates
     from arbor.application.agent.start_run import StartAgentRun
-    from arbor.application.agent.tool_executor import build_default_tool_registry, ToolExecutor
+    from arbor.application.agent.tool_executor import (
+        build_default_tool_registry,
+        register_mcp_stub_tools,
+        ToolExecutor,
+    )
 
     if session is not None:
         agent_runs = session.agent_runs
         agent_steps = session.agent_steps
         agent_approvals = session.approvals
         tool_executions = session.tool_executions
+        artifact_lineage = session.artifact_lineage
     else:
         agent_stores = InMemoryAgentStores()
         agent_runs = InMemoryAgentRunRepository(agent_stores)
         agent_steps = InMemoryAgentStepRepository(agent_stores)
         agent_approvals = InMemoryApprovalRepository(agent_stores)
         tool_executions = InMemoryToolExecutionRepository(agent_stores)
+        artifact_stores = InMemoryArtifactStores()
+        artifact_lineage = InMemoryArtifactLineageRepository(artifact_stores)
 
     tool_registry = build_default_tool_registry()
+    register_mcp_stub_tools(tool_registry, default_mcp_stub())
     tool_executor = ToolExecutor(
         registry=tool_registry,
         tool_executions=tool_executions,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
         observability=observability,
+    )
+    extract_run_memory = ExtractRunMemory(
+        personas=personas,
+        inbox=inbox,
+        ids=ids,
+        auth=AuthorizationPolicy(),
     )
     advance_agent_run = AdvanceAgentRun(
         personas=personas,
@@ -638,8 +661,9 @@ def create_app(
         tool_executor=tool_executor,
         observability=observability,
         lexical_search=getattr(vectors, "lexical_search", None),
+        extract_memory=extract_run_memory,
     )
-    agent_job_queue = SyncAgentJobQueue(advance_agent_run)
+    agent_job_queue = AgentJobQueueHolder(SyncAgentJobQueue(advance_agent_run))
     employee_definitions = default_employee_templates()
     start_agent_run = StartAgentRun(
         personas=personas,
@@ -669,7 +693,14 @@ def create_app(
         steps=agent_steps,
         personas=personas,
         auth=AuthorizationPolicy(),
+        lineage=artifact_lineage,
     )
+    get_employee_definition = GetEmployeeDefinition(
+        personas=personas,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+    )
+    list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
 
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
         raw = (x_tenant_id or user.get("tenant_id") or "").strip()
@@ -693,6 +724,9 @@ def create_app(
 
             pool = await create_pool(arq_redis_settings(redis_url))
             job_queue_holder.use_arq(ArqJobQueue(pool, observability=observability))
+            from arbor.adapters.outbound.job_queue import ArqAgentJobQueue
+
+            agent_job_queue.use_arq(ArqAgentJobQueue(pool, observability=observability))
             app.state.arq_pool = pool
         yield
         if pool is not None:
@@ -936,8 +970,18 @@ def create_app(
             reject_step=reject_agent_step,
             approvals=agent_approvals,
             personas=personas,
+            agent_runs=agent_runs,
+            agent_job_queue=agent_job_queue,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
+        ),
+    )
+    register_employee_routes(
+        app,
+        EmployeeHttpDeps(
+            get_definition=get_employee_definition,
+            list_templates=list_employee_templates,
+            current_user=current_user,
         ),
     )
     object_store_backend = object_store_label(storage)

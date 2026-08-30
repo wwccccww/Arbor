@@ -13,14 +13,35 @@ class ScriptedPlanner:
         steps: list[dict],
         plan_script: list[dict] | None,
         evidence_ids: list[str],
+        run_metadata: dict | None = None,
     ) -> dict:
+        meta = dict(run_metadata or {})
+        pending_query = str(meta.get("pending_retrieve_query") or "").strip()
+        if pending_query:
+            last_tool_idx = max(
+                (i for i, s in enumerate(steps) if s.get("kind") == "tool"),
+                default=-1,
+            )
+            retrieve_after_tool = any(
+                s.get("kind") == "retrieve" for s in steps[last_tool_idx + 1 :]
+            )
+            if not retrieve_after_tool:
+                return validate_planner_action(
+                    {
+                        "schema_version": 1,
+                        "action": "retrieve",
+                        "query": pending_query,
+                        "scopes": ["semantic_memory", "procedural_memory", "episodic_memory"],
+                        "reason": "re-retrieve after tool observation",
+                    }
+                )
+
         if plan_script:
             index = len(steps)
             if index < len(plan_script):
                 return validate_planner_action(plan_script[index])
-        completed_kinds = {step.get("kind") for step in steps}
-        goal_lower = (goal or "").lower()
-        if "retrieve" not in completed_kinds:
+
+        if not any(s.get("kind") == "retrieve" for s in steps):
             return validate_planner_action(
                 {
                     "schema_version": 1,
@@ -30,6 +51,7 @@ class ScriptedPlanner:
                     "reason": "gather evidence before acting",
                 }
             )
+        goal_lower = (goal or "").lower()
         if "ticket" in goal_lower and not any(s.get("kind") == "tool" for s in steps):
             return validate_planner_action(
                 {

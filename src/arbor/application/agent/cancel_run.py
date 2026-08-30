@@ -35,11 +35,12 @@ class CancelAgentRun:
 
 
 class GetAgentRun:
-    def __init__(self, *, runs, steps, personas, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, runs, steps, personas, auth: AuthorizationPolicy, lineage=None) -> None:
         self.runs = runs
         self.steps = steps
         self.personas = personas
         self.auth = auth
+        self.lineage = lineage
 
     def __call__(self, *, tenant_id: TenantId, user_id: UserId, run_id: str) -> dict:
         run = self.runs.get(tenant_id, run_id)
@@ -51,10 +52,13 @@ class GetAgentRun:
         if Capability.CHAT not in self.auth.capabilities_for(persona, user_id):
             raise DomainError("FORBIDDEN_CHAT", "chat required")
         steps = self.steps.list_for_run(tenant_id, run_id)
-        return {
+        payload = {
             "run": _run_dict(run),
             "steps": [_step_dict(step) for step in steps],
         }
+        if self.lineage is not None:
+            payload["lineage"] = self.lineage.list_for_run(tenant_id, run_id)
+        return payload
 
 
 def _run_dict(run) -> dict:

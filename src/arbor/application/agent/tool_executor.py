@@ -5,11 +5,11 @@ import time
 from datetime import UTC, datetime
 
 from arbor.application.tools.registry import ToolRegistry
+from arbor.application.tools.run_tools import normalize_tool_name
 from arbor.domain.agent.run import AgentRun
 from arbor.domain.agent.step import AgentStep
 from arbor.domain.errors import DomainError
 from arbor.domain.shared.ids import TenantId, UserId
-from arbor.application.tools.run_tools import normalize_tool_name
 from arbor.observability.helpers import obs_or_noop
 
 
@@ -169,3 +169,18 @@ def build_default_tool_registry() -> ToolRegistry:
         )
     )
     return registry
+
+
+def register_mcp_stub_tools(registry: ToolRegistry, mcp_stub) -> None:
+    from arbor.application.tools.registry import ToolDefinition, ToolRiskLevel
+
+    for spec in mcp_stub.to_registry_specs():
+        registry.register(
+            ToolDefinition(
+                name=str(spec["name"]),
+                description=str(spec.get("description") or ""),
+                input_schema=dict(spec.get("input_schema") or {}),
+                risk_level=ToolRiskLevel.READ,
+                approval_required=bool(spec.get("approval_required")),
+            )
+        )

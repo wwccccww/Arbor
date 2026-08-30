@@ -19,6 +19,8 @@ class AgentHttpDeps:
     reject_step: object
     approvals: object
     personas: object
+    agent_runs: object
+    agent_job_queue: object
     current_user: Callable
     workspace_admin_for: Callable
 
@@ -26,7 +28,7 @@ class AgentHttpDeps:
 def register_agent_routes(app, deps: AgentHttpDeps) -> None:
 
     @app.post("/v1/personas/{persona_id}/agent-runs", status_code=202)
-    def post_agent_run(
+    async def post_agent_run(
         persona_id: str,
         payload: AgentRunIn = Body(),
         authorization: str | None = Header(default=None),
@@ -35,21 +37,29 @@ def register_agent_routes(app, deps: AgentHttpDeps) -> None:
         user = deps.current_user(authorization)
         if not x_tenant_id:
             raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+        tenant_id = TenantId(x_tenant_id)
+        user_id = UserId(user["user_id"])
         run = deps.start_run(
-            tenant_id=TenantId(x_tenant_id),
-            user_id=UserId(user["user_id"]),
+            tenant_id=tenant_id,
+            user_id=user_id,
             persona_id=PersonaId(persona_id),
             goal=payload.goal,
             thread_id=None,
             max_steps=payload.max_steps,
             token_budget=payload.token_budget,
             plan_script=payload.plan_script,
-            enqueue=True,
+            enqueue=False,
         )
+        deps.agent_job_queue.bind_actor(tenant_id, user_id)
+        if deps.agent_job_queue.is_async:
+            await deps.agent_job_queue.enqueue_run_async(tenant_id, run.id, run.version)
+        else:
+            deps.agent_job_queue.enqueue_run(tenant_id, run.id, run.version)
+        fresh = deps.agent_runs.get(tenant_id, run.id) or run
         return {
-            "id": run.id,
-            "status": run.status.value,
-            "version": run.version,
+            "id": fresh.id,
+            "status": fresh.status.value,
+            "version": fresh.version,
         }
 
     @app.get("/v1/agent-runs/{run_id}")

@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from arbor.application.agent.planner import ScriptedPlanner
+from arbor.application.agent.step_retrieval import StepRetrieval, build_step_context_items
 from arbor.application.agent.tool_executor import ToolExecutor
-from arbor.application.retrieval import retrieve
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.tools.run_tools import allowed_tool_names
 from arbor.domain.agent.action import validate_planner_action
@@ -41,6 +41,7 @@ class AdvanceAgentRun:
         job_queue=None,
         observability=None,
         lexical_search=None,
+        extract_memory=None,
     ) -> None:
         self.personas = personas
         self.runs = runs
@@ -58,6 +59,16 @@ class AdvanceAgentRun:
         self.job_queue = job_queue
         self.observability = observability
         self.lexical_search = lexical_search
+        self.extract_memory = extract_memory
+        self.step_retrieval = StepRetrieval(
+            memories=memories,
+            events=events,
+            vector_search=vector_search,
+            embed=embed,
+            retrieval_config=self.retrieval_config,
+            lexical_search=lexical_search,
+            observability=observability,
+        )
 
     def __call__(
         self,
@@ -115,6 +126,7 @@ class AdvanceAgentRun:
             steps=step_summaries,
             plan_script=list(run.metadata.get("plan_script") or []),
             evidence_ids=evidence_ids,
+            run_metadata=run.metadata,
         )
         action = validate_planner_action(action)
 
@@ -183,45 +195,65 @@ class AdvanceAgentRun:
     ) -> None:
         caps = self.auth.capabilities_for(persona, user_id)
         if action["action"] == "retrieve":
-            memories = (
-                self.memories.list_active(tenant_id, run.persona_id)
-                if Capability.READ_MEMORY in caps
-                else []
+            from arbor.application.agent.retrieval_dto import RetrievalRequest
+
+            query = str(action.get("query") or run.goal)
+            scopes = list(action.get("scopes") or [])
+            filters = {}
+            if scopes:
+                class_map = {
+                    "semantic_memory": "semantic",
+                    "episodic_memory": "episodic",
+                    "procedural_memory": "procedural",
+                    "working_memory": "working",
+                }
+                filters["memory_classes"] = [
+                    class_map.get(s, s.replace("_memory", "")) for s in scopes
+                ]
+            request = RetrievalRequest(
+                tenant_id=tenant_id,
+                persona_id=run.persona_id,
+                query=query,
+                purpose="agent_step",
+                scopes=scopes,
+                filters=filters or None,
+                k=5,
+                run_id=run.id,
+                step_id=step.id,
             )
-            event_nodes = self.events.list_nodes(tenant_id, run.persona_id)
-            event_edges = self.events.list_edges(tenant_id, run.persona_id)
-            query = action.get("query") or run.goal
             with obs_or_noop(self.observability).span("rag.retrieve"):
-                retrieved = retrieve(
-                    strategy="layered_tree",
-                    query=query,
-                    tenant_id=tenant_id,
-                    persona_id=run.persona_id,
-                    k=5,
-                    memories=memories,
-                    events=event_nodes,
-                    edges=event_edges,
-                    summary="",
-                    vector_search=self.vector_search,
-                    embed=self.embed,
-                    config=self.retrieval_config,
-                    lexical_search=self.lexical_search,
-                    observability=self.observability,
+                result = self.step_retrieval.execute(
+                    request,
+                    capabilities=caps,
                 )
-            hit_ids = list(retrieved.get("hit_ids") or [])
+            hit_ids = list(result.hit_ids)
             for hid in hit_ids:
                 if hid not in evidence_ids:
                     evidence_ids.append(hid)
             run.metadata["evidence_ids"] = evidence_ids
             run.metadata["last_retrieval"] = {
-                "strategy": retrieved.get("strategy"),
+                "strategy": result.strategy,
                 "hit_ids": hit_ids,
-                "sub_queries": list(retrieved.get("sub_queries") or []),
+                "sub_queries": list(result.sub_queries),
             }
-            run.consumed_tokens += 200
+            run.metadata.pop("pending_retrieve_query", None)
+            active = self.memories.list_active(tenant_id, run.persona_id)
+            by_id = {m.id.value: m for m in active}
+            _, manifest = build_step_context_items(
+                goal=run.goal,
+                persona_profile={"display_name": persona.profile.display_name},
+                evidence_ids=evidence_ids,
+                memories_by_id=by_id,
+                tool_results=list(run.metadata.get("tool_results") or []),
+            )
+            run.metadata["context_manifest"] = manifest
+            obs_or_noop(self.observability).observe(
+                "arbor_agent_context_tokens", manifest.get("token_usage", 0)
+            )
+            run.consumed_tokens += int(manifest.get("token_usage") or 200)
             pass_count = sum(1 for s in prior_steps if s.kind == StepKind.RETRIEVE) + 1
             step.mark_completed(
-                {"hit_ids": hit_ids, "strategy": retrieved.get("strategy")},
+                {"hit_ids": hit_ids, "strategy": result.strategy, "context_manifest": manifest},
                 observation={"retrieval_pass": pass_count},
             )
             return
@@ -267,6 +299,9 @@ class AdvanceAgentRun:
             )
             run.consumed_tokens += 100
             run.metadata.setdefault("tool_results", []).append(result)
+            pending = str(result.get("title") or result.get("ticket_id") or "").strip()
+            if pending:
+                run.metadata["pending_retrieve_query"] = f"{pending} 处理方案"
             step.mark_completed({"tool": canonical, "result": result}, observation=result)
             return
 
@@ -282,6 +317,16 @@ class AdvanceAgentRun:
             }
             run.mark_completed(output)
             run.updated_at = _now_iso()
+            if self.extract_memory is not None:
+                self.extract_memory(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    persona_id=run.persona_id,
+                    run_id=run.id,
+                    goal=run.goal,
+                    final_output=output,
+                    tool_results=list(run.metadata.get("tool_results") or []),
+                )
             step.mark_completed(output, observation={"completion": True})
             return
 
