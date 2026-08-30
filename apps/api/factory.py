@@ -305,13 +305,9 @@ def create_app(
     eval_backend = "postgres" if database_url else "memory"
     observability = build_observability()
     instrument_httpx()
-    if llm is None and chat_api_key():
-        llm = DeepSeekChatLLM(observability=observability)
-    elif isinstance(llm, DeepSeekChatLLM):
+    if isinstance(llm, DeepSeekChatLLM):
         llm.observability = observability
-    if reasoner is None and chat_api_key():
-        reasoner = DeepSeekReasoner(observability=observability)
-    elif isinstance(reasoner, DeepSeekReasoner):
+    if isinstance(reasoner, DeepSeekReasoner):
         reasoner.observability = observability
     decision_traces = None
     if database_url:
@@ -867,12 +863,16 @@ def create_app(
 def create_app_from_env() -> FastAPI:
     import logging
 
+    import arbor.env as env
     from arbor.env import database_url as env_database_url
     from arbor.env import job_queue_backend
     from arbor.env import redis_url as env_redis_url
 
     llm = None
     reasoner = None
+    if env.chat_api_key():
+        llm = DeepSeekChatLLM()
+        reasoner = DeepSeekReasoner()
     url = env_database_url() or None
     if url:
         from arbor.adapters.outbound.postgres.connection import reachable
