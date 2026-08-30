@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import time
-
 from collections import defaultdict
 
 from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
