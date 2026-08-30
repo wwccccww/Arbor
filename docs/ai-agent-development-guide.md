@@ -1,6 +1,6 @@
 # Arbor AI Agent 改造开发指南
 
-- 状态：大部分实现（Phase 0–8 核心、步骤树 UI、运行指标、Memory Write Precision、multimodal retrieval 层、Agent Eval 对比；演示录屏见 demo-script）
+- 状态：Phase 0–8 核心已落地（eval_runs 入库、Memory 全指标 smoke、PG 契约、步骤树 UI）；演示录屏见 artifacts
 - 日期：2026-08-30
 - 面向：AI Agent 应用开发、企业数字员工
 - 目标：把现有「对话 + 分层 RAG + 单轮工具调用」演进为可恢复、可治理、可评测的任务型 Agent
