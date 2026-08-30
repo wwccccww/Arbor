@@ -40,9 +40,7 @@ def _apply_inmemory_filters(item: MemoryItem, filters: dict | None) -> bool:
         allowed_classes = {str(value) for value in memory_classes}
         if item.memory_class is None or item.memory_class.value not in allowed_classes:
             return False
-    if is_memory_expired(item):
-        return False
-    return True
+    return not is_memory_expired(item)
 
 
 @dataclass

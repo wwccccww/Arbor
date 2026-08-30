@@ -954,7 +954,7 @@ src/arbor/
 - Run 完成后的候选经验提取；
 - Inbox 去重、冲突、确认；
 - consolidation、失效与删除传播（`ConsolidateEpisodicMemories` + 删除派生 consolidation）；
-- Memory Eval。
+- Memory Eval（`memory-v1` smoke：过期/ superseded / 删除 / consolidation 门禁）。
 
 验收：
 

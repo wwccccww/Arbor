@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from arbor.application.memory.consolidation import is_consolidation
 from arbor.application.memory.consolidate_episodes import ConsolidateEpisodicMemories
+from arbor.application.memory.consolidation import is_consolidation
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.validity import is_memory_searchable
 from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
-from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
+from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
 
 
