@@ -38,6 +38,7 @@ def default_employee_templates() -> InMemoryEmployeeDefinitions:
             knowledge_scopes=["semantic_memory", "procedural_memory", "episodic_memory"],
             tool_policy={"allowed_tools": ["calendar", "ticket"]},
             approval_policy={"ticket.create": True},
+            escalation_policy={"evidence_insufficient": "handoff_human", "user_escalation": "handoff_human"},
             run_budget_policy={"max_steps": 8, "token_budget": 16000},
             evaluation_suite="agent-v1",
         )
@@ -53,6 +54,7 @@ def default_employee_templates() -> InMemoryEmployeeDefinitions:
             tool_policy={"allowed_tools": []},
             approval_policy={},
             memory_policy={"auto_write": False},
+            escalation_policy={"high_risk_action": "deny"},
             run_budget_policy={"max_steps": 6, "token_budget": 12000},
             evaluation_suite="agent-v1",
         )
@@ -67,6 +69,7 @@ def default_employee_templates() -> InMemoryEmployeeDefinitions:
             knowledge_scopes=["semantic_memory"],
             tool_policy={"allowed_tools": []},
             approval_policy={"final_decision": True},
+            escalation_policy={"final_decision": "human_required"},
             run_budget_policy={"max_steps": 6, "token_budget": 12000},
             evaluation_suite="agent-v1",
         )
@@ -81,6 +84,7 @@ def default_employee_templates() -> InMemoryEmployeeDefinitions:
             knowledge_scopes=["semantic_memory", "procedural_memory", "episodic_memory"],
             tool_policy={"allowed_tools": ["calendar", "ticket"]},
             approval_policy={"ticket.create": True},
+            escalation_policy={"evidence_insufficient": "handoff_human", "user_escalation": "handoff_human"},
             run_budget_policy={"max_steps": 8, "token_budget": 16000},
             evaluation_suite="agent-v1",
         )

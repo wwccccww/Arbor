@@ -6,6 +6,7 @@ from pathlib import Path
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.domain.errors import DomainError
+from arbor.application.tools.run_tools import allowed_tool_names
 from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
@@ -20,6 +21,7 @@ def run_agent_smoke(
     personas,
     runs,
     flaky_ticket_tool=None,
+    counting_ticket_tool=None,
     persona_id: PersonaId | None = None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
@@ -57,8 +59,13 @@ def run_agent_smoke(
                     Grant(user_id=user_id, capabilities=[Capability.ADMIN, Capability.CHAT])
                 )
 
-        ticket_calls_before = (
-            flaky_ticket_tool.create_calls if flaky_ticket_tool is not None and case.get("expect_timeout_retry") else None
+        ticket_calls_before = None
+        if flaky_ticket_tool is not None and case.get("expect_timeout_retry"):
+            ticket_calls_before = flaky_ticket_tool.create_calls
+        counting_before = (
+            counting_ticket_tool.create_calls
+            if counting_ticket_tool is not None and case.get("expect_idempotent_side_effect")
+            else None
         )
 
         try:
@@ -121,6 +128,25 @@ def run_agent_smoke(
                 )
             run = runs.get(tenant_id, run.id)
 
+        if case.get("replay_tool_on_last_step") and run is not None:
+            tool_steps = [
+                s
+                for s in approve_step.advance.steps.list_for_run(tenant_id, run.id)
+                if s.kind.value == "tool"
+            ]
+            if tool_steps:
+                last = tool_steps[-1]
+                tool_name = str(last.input.get("tool_name") or "")
+                approve_step.advance.tool_executor.execute(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    run=run,
+                    step=last,
+                    tool_name=tool_name,
+                    arguments=dict(last.input.get("arguments") or {}),
+                    allowed_tools=allowed_tool_names(persona.tool_policy),
+                )
+
         expect_status = str(case.get("expect_final_status") or "completed")
         ok = run is not None and run.status.value == expect_status
         if ok and case.get("expect_second_retrieval"):
@@ -141,6 +167,11 @@ def run_agent_smoke(
                 ok = False
         if case.get("expect_timeout_retry") and flaky_ticket_tool is not None:
             ok = ok and flaky_ticket_tool.create_calls == ticket_calls_before + 1
+        if case.get("expect_idempotent_side_effect") and counting_ticket_tool is not None:
+            ok = ok and counting_ticket_tool.create_calls == counting_before + 1
+            if counting_ticket_tool.create_calls > counting_before + 1:
+                duplicate_side_effects += 1
+                ok = False
         if run is not None:
             metrics = dict(run.metadata.get("metrics") or {})
             if metrics.get("total_latency_ms") is not None:

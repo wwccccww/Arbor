@@ -273,6 +273,14 @@ class AdvanceAgentRun:
             obs_or_noop(self.observability).observe(
                 "arbor_agent_context_tokens", manifest.get("token_usage", 0)
             )
+            untrusted_total = int(
+                manifest.get("untrusted_instruction_count")
+                or manifest.get("untrusted_instruction_total")
+                or 0
+            )
+            obs_or_noop(self.observability).observe(
+                "arbor_context_untrusted_instruction_total", untrusted_total
+            )
             run.consumed_tokens += int(manifest.get("token_usage") or 200)
             pass_count = sum(1 for s in prior_steps if s.kind == StepKind.RETRIEVE) + 1
             step.mark_completed(

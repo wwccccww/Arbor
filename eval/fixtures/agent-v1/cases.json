@@ -191,6 +191,41 @@
       ],
       "expect_final_status": "failed",
       "expect_forbidden_tool": true
+    },
+    {
+      "id": "duplicate-delivery-idempotent",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：重复送达幂等",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单流程",
+          "scopes": ["semantic_memory"],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "重复送达测试", "priority": "high"},
+          "evidence_ids": [],
+          "reason": "create ticket"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "replay_tool_on_last_step": true,
+      "expect_idempotent_side_effect": true,
+      "expect_final_status": "completed"
     }
   ]
 }

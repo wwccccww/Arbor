@@ -26,10 +26,12 @@ from arbor.observability.runtime import build_observability
 SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
     "ragas-v1": ROOT / "eval" / "fixtures" / "suite-ragas-v1",
+    "agent-v1": ROOT / "eval" / "fixtures" / "agent-v1",
 }
 BASELINE_FILES = {
     "v1": ROOT / "eval" / "baselines" / "suite-v1.json",
     "ragas-v1": ROOT / "eval" / "baselines" / "suite-ragas-v1.json",
+    "agent-v1": ROOT / "eval" / "baselines" / "agent-v1-smoke.json",
 }
 
 
@@ -75,7 +77,7 @@ def _export_metrics(*, suite: str, strategy: str, metrics: dict, p0_ok: bool) ->
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="arbor-eval")
     parser.add_argument("--suite", default="v1", choices=list(SUITE_DIRS))
-    parser.add_argument("--mode", default="retrieval", choices=["retrieval", "generation"])
+    parser.add_argument("--mode", default="retrieval", choices=["retrieval", "generation", "agent"])
     parser.add_argument("--strategy", default="all", choices=["all", *STRATEGIES])
     parser.add_argument(
         "--backend",
@@ -97,6 +99,54 @@ def main(argv: list[str] | None = None) -> int:
         help="embedding backend for retrieval eval (bge needs EMBEDDING_API_KEY)",
     )
     args = parser.parse_args(argv)
+    if args.mode == "agent":
+        if args.suite != "agent-v1":
+            print("agent mode requires --suite agent-v1", file=sys.stderr)
+            return 1
+        from arbor.application.evaluation.agent_eval_stack import build_agent_eval_stack, agent_fixture_path
+        from arbor.application.evaluation.agent_runner import run_agent_smoke
+
+        stack = build_agent_eval_stack()
+        report = run_agent_smoke(
+            fixture_path=agent_fixture_path(),
+            start_run=stack["start_run"],
+            approve_step=stack["approve_step"],
+            reject_step=stack["reject_step"],
+            resume_run=stack["resume_run"],
+            personas=stack["personas"],
+            runs=stack["runs"],
+            flaky_ticket_tool=stack["flaky_ticket_tool"],
+            counting_ticket_tool=stack["counting_ticket_tool"],
+        )
+        baseline_path = BASELINE_FILES["agent-v1"]
+        baseline = {}
+        if baseline_path.is_file():
+            baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        report["baseline_task_success_rate"] = baseline.get("task_success_rate")
+        _export_metrics(
+            suite="agent-v1",
+            strategy="agent-smoke",
+            metrics={
+                "task_success_rate": report.get("task_success_rate", 0.0),
+                "duplicate_side_effect_rate": report.get("duplicate_side_effect_rate", 0.0),
+            },
+            p0_ok=(
+                report.get("unauthorized_action_rate", 0.0) == 0.0
+                and report.get("approval_bypass_rate", 0.0) == 0.0
+                and report.get("duplicate_side_effect_rate", 0.0) == 0.0
+            ),
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        if report.get("task_success_rate", 0.0) < float(baseline.get("task_success_rate", 1.0)):
+            return 1
+        if report.get("unauthorized_action_rate", 0.0) > 0:
+            return 1
+        if report.get("approval_bypass_rate", 0.0) > 0:
+            return 1
+        if report.get("duplicate_side_effect_rate", 0.0) > 0:
+            return 1
+        return 0
+
     suite_dir = SUITE_DIRS[args.suite]
     try:
         from arbor.application.evaluation.runner import resolve_world_path

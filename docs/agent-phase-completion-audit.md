@@ -35,6 +35,7 @@
 | 交付 | 证据 |
 |------|------|
 | Registry + Executor | `application/agent/tool_executor.py`、`application/tools/registry.py` |
+| 重复送达幂等 | agent-v1 `duplicate-delivery-idempotent`；`EvalTicketTool` |
 | 审批 API/UI | `register_agent.py` approvals；`AgentRunsPage.tsx` |
 | 验收 | `tests/unit/application/test_tool_idempotency.py`；agent-v1 `forbidden-tool`、`ticket-timeout-retry` |
 
@@ -44,7 +45,7 @@
 |------|------|
 | StepRetrieval + manifest | `application/agent/step_retrieval.py`、`context_engine.py` |
 | 二次检索 | agent-v1 `second-retrieve-after-tool` |
-| 可信边界 | ADR 0011；`detect_untrusted_instructions` |
+| 可信边界 | ADR 0011；`detect_untrusted_instructions`；`test_context_engine_untrusted.py` |
 | RAG 不回退 | `test_retrieval_baseline_gate.py`；CI postgres eval_cli |
 
 ## Phase 4：Agent Memory
@@ -67,11 +68,11 @@
 
 | 交付 | 证据 |
 |------|------|
-| agent-v1 runner + baseline | `agent_runner.py`；`eval/baselines/agent-v1-smoke.json` |
+| agent-v1 runner + baseline | `agent_runner.py`；`eval_cli --mode agent`；`eval/baselines/agent-v1-smoke.json` |
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
-| 演示录屏 | `artifacts/agent-eval-fault-injection-demo.mp4` |
+| 演示录屏 | `docs/demo-script.md`（手动彩排；录屏未入库） |
 
 ## Phase 7：数字员工治理
 
