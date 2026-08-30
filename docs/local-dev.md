@@ -84,6 +84,23 @@ arbor-worker
 
 显式强制同步（即使配了 Redis）：`ARBOR_JOB_QUEUE=sync`。
 
+## 可观测性栈（可选）
+
+本地 Grafana / Prometheus / Loki / Tempo：
+
+```bash
+docker compose -f infra/compose/observability.yml up -d
+```
+
+API 默认暴露：
+
+- `GET /health` — 进程存活
+- `GET /ready` — 依赖就绪（Postgres/Redis 等按配置检查）
+- `GET /metrics` — Prometheus 指标（`arbor_*` 前缀）
+- `GET /v1/debug/requests/{request_id}` — Admin 查询 `decision_trace`（需 `X-Tenant-Id`）
+
+聊天响应含 `request_id` 与 `decision_trace` 摘要；Grafana 默认 `http://localhost:3000`（`admin` / `admin`）。详见 [observability.md](observability.md)。
+
 ## 多模态解析（文档 / 语音 / 图片，可选）
 
 导入与聊天附件（在具备 `write_memory` 时）会经 `MediaToInbox` 解析为待确认 Inbox，**不直写 Memory**。纯文本 `.txt` 导入在有 DeepSeek reasoner 时仍走「抽取事实」短路；PDF/DOCX/PPTX、图片、音频走多模态适配器。

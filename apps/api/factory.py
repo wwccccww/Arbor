@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
 from arbor.adapters.inbound.http.errors import error_response
+from arbor.adapters.inbound.http.observability_middleware import bind_request_context, register_observability_middleware
+from arbor.adapters.inbound.http.register_observability import ObservabilityHttpDeps, register_observability_routes
 from arbor.adapters.inbound.http.register_audit import AuditHttpDeps, register_audit_routes
 from arbor.adapters.inbound.http.register_auth import AuthHttpDeps, register_auth_routes
 from arbor.adapters.inbound.http.register_eval import EvalHttpDeps, register_eval_routes
@@ -25,6 +27,7 @@ from arbor.adapters.outbound.inmemory import (
     FixedClock,
     FixtureEmbeddingClient,
     InMemoryAuditLogRepository,
+    InMemoryDecisionTraceRepository,
     InMemoryEventGraphRepository,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
@@ -51,6 +54,7 @@ from arbor.adapters.outbound.postgres.eval_runs import (
     InMemoryEvalRunRepository,
     PgEvalRunRepository,
 )
+from arbor.adapters.outbound.postgres.decision_traces import PgDecisionTraceRepository
 from arbor.adapters.outbound.postgres.import_jobs import (
     InMemoryImportJobRepository,
     PgImportJobRepository,
@@ -87,11 +91,12 @@ from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
 from arbor.application.persona.queries import ListPersonas
+from arbor.observability.runtime import build_observability
 from arbor.domain.identity.tenant import Role
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
-from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, strict_tenant_membership
+from arbor.env import chat_api_key, data_dir, demo_tokens_disabled, redis_url as env_redis_url, strict_tenant_membership
 from arbor.env import (
     calendar_backend,
     feishu_app_id,
@@ -286,6 +291,8 @@ def create_app(
     else:
         resolved_embed = FixtureEmbeddingClient()
     eval_backend = "postgres" if database_url else "memory"
+    observability = build_observability()
+    decision_traces = None
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
@@ -302,6 +309,7 @@ def create_app(
         audit_logs = session.audit_logs
         tenants = session.tenants
         users = session.users
+        decision_traces = PgDecisionTraceRepository(session.conn)
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
         if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
             linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
@@ -329,6 +337,7 @@ def create_app(
                         item.status,
                     )
         audit_logs = InMemoryAuditLogRepository(stores)
+        decision_traces = InMemoryDecisionTraceRepository(stores)
         tenants = InMemoryTenantRepository(stores)
         users = InMemoryUserRepository(stores)
     ensure_demo_member(tenants, users)
@@ -367,6 +376,8 @@ def create_app(
         vision_enrich=vision_enrich,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
+        observability=observability,
+        decision_traces=decision_traces,
     )
     confirm = ConfirmInboxItem(
         personas=personas,
@@ -570,6 +581,7 @@ def create_app(
             await pool.close()
 
     app = FastAPI(lifespan=lifespan)
+    register_observability_middleware(app, observability)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=os.environ.get("ARBOR_CORS_ORIGINS", "*").split(","),
@@ -602,6 +614,8 @@ def create_app(
                 limiter.check(key)
             except DomainError as exc:
                 if exc.code == "RATE_LIMITED":
+                    observability.increment("arbor_rate_limit_rejections_total")
+                    observability.event("rate_limit.rejected", scope="v1")
                     return error_response(exc.code, str(exc), 429)
                 raise
         return await call_next(request)
@@ -617,6 +631,7 @@ def create_app(
     app.state.import_jobs = import_jobs
     app.state.eval_runs = eval_runs
     app.state.storage = storage
+    app.state.observability = observability
     app.state.runtime = _runtime_info(
         llm=send.llm,
         database_url=database_url,
@@ -787,6 +802,20 @@ def create_app(
         app,
         AuditHttpDeps(
             list_audit_logs=list_audit_logs,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+        ),
+    )
+    object_store_backend = object_store_label(storage)
+    register_observability_routes(
+        app,
+        ObservabilityHttpDeps(
+            observability=observability,
+            runtime=app.state.runtime,
+            database_url=database_url,
+            redis_url=redis_url or env_redis_url() or None,
+            object_store_backend=object_store_backend,
+            decision_traces=decision_traces,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
         ),

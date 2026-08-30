@@ -20,6 +20,7 @@ import type {
   PersonaDraft,
   PersonaGrant,
   PersonaPatch,
+  DecisionTrace,
   RetrievalMeta,
   StreamEvent,
   ToolResult,
@@ -277,6 +278,8 @@ export function createClient(
         inbox_created?: number
         attachments?: ChatAttachment[]
         retrieval_meta?: RetrievalMeta
+        decision_trace?: DecisionTrace
+        request_id?: string
         tool_results?: ToolResult[]
       }
       return {
@@ -287,6 +290,8 @@ export function createClient(
         inbox_created: body.inbox_created ?? 0,
         attachments: body.attachments ?? [],
         retrieval_meta: body.retrieval_meta,
+        decision_trace: body.decision_trace,
+        request_id: body.request_id,
         tool_results: body.tool_results ?? [],
       }
     },
@@ -376,6 +381,8 @@ export function createClient(
           inbox_created: doneEvent.inbox_created ?? 0,
           attachments: doneEvent.attachments ?? [],
           retrieval_meta: doneEvent.retrieval_meta,
+          decision_trace: doneEvent.decision_trace,
+          request_id: doneEvent.request_id,
           tool_results: doneEvent.tool_results ?? [],
         },
         events,
