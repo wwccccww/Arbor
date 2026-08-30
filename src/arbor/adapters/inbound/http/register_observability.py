@@ -8,9 +8,9 @@ from fastapi.responses import Response
 
 from arbor.domain.errors import DomainError
 from arbor.domain.shared.ids import TenantId, UserId
+from arbor.observability.content_storage import delete_encrypted_content, load_encrypted_content
 from arbor.observability.gauges import refresh_operational_gauges
 from arbor.observability.runtime import check_readiness, probe_dependencies
-from arbor.observability.sampling import decrypt_payload
 
 
 @dataclass
@@ -26,6 +26,8 @@ class ObservabilityHttpDeps:
     current_user: Callable
     workspace_admin_for: Callable
     record_audit: Callable | None = None
+    storage: object | None = None
+    debug_web_url: str | None = None
 
 
 def register_observability_routes(app, deps: ObservabilityHttpDeps) -> None:
@@ -154,9 +156,11 @@ def register_observability_routes(app, deps: ObservabilityHttpDeps) -> None:
         entry = deps.decision_traces.get_by_request_id(tenant_id, request_id)
         if entry is None:
             raise DomainError("NOT_FOUND", "trace not found")
-        if not entry.get("content_sampled") or not entry.get("encrypted_payload"):
+        if not entry.get("content_sampled") or not (
+            entry.get("encrypted_payload") or entry.get("encrypted_payload_uri")
+        ):
             raise DomainError("NOT_FOUND", "content not sampled")
-        decrypted = decrypt_payload(str(entry["encrypted_payload"]))
+        decrypted = load_encrypted_content(entry, deps.storage)
         if decrypted is None:
             raise DomainError("UPSTREAM_UNAVAILABLE", "content unavailable")
         _audit_debug_access(
@@ -181,8 +185,9 @@ def register_observability_routes(app, deps: ObservabilityHttpDeps) -> None:
         if deps.decision_traces is None or not hasattr(deps.decision_traces, "delete_by_request_id"):
             raise DomainError("NOT_FOUND", "trace not found")
         deleted = deps.decision_traces.delete_by_request_id(tenant_id, request_id)
-        if not deleted:
+        if deleted is None:
             raise DomainError("NOT_FOUND", "trace not found")
+        delete_encrypted_content(deleted, deps.storage)
         _audit_debug_access(
             user=user,
             tenant_id=tenant_id,

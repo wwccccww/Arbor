@@ -18,7 +18,7 @@ from arbor.domain.memory.memory import InboxItem, MemoryItem
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, ThreadId, UserId
 from arbor.env import tool_mode
-from arbor.observability.content_capture import build_encrypted_content_sample
+from arbor.observability.content_storage import store_encrypted_content_sample
 from arbor.observability.context import current_request_context
 from arbor.observability.decision_trace import (
     build_decision_trace_summary,
@@ -318,39 +318,41 @@ class SendMessage:
 
         reasoner_meta: dict = {"called": False}
         extracted = None
-        if self.reasoner:
-            reasoner_started = time.perf_counter()
-            with obs.span("llm.extract", thread_id=thread_id.value):
-                extracted = self.reasoner.extract(text, active_memories=active)
-            reasoner_meta = {
-                "called": True,
-                "operation": "extract",
-                "duration_ms": round((time.perf_counter() - reasoner_started) * 1000, 2),
-                "result_kind": extracted.get("kind") if extracted else None,
-                "conflicts_with": extracted.get("conflicts_with") if extracted else None,
-            }
-            obs.event(
-                "llm.extract",
-                result_kind=reasoner_meta.get("result_kind"),
-                duration_ms=reasoner_meta.get("duration_ms"),
-                result="parsed" if extracted else "skipped",
-            )
-        inbox_added = 0
-        if extracted and extracted.get("text"):
-            extracted = enrich_inbox_extract(extracted, active)
-            conflict_raw = extracted.get("conflicts_with")
-            conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
-            item = InboxItem(
-                id=self.ids.new_id(),
-                tenant_id=tenant_id,
-                persona_id=persona_id,
-                kind=extracted.get("kind", "fact"),
-                payload={"text": extracted["text"]},
-                conflicts_with=conflicts_with,
-                created_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-            )
-            self.inbox.add(item)
-            inbox_added = 1
+        with obs.span("inbox.extract", thread_id=thread_id.value):
+            if self.reasoner:
+                reasoner_started = time.perf_counter()
+                with obs.span("llm.extract", thread_id=thread_id.value):
+                    extracted = self.reasoner.extract(text, active_memories=active)
+                reasoner_meta = {
+                    "called": True,
+                    "operation": "extract",
+                    "duration_ms": round((time.perf_counter() - reasoner_started) * 1000, 2),
+                    "result_kind": extracted.get("kind") if extracted else None,
+                    "conflicts_with": extracted.get("conflicts_with") if extracted else None,
+                }
+                obs.event(
+                    "llm.extract",
+                    result_kind=reasoner_meta.get("result_kind"),
+                    duration_ms=reasoner_meta.get("duration_ms"),
+                    result="parsed" if extracted else "skipped",
+                )
+            inbox_added = 0
+            if extracted and extracted.get("text"):
+                extracted = enrich_inbox_extract(extracted, active)
+                conflict_raw = extracted.get("conflicts_with")
+                conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
+                item = InboxItem(
+                    id=self.ids.new_id(),
+                    tenant_id=tenant_id,
+                    persona_id=persona_id,
+                    kind=extracted.get("kind", "fact"),
+                    payload={"text": extracted["text"]},
+                    conflicts_with=conflicts_with,
+                    created_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                )
+                self.inbox.add(item)
+                inbox_added = 1
+                obs.event("inbox.extract", result="created", kind=item.kind)
         return _Context(
             tenant_id=tenant_id,
             user_id=user_id,
@@ -466,8 +468,10 @@ class SendMessage:
         )
         if self.decision_traces is not None:
             now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-            encrypted_payload, content_sampled = build_encrypted_content_sample(
+            inline_payload, payload_uri, content_sampled = store_encrypted_content_sample(
+                storage=self.storage,
                 tenant_id=ctx.tenant_id.value,
+                request_id=request_id,
                 user_message=ctx.text,
                 model_response=llm_out.get("text", ""),
                 prompt_slots=ctx.prompt_slots,
@@ -485,7 +489,8 @@ class SendMessage:
                 "summary_json": decision_summary,
                 "created_at": now,
                 "expires_at": decision_trace_expires_at(decision_trace_retention_days()),
-                "encrypted_payload": encrypted_payload,
+                "encrypted_payload": inline_payload,
+                "encrypted_payload_uri": payload_uri,
                 "content_sampled": content_sampled,
             }
             self.decision_traces.save(entry)

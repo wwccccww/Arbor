@@ -117,7 +117,7 @@ from arbor.env import (
 from arbor.env import redis_url as env_redis_url
 from arbor.observability.cleanup import cleanup_expired_traces
 from arbor.observability.dependency import ObservedObjectStorage
-from arbor.observability.instrumentation import instrument_fastapi, instrument_httpx
+from arbor.observability.instrumentation import instrument_fastapi, instrument_httpx, instrument_psycopg
 from arbor.observability.runtime import build_observability
 from arbor.paths import repo_root
 
@@ -305,6 +305,7 @@ def create_app(
     eval_backend = "postgres" if database_url else "memory"
     observability = build_observability()
     instrument_httpx()
+    instrument_psycopg()
     if isinstance(llm, DeepSeekChatLLM):
         llm.observability = observability
     if isinstance(reasoner, DeepSeekReasoner):
@@ -602,7 +603,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        cleanup_expired_traces(decision_traces)
+        cleanup_expired_traces(decision_traces, storage)
         pool = None
         if redis_url:
             from arq.connections import create_pool
@@ -684,6 +685,7 @@ def create_app(
             status = 401
         elif exc.code.startswith("FORBIDDEN"):
             status = 403
+            observability.increment("arbor_permission_denials_total", error_code=exc.code)
         elif exc.code == "NOT_FOUND":
             status = 404
         elif exc.code in {"CONFLICT_INBOX_STATE", "PERSONA_TENANT_MISMATCH"}:
@@ -853,6 +855,8 @@ def create_app(
             decision_traces=decision_traces,
             inbox=inbox,
             import_jobs=import_jobs,
+            storage=storage,
+            debug_web_url=os.environ.get("ARBOR_WEB_URL", "http://localhost:5173"),
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
             record_audit=record_audit,

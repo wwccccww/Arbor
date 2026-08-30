@@ -17,8 +17,11 @@ from arbor.adapters.inbound.eval_runner import (
     run_generation,
     run_suite,
 )
+from arbor.application.evaluation.runner import comparison_row
 from arbor.application.retrieval import STRATEGIES
 from arbor.env import chat_api_key, embedding_api_key, judge_status
+from arbor.observability.eval_metrics import export_eval_run_metrics
+from arbor.observability.runtime import build_observability
 
 SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
@@ -57,6 +60,16 @@ def _baseline_payload(suite: str, payload: dict, embed_label: str) -> dict:
         "strategies": payload["strategies"],
         "layered_tree_by_skill": metrics.get("by_skill"),
     }
+
+
+def _export_metrics(*, suite: str, strategy: str, metrics: dict, p0_ok: bool) -> None:
+    export_eval_run_metrics(
+        build_observability(service="arbor-eval"),
+        suite=suite,
+        strategy=strategy,
+        metrics=metrics,
+        p0_tenant_leak_zero=p0_ok,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -102,6 +115,12 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         strategy = "layered_tree" if args.strategy == "all" else args.strategy
         payload = run_generation(suite_dir=suite_dir, strategy=strategy, backend=args.backend)
+        _export_metrics(
+            suite=args.suite,
+            strategy=strategy,
+            metrics=dict(payload.get("metrics") or {}),
+            p0_ok=not (payload.get("metrics") or {}).get("n_leaking_cases"),
+        )
         print(json.dumps({"metrics": payload["metrics"]}, ensure_ascii=False, indent=2))
         if args.out:
             slim = {"metrics": payload["metrics"], "cases": payload["cases"]}
@@ -147,9 +166,22 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.strategy == "all":
         payload = run_all_strategies(suite_dir, backend=backend, embed=args.embed)
+        for name, row in (payload.get("strategies") or {}).items():
+            _export_metrics(
+                suite=args.suite,
+                strategy=name,
+                metrics=dict(row),
+                p0_ok=int(row.get("tenant_leak_count") or 0) == 0,
+            )
         print(json.dumps({"backend": payload.get("backend"), "strategies": payload["strategies"]}, ensure_ascii=False, indent=2))
     else:
         payload = run_suite(suite_dir=suite_dir, strategy=args.strategy, backend=backend, embed=args.embed)
+        _export_metrics(
+            suite=args.suite,
+            strategy=args.strategy,
+            metrics=comparison_row(payload),
+            p0_ok=bool(payload.get("p0_tenant_leak_zero")),
+        )
         print(
             json.dumps(
                 {

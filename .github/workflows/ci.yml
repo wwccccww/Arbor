@@ -32,6 +32,7 @@ jobs:
       - run: python3 -m mypy src/arbor/domain src/arbor/ports
       - run: python3 scripts/validate_openapi.py
       - run: python3 -m pytest tests/unit tests/architecture tests/eval tests/api tests/contract -q -m "not llm"
+      - run: python3 -m pytest tests/integration/observability/test_prometheus_integration.py -q --tb=short
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite v1 --strategy all --backend postgres
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-v1 --strategy all --backend postgres
   web:
@@ -57,3 +58,14 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+  observability-integration:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api,postgres,observability]"
+      - run: docker compose -f infra/compose/observability.yml up -d loki tempo
+      - run: python3 -m pytest tests/integration/observability -q -m integration --tb=short

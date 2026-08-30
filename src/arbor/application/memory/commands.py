@@ -117,6 +117,14 @@ class ConfirmInboxItem:
             from_status=from_status,
             to_status=item.status,
         )
+        age = inbox_age_seconds(getattr(item, "created_at", None))
+        if age is not None:
+            obs.observe(
+                "arbor_inbox_dwell_seconds",
+                age,
+                kind=item.kind,
+                to_status=item.status,
+            )
         obs.event(
             "memory.transition",
             from_status="none",
@@ -219,6 +227,14 @@ class DismissInboxItem:
             from_status=from_status,
             to_status=item.status,
         )
+        age = inbox_age_seconds(getattr(item, "created_at", None))
+        if age is not None:
+            obs.observe(
+                "arbor_inbox_dwell_seconds",
+                age,
+                kind=item.kind,
+                to_status=item.status,
+            )
 
 
 class ImportArtifact:

@@ -79,6 +79,21 @@
       ],
       "title": "Memory transitions",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_inbox_dwell_seconds_bucket[5m])) by (le, kind, to_status))",
+          "legendFormat": "P95 {{kind}} → {{to_status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Inbox dwell time P95",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
