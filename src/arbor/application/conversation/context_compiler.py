@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 
 from arbor.application.conversation.context_budget import (
@@ -31,6 +32,7 @@ from arbor.env import (
     retrieval_prompt_k,
     tool_mode,
 )
+from arbor.observability.noop import NoopObservability
 
 
 @dataclass
@@ -85,111 +87,133 @@ class ContextCompiler:
         tool_results: list | None = None,
         event_edges: list[EventEdge] | None = None,
         lexical_search=None,
+        observability: object | None = None,
     ) -> CompiledContext:
+        obs = observability or NoopObservability()
+        compile_started = time.perf_counter()
         retrieval_strategy = self.strategy if Capability.READ_MEMORY in capabilities else "summary_only"
         prompt_k = retrieval_prompt_k()
-        retrieved = retrieve(
-            strategy=retrieval_strategy,
-            query=query,
-            tenant_id=tenant_id,
-            persona_id=persona_id,
-            k=prompt_k,
-            memories=memories,
-            events=event_nodes,
-            edges=event_edges,
-            summary=thread.summary,
-            vector_search=vector_search,
-            embed=embed,
-            config=self.retrieval_config,
-            lexical_search=lexical_search,
-        )
-        hit_scores = dict(retrieved.get("hit_scores") or {})
-        trim_priority = list(retrieved.get("trim_priority") or [])
-        sources = dict(retrieved.get("sources") or {})
-
-        hits: list[MemoryItem] = []
-        conflict_notes: list[str] = []
-        if Capability.READ_MEMORY not in capabilities:
-            slots = self.policy.build_without_memory(persona.profile, summary="")
-            event_payload: list[dict] = []
-        else:
-            hits = list(retrieved["hits"])
-            event_payload = [
-                {"id": e.id.value, "title": e.title, "summary": e.summary} for e in retrieved["event_nodes"]
-            ]
-            slots = self.policy.assemble(
-                profile=persona.profile,
-                capabilities=capabilities,
+        with obs.span("rag.compile_context"):
+            retrieved = retrieve(
+                strategy=retrieval_strategy,
+                query=query,
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                k=prompt_k,
+                memories=memories,
+                events=event_nodes,
+                edges=event_edges,
                 summary=thread.summary,
-                event_hits=event_payload,
-                memory_hits=hits,
-                tool_policy=persona.tool_policy,
+                vector_search=vector_search,
+                embed=embed,
+                config=self.retrieval_config,
+                lexical_search=lexical_search,
+                observability=obs,
             )
-            for item in hits:
-                mid = item.id.value
-                if mid not in slots.injected_memory_ids:
-                    slots.injected_memory_ids.append(mid)
-            conflict_notes = detect_context_conflicts(slots.profile, slots.memory_hits)
+            hit_scores = dict(retrieved.get("hit_scores") or {})
+            trim_priority = list(retrieved.get("trim_priority") or [])
+            sources = dict(retrieved.get("sources") or {})
 
-        recent_turns = self._recent_turns(thread)
-        slots.recent_turns = recent_turns
+            hits: list[MemoryItem] = []
+            conflict_notes: list[str] = []
+            if Capability.READ_MEMORY not in capabilities:
+                slots = self.policy.build_without_memory(persona.profile, summary="")
+                event_payload: list[dict] = []
+            else:
+                hits = list(retrieved["hits"])
+                event_payload = [
+                    {"id": e.id.value, "title": e.title, "summary": e.summary}
+                    for e in retrieved["event_nodes"]
+                ]
+                slots = self.policy.assemble(
+                    profile=persona.profile,
+                    capabilities=capabilities,
+                    summary=thread.summary,
+                    event_hits=event_payload,
+                    memory_hits=hits,
+                    tool_policy=persona.tool_policy,
+                )
+                for item in hits:
+                    mid = item.id.value
+                    if mid not in slots.injected_memory_ids:
+                        slots.injected_memory_ids.append(mid)
+                conflict_notes = detect_context_conflicts(slots.profile, slots.memory_hits)
 
-        memory_payloads = [
-            memory_hit_payload(
-                item,
-                source=sources.get(item.id.value, ""),
-                score=hit_scores.get(item.id.value),
+            recent_turns = self._recent_turns(thread)
+            slots.recent_turns = recent_turns
+
+            memory_payloads = [
+                memory_hit_payload(
+                    item,
+                    source=sources.get(item.id.value, ""),
+                    score=hit_scores.get(item.id.value),
+                )
+                for item in slots.memory_hits
+            ]
+
+            prompt_slots = {
+                "profile": slots.profile,
+                "tool_policy": slots.tool_policy,
+                "tool_results": list(tool_results or []),
+                "thread_summary": slots.thread_summary,
+                "recent_turns": list(slots.recent_turns),
+                "event_hits": slots.event_hits,
+                "memory_hits": memory_payloads,
+                "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
+                "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
+            }
+
+            budget = self._slot_budget(user_text)
+            notes: list[str] = []
+            if conflict_notes:
+                notes.extend(conflict_notes)
+            prompt_slots, slots, notes = self._fit_budget(
+                prompt_slots,
+                slots,
+                budget,
+                notes,
+                trim_priority=trim_priority,
+                hit_scores=hit_scores,
             )
-            for item in slots.memory_hits
-        ]
 
-        prompt_slots = {
-            "profile": slots.profile,
-            "tool_policy": slots.tool_policy,
-            "tool_results": list(tool_results or []),
-            "thread_summary": slots.thread_summary,
-            "recent_turns": list(slots.recent_turns),
-            "event_hits": slots.event_hits,
-            "memory_hits": memory_payloads,
-            "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
-            "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
-        }
+            retrieval_meta = {
+                "strategy": retrieved.get("strategy"),
+                "hit_ids": list(retrieved.get("hit_ids") or []),
+                "sources": sources,
+                "hit_scores": hit_scores,
+                "trim_priority": trim_priority,
+                "per_source_counts": dict(retrieved.get("per_source_counts") or {}),
+                "sub_queries": list(retrieved.get("sub_queries") or []),
+            }
 
-        budget = self._slot_budget(user_text)
-        notes: list[str] = []
-        if conflict_notes:
-            notes.extend(conflict_notes)
-        prompt_slots, slots, notes = self._fit_budget(
-            prompt_slots,
-            slots,
-            budget,
-            notes,
-            trim_priority=trim_priority,
-            hit_scores=hit_scores,
-        )
-
-        retrieval_meta = {
-            "strategy": retrieved.get("strategy"),
-            "hit_ids": list(retrieved.get("hit_ids") or []),
-            "sources": sources,
-            "hit_scores": hit_scores,
-            "trim_priority": trim_priority,
-            "per_source_counts": dict(retrieved.get("per_source_counts") or {}),
-            "sub_queries": list(retrieved.get("sub_queries") or []),
-        }
-
-        injected_contexts_list = injected_contexts(prompt_slots)
-        return CompiledContext(
-            slots=slots,
-            prompt_slots=prompt_slots,
-            hits=hits,
-            injected_memory_ids=list(slots.injected_memory_ids),
-            injected_contexts=injected_contexts_list,
+            injected_contexts_list = injected_contexts(prompt_slots)
+            token_estimate = estimate_prompt_slots_tokens(prompt_slots) + self.system_overhead
+            trim_count = len(notes)
+            injected_count = len(slots.injected_memory_ids)
+            result = CompiledContext(
+                slots=slots,
+                prompt_slots=prompt_slots,
+                hits=hits,
+                injected_memory_ids=list(slots.injected_memory_ids),
+                injected_contexts=injected_contexts_list,
+                token_budget=budget,
+                token_estimate=token_estimate,
+                truncation_notes=notes,
+                retrieval_meta=retrieval_meta,
+            )
+        obs.event(
+            "rag.compile_context",
             token_budget=budget,
-            token_estimate=estimate_prompt_slots_tokens(prompt_slots) + self.system_overhead,
-            truncation_notes=notes,
-            retrieval_meta=retrieval_meta,
+            token_estimate=token_estimate,
+            injected_count=injected_count,
+            trim_count=trim_count,
+            duration_ms=round((time.perf_counter() - compile_started) * 1000, 2),
         )
+        obs.observe("arbor_rag_context_duration_seconds", time.perf_counter() - compile_started)
+        for note in notes:
+            reason = str(note).split(":", 1)[0]
+            obs.increment("arbor_rag_context_trimmed_total", reason=reason)
+        return result
 
     def apply_tool_results(self, compiled: CompiledContext, tool_results: list) -> CompiledContext:
         compiled.prompt_slots["tool_results"] = list(tool_results)

@@ -313,7 +313,7 @@ def create_app(
     if database_url:
         from arbor.adapters.outbound.postgres import PostgresSession
 
-        session = PostgresSession.connect(database_url, embed=resolved_embed)
+        session = PostgresSession.connect(database_url, embed=resolved_embed, observability=observability)
         session.migrate()
         session.seed_demo_world_if_empty()
         personas = session.personas
@@ -430,6 +430,7 @@ def create_app(
         inbox=inbox,
         confirm=confirm,
         auth=AuthorizationPolicy(),
+        observability=observability,
     )
     get_tree = GetEventTree(events, memories=memories)
     get_card = GetEventCard(events=events, memories=memories, personas=personas, auth=AuthorizationPolicy())
@@ -502,6 +503,7 @@ def create_app(
         run_retrieval=run_retrieval,
         run_generation=run_generation_eval,
         ids=ids,
+        observability=observability,
     )
     def _eval_fixture_path(suite_version: str) -> Path:
         if suite_version != "v1":
@@ -582,6 +584,7 @@ def create_app(
     start_persona_eval = StartPersonaEvalRun(
         run_persona_retrieval=run_persona_retrieval_eval_fn,
         ids=ids,
+        observability=observability,
     )
 
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
@@ -605,7 +608,7 @@ def create_app(
             from arq.connections import create_pool
 
             pool = await create_pool(arq_redis_settings(redis_url))
-            job_queue_holder.use_arq(ArqJobQueue(pool))
+            job_queue_holder.use_arq(ArqJobQueue(pool, observability=observability))
             app.state.arq_pool = pool
         yield
         if pool is not None:

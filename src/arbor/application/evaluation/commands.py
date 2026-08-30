@@ -3,6 +3,7 @@ from __future__ import annotations
 from arbor.application.evaluation.runner import comparison_row
 from arbor.application.retrieval import STRATEGIES
 from arbor.domain.errors import DomainError
+from arbor.observability.eval_metrics import export_eval_run_metrics
 
 SUITES = frozenset({"v1", "ragas-v1"})
 
@@ -74,10 +75,11 @@ def _generation_case_view(row: dict) -> dict:
 class StartEvalRun:
     """Run frozen-fixture retrieval or generation (suite-v1)."""
 
-    def __init__(self, *, run_retrieval, run_generation=None, ids) -> None:
+    def __init__(self, *, run_retrieval, run_generation=None, ids, observability=None) -> None:
         self.run_retrieval = run_retrieval
         self.run_generation = run_generation
         self.ids = ids
+        self.observability = observability
 
     def __call__(
         self,
@@ -102,6 +104,14 @@ class StartEvalRun:
                 raise DomainError("VALIDATION_ERROR", "generation not configured")
             report = self.run_generation(strategy=strategy, suite_version=suite_version)
             cases = [_generation_case_view(row) for row in report.get("cases") or []]
+            metrics = report.get("metrics") or {}
+            export_eval_run_metrics(
+                self.observability,
+                suite=suite_version,
+                strategy=strategy,
+                metrics=metrics,
+                p0_tenant_leak_zero=bool(report.get("p0_tenant_leak_zero")),
+            )
             return {
                 "id": self.ids.new_id(),
                 "status": "completed",
@@ -114,6 +124,14 @@ class StartEvalRun:
             }
         report = self.run_retrieval(strategy=strategy, suite_version=suite_version)
         cases = [_case_view(row) for row in report.get("cases") or []]
+        metrics = comparison_row(report)
+        export_eval_run_metrics(
+            self.observability,
+            suite=suite_version,
+            strategy=strategy,
+            metrics=metrics,
+            p0_tenant_leak_zero=bool(report.get("p0_tenant_leak_zero")),
+        )
         return {
             "id": self.ids.new_id(),
             "status": "completed",
@@ -129,9 +147,10 @@ class StartEvalRun:
 class StartPersonaEvalRun:
     """Auto-generate smoke questions for one live persona."""
 
-    def __init__(self, *, run_persona_retrieval, ids) -> None:
+    def __init__(self, *, run_persona_retrieval, ids, observability=None) -> None:
         self.run_persona_retrieval = run_persona_retrieval
         self.ids = ids
+        self.observability = observability
 
     def __call__(
         self,
@@ -153,6 +172,14 @@ class StartPersonaEvalRun:
             strategy=strategy,
         )
         cases = [_case_view(row) for row in report.get("cases") or []]
+        metrics = comparison_row(report)
+        export_eval_run_metrics(
+            self.observability,
+            suite="persona",
+            strategy=strategy,
+            metrics=metrics,
+            p0_tenant_leak_zero=bool(report.get("p0_tenant_leak_zero")),
+        )
         return {
             "id": self.ids.new_id(),
             "status": "completed",

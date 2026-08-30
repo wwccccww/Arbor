@@ -1,0 +1,127 @@
+{
+  "editable": true,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_rag_retrieval_duration_seconds_bucket[5m])) by (le, strategy))",
+          "legendFormat": "retrieval {{strategy}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_rag_context_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "context compile",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_chat_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "chat e2e",
+          "refId": "C"
+        }
+      ],
+      "title": "RAG & Chat latency P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_rag_empty_retrieval_total[5m])) by (strategy)",
+          "legendFormat": "empty {{strategy}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Empty retrieval rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_rag_hits_total[5m])) by (source)",
+          "legendFormat": "{{source}}",
+          "refId": "A"
+        }
+      ],
+      "title": "RAG hits by source",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_rag_context_trimmed_total[5m])) by (reason)",
+          "legendFormat": "{{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Context trim events",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_llm_upstream_errors_total[5m])) by (operation, status_class)",
+          "legendFormat": "{{operation}} {{status_class}}",
+          "refId": "A"
+        }
+      ],
+      "title": "LLM upstream errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_llm_first_token_duration_seconds_bucket[5m])) by (le, model))",
+          "legendFormat": "TTFT {{model}}",
+          "refId": "A"
+        }
+      ],
+      "title": "LLM time to first token P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_llm_input_tokens_total[5m])) by (operation, model)",
+          "legendFormat": "in {{operation}} {{model}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(arbor_llm_output_tokens_total[5m])) by (operation, model)",
+          "legendFormat": "out {{operation}} {{model}}",
+          "refId": "B"
+        }
+      ],
+      "title": "LLM token throughput",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["arbor", "rag", "llm"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Arbor RAG & LLM",
+  "uid": "arbor-rag-llm",
+  "version": 1
+}

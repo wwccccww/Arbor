@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+import time
 from datetime import UTC, datetime
 
 from arbor.domain.persona.authorization import ToolPolicy
 from arbor.domain.shared.ids import TenantId, UserId
+from arbor.observability.helpers import obs_or_noop
 
 _TOOL_ALIASES = {
     "calendar": "calendar",
@@ -76,8 +78,10 @@ def run_persona_tools(
     user_id: UserId | None = None,
     calendar_tool: object | None = None,
     ticket_tool: object | None = None,
+    observability: object | None = None,
 ) -> list[dict]:
     """Run allowed tools when user text matches keyword triggers."""
+    obs = obs_or_noop(observability)
     allowed = allowed_tool_names(tool_policy)
     if not allowed:
         return []
@@ -89,28 +93,44 @@ def run_persona_tools(
         pattern = _TOOL_TRIGGERS.get(name)
         if pattern is None or not pattern.search(haystack):
             continue
-        if name == "calendar":
-            if calendar_tool is not None and tenant_id is not None and user_id is not None:
-                results.append(
-                    calendar_tool.list_upcoming(
+        started = time.perf_counter()
+        try:
+            if name == "calendar":
+                if calendar_tool is not None and tenant_id is not None and user_id is not None:
+                    result = calendar_tool.list_upcoming(
                         tenant_id=tenant_id,
                         user_id=user_id,
                         query_text=haystack,
                     )
-                )
-            else:
-                results.append(_stub_calendar_result())
-        elif name == "ticket":
-            if ticket_tool is not None and tenant_id is not None and user_id is not None:
-                title = haystack[:80] or "用户反馈"
-                results.append(
-                    ticket_tool.create(
+                else:
+                    result = _stub_calendar_result()
+            elif name == "ticket":
+                if ticket_tool is not None and tenant_id is not None and user_id is not None:
+                    title = haystack[:80] or "用户反馈"
+                    result = ticket_tool.create(
                         tenant_id=tenant_id,
                         user_id=user_id,
                         title=title,
                         description=haystack,
                     )
-                )
+                else:
+                    result = _stub_ticket_result(haystack)
             else:
-                results.append(_stub_ticket_result(haystack))
+                continue
+            obs.event(
+                "tool.call",
+                tool=name,
+                result="success",
+                duration_ms=round((time.perf_counter() - started) * 1000, 2),
+            )
+            results.append(result)
+        except Exception as exc:
+            obs.event(
+                "tool.call",
+                tool=name,
+                result="error",
+                duration_ms=round((time.perf_counter() - started) * 1000, 2),
+                error_kind=exc.__class__.__name__,
+            )
+            raise
     return results

@@ -19,11 +19,12 @@ from arbor.paths import repo_root
 
 
 class PostgresSession:
-    def __init__(self, conn, url: str, embed=None, pool=None) -> None:
+    def __init__(self, conn, url: str, embed=None, pool=None, observability=None) -> None:
         self.conn = conn
         self.url = url
         self.embed = embed or FixtureEmbeddingClient()
         self._pool = pool
+        self._observability = observability
         self._primary_conn = conn
         self._bind()
 
@@ -44,7 +45,9 @@ class PostgresSession:
     def checkout(self) -> tuple[object, bool]:
         if self._pool is None:
             return self.conn, False
-        conn = self._pool.getconn()
+        from arbor.observability.postgres import observe_connection
+
+        conn = observe_connection(self._pool.getconn(), self._observability)
         self._bind(conn)
         return conn, True
 
@@ -54,20 +57,29 @@ class PostgresSession:
             self._bind(self._primary_conn)
 
     @classmethod
-    def connect(cls, url: str, embed=None, *, use_pool: bool = True) -> PostgresSession:
+    def connect(
+        cls,
+        url: str,
+        embed=None,
+        *,
+        use_pool: bool = True,
+        observability=None,
+    ) -> PostgresSession:
+        from arbor.observability.postgres import observe_connection
+
         pool = None
         if use_pool:
             try:
                 from arbor.adapters.outbound.postgres.pool import open_pool
 
                 pool = open_pool(url)
-                conn = pool.getconn()
+                conn = observe_connection(pool.getconn(), observability)
             except Exception:
                 pool = None
-                conn = connect(url)
+                conn = connect(url, observability=observability)
         else:
-            conn = connect(url)
-        return cls(conn, url, embed=embed, pool=pool)
+            conn = connect(url, observability=observability)
+        return cls(conn, url, embed=embed, pool=pool, observability=observability)
 
     def migrate(self) -> None:
         # Close before Alembic. 0001 opens a second connection to apply
@@ -78,7 +90,7 @@ class PostgresSession:
         if self.conn is not None and not self.conn.closed:
             self.conn.close()
         upgrade_head(self.url)
-        self.conn = connect(self.url)
+        self.conn = connect(self.url, observability=self._observability)
         self._primary_conn = self.conn
         self._bind()
 
