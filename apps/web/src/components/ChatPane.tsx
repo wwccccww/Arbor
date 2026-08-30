@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { ChatMessage, Thread } from '../api/types'
 import { CitationList } from './CitationList'
 import { DecisionTracePanel } from './DecisionTracePanel'
-import { RetrievalMetaPanel } from './RetrievalMetaPanel'
 import { ToolResultsPanel } from './ToolResultsPanel'
 
 export function ChatPane({

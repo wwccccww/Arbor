@@ -68,7 +68,7 @@ export function DecisionTracePanel({
           {subQueries.map((item, index) => (
             <li key={`${item.intent ?? 'q'}-${index}`}>
               <span className="badge">{INTENT_LABELS[item.intent ?? ''] ?? item.intent ?? '—'}</span>
-              {item.query_hash ? `hash ${item.query_hash.slice(0, 18)}…` : item.query ?? '—'}
+              {item.query_hash ? `hash ${item.query_hash.slice(0, 18)}…` : '—'}
             </li>
           ))}
         </ul>
