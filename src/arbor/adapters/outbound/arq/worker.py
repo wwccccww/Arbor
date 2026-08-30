@@ -49,7 +49,10 @@ async def cleanup_decision_traces(_ctx) -> dict:
 
     session = PostgresSession.connect(database_url())
     try:
-        deleted = cleanup_expired_traces(session.decision_traces)
+        from arbor.adapters.outbound.object_storage import build_object_storage
+
+        storage = build_object_storage(session=session)
+        deleted = cleanup_expired_traces(session.decision_traces, storage)
         return {"deleted": deleted}
     finally:
         session.close()

@@ -21,3 +21,12 @@ def instrument_httpx() -> None:
         HTTPXClientInstrumentor().instrument()
     except ImportError:
         logger.debug("OpenTelemetry httpx instrumentation unavailable")
+
+
+def instrument_psycopg() -> None:
+    try:
+        from opentelemetry.instrumentation.psycopg import PsycopgInstrumentor
+
+        PsycopgInstrumentor().instrument()
+    except ImportError:
+        logger.debug("OpenTelemetry psycopg instrumentation unavailable")

@@ -42,6 +42,7 @@ observability = [
   "opentelemetry-exporter-otlp-proto-http>=1.25",
   "opentelemetry-instrumentation-fastapi>=0.46b0",
   "opentelemetry-instrumentation-httpx>=0.46b0",
+  "opentelemetry-instrumentation-psycopg>=0.46b0",
 ]
 s3 = [
   "boto3>=1.34",
@@ -93,6 +94,7 @@ testpaths = ["tests"]
 markers = [
   "postgres: needs DATABASE_URL and a real Postgres",
   "llm: needs DEEPSEEK_API_KEY; not required on pull requests",
+  "integration: needs observability stack (Loki/Tempo) or explicit URLs",
 ]
 
 [tool.ruff]

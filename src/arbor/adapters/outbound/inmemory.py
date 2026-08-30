@@ -466,22 +466,20 @@ class InMemoryDecisionTraceRepository:
                 return dict(item)
         return None
 
-    def delete_by_request_id(self, tenant_id: str, request_id: str) -> bool:
-        before = len(self.stores.decision_traces)
-        self.stores.decision_traces = [
-            item
-            for item in self.stores.decision_traces
-            if not (item.get("tenant_id") == tenant_id and item.get("request_id") == request_id)
-        ]
-        return len(self.stores.decision_traces) < before
+    def delete_by_request_id(self, tenant_id: str, request_id: str) -> dict | None:
+        for item in reversed(self.stores.decision_traces):
+            if item.get("tenant_id") == tenant_id and item.get("request_id") == request_id:
+                self.stores.decision_traces.remove(item)
+                return dict(item)
+        return None
 
-    def delete_expired(self, now_iso: str) -> int:
+    def delete_expired(self, now_iso: str) -> list[dict]:
         kept: list[dict] = []
-        deleted = 0
+        deleted: list[dict] = []
         for item in self.stores.decision_traces:
             expires_at = item.get("expires_at")
             if expires_at and str(expires_at) <= now_iso:
-                deleted += 1
+                deleted.append(dict(item))
             else:
                 kept.append(item)
         self.stores.decision_traces = kept

@@ -4,6 +4,7 @@ import time
 from contextlib import contextmanager
 
 from arbor.observability.helpers import http_status_class, obs_or_noop
+from arbor.observability.llm_pricing import estimated_llm_cost_usd
 
 
 @contextmanager
@@ -79,5 +80,17 @@ def record_llm_usage(
         obs.observe(
             "arbor_llm_first_token_duration_seconds",
             first_token_ms / 1000.0,
+            model=model,
+        )
+    cost = estimated_llm_cost_usd(
+        model=model,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+    )
+    if cost > 0:
+        obs.increment(
+            "arbor_llm_estimated_cost_usd_total",
+            cost,
+            operation=operation,
             model=model,
         )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable
 
@@ -34,8 +35,14 @@ def _route_template(request: Request) -> str:
 
 
 def register_observability_middleware(app, observability) -> None:
+    lock = threading.Lock()
+    active_count = {"n": 0}
+
     @app.middleware("http")
     async def observability_middleware(request: Request, call_next: Callable) -> Response:
+        with lock:
+            active_count["n"] += 1
+            observability.set_gauge("arbor_http_active_requests", float(active_count["n"]))
         incoming = normalize_request_id(request.headers.get("X-Request-Id"))
         trace_id = request.headers.get("traceparent")
         tenant_header = request.headers.get("x-tenant-id")
@@ -80,6 +87,9 @@ def register_observability_middleware(app, observability) -> None:
                 duration_ms=round(duration * 1000, 2),
                 result="success" if status_code < 500 else "error",
             )
+            with lock:
+                active_count["n"] = max(0, active_count["n"] - 1)
+                observability.set_gauge("arbor_http_active_requests", float(active_count["n"]))
             reset_request_context(token)
 
 

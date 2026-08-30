@@ -126,11 +126,95 @@
       ],
       "title": "Per-dependency health",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "id": 9,
+      "targets": [
+        {
+          "expr": "arbor_http_active_requests",
+          "legendFormat": "active",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP active requests",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "id": 10,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(arbor_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "HTTP P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(arbor_chat_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "Chat P50",
+          "refId": "B"
+        }
+      ],
+      "title": "Latency P50",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "min(arbor_dependency_up)",
+          "legendFormat": "readiness",
+          "refId": "A"
+        }
+      ],
+      "title": "Readiness (dependency up)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{id=~\"/docker.*\"}[5m])",
+          "legendFormat": "{{id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Container CPU (cAdvisor)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "id": 13,
+      "targets": [
+        {
+          "expr": "node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes",
+          "legendFormat": "mem available ratio",
+          "refId": "A"
+        }
+      ],
+      "title": "Host memory (node-exporter)",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["arbor"],
+  "links": [
+    {
+      "title": "Arbor Debug",
+      "url": "http://localhost:5173/#/debug",
+      "type": "link",
+      "icon": "external link"
+    }
+  ],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "timezone": "browser",

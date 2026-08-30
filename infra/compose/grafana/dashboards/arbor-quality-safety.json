@@ -70,6 +70,34 @@
       ],
       "title": "Dependency health",
       "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "arbor_persona_leak_rate",
+          "legendFormat": "{{suite}} {{strategy}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Persona leak rate (eval)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_permission_denials_total[5m])) by (error_code)",
+          "legendFormat": "{{error_code}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Permission denials (403)",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

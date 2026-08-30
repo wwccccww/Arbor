@@ -26,6 +26,13 @@ def export_eval_run_metrics(
             strategy=strategy,
             metric_name=str(name),
         )
+        if name == "persona_leak_rate":
+            obs.set_gauge(
+                "arbor_persona_leak_rate",
+                value,
+                suite=suite,
+                strategy=strategy,
+            )
     if p0_tenant_leak_zero is False:
         obs.increment("arbor_tenant_leak_total", 1.0)
 

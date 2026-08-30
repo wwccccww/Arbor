@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
 import { DecisionTracePanel } from '../components/DecisionTracePanel'
 import type { DebugRequest } from '../api/types'
@@ -35,6 +35,15 @@ export function DebugPage({ client, onBack }: Props) {
   const [content, setContent] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | undefined>()
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    const query = hash.includes('?') ? hash.split('?')[1] : ''
+    if (!query) return
+    const params = new URLSearchParams(query)
+    const rid = params.get('request_id')?.trim()
+    if (rid) setRequestId(rid)
+  }, [])
 
   async function lookup() {
     const trimmed = requestId.trim()

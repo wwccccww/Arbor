@@ -13,6 +13,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
+      ARBOR_WEB_URL: ${ARBOR_WEB_URL:-http://localhost:5173}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -27,13 +29,31 @@ services:
     image: grafana/tempo:2.5.0
     ports:
       - "3200:3200"
+      - "4318:4318"
     command: -config.file=/etc/tempo.yaml
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml:ro
 
-  promtail:
-    image: grafana/promtail:3.1.1
+  alloy:
+    image: grafana/alloy:v1.4.2
+    ports:
+      - "12345:12345"
     volumes:
-      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./alloy.config:/etc/alloy/config.alloy:ro
       - /var/log/arbor:/var/log/arbor:ro
-    command: -config.file=/etc/promtail/config.yml
+    command: run /etc/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    ports:
+      - "9100:9100"

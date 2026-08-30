@@ -3,14 +3,41 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    uid: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
   - name: Loki
     type: loki
+    uid: loki
     access: proxy
     url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - name: Debug
+          matcherRegex: '"request_id":"([^"]+)"'
+          url: '${ARBOR_WEB_URL}/#/debug?request_id=$${__value.raw}'
+          urlDisplayLabel: Arbor Debug
   - name: Tempo
     type: tempo
+    uid: tempo
     access: proxy
     url: http://tempo:3200
+    jsonData:
+      tracesToLogs:
+        datasourceUid: loki
+        filterByTraceID: false
+        customQuery: true
+        query: '{service=~"arbor-.*"} |= "$${__span.tags.request_id}"'
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      lokiSearch:
+        datasourceUid: loki
+      traceToLogs:
+        datasourceUid: loki
+      search:
+        hide: false
+      tracesToMetrics:
+        datasourceUid: prometheus
