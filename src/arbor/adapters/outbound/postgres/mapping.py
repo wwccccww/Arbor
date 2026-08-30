@@ -103,6 +103,11 @@ def thread_from_row(row: dict) -> Thread:
 
 def inbox_from_row(row: dict) -> InboxItem:
     conflict = row.get("conflict_with")
+    created = row.get("created_at")
+    if created is not None and hasattr(created, "isoformat"):
+        created_at = created.isoformat().replace("+00:00", "Z")
+    else:
+        created_at = _text(created) if created else None
     return InboxItem(
         id=_text(row["id"]),
         tenant_id=TenantId(str(row["tenant_id"])),
@@ -111,4 +116,5 @@ def inbox_from_row(row: dict) -> InboxItem:
         payload=dict(row.get("payload") or {}),
         status=_text(row.get("status")) or "pending",
         conflicts_with=MemoryId(str(conflict)) if conflict else None,
+        created_at=created_at,
     )

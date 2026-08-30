@@ -53,6 +53,7 @@ def register_observability_routes(app, deps: ObservabilityHttpDeps) -> None:
             observability=deps.observability,
             inbox=deps.inbox,
             import_jobs=deps.import_jobs,
+            redis_url=deps.redis_url,
         )
         status = 200 if body["ready"] else 503
         return Response(
@@ -67,6 +68,7 @@ def register_observability_routes(app, deps: ObservabilityHttpDeps) -> None:
             observability=deps.observability,
             inbox=deps.inbox,
             import_jobs=deps.import_jobs,
+            redis_url=deps.redis_url,
         )
         try:
             from prometheus_client import CONTENT_TYPE_LATEST, generate_latest

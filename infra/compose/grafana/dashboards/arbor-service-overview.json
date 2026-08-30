@@ -79,6 +79,53 @@
       ],
       "title": "Dependency health",
       "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_http_requests_total{status_class=~\"4xx|5xx\"}[5m])) by (status_class)",
+          "legendFormat": "{{status_class}}",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP 4xx/5xx rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(arbor_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "HTTP P99",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(arbor_rate_limit_rejections_total[5m]))",
+          "legendFormat": "429 rejections",
+          "refId": "B"
+        }
+      ],
+      "title": "HTTP P99 & rate limits",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "arbor_dependency_up",
+          "legendFormat": "{{dependency}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Per-dependency health",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

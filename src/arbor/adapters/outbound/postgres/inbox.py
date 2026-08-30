@@ -17,7 +17,7 @@ class PgInboxRepository:
     def get(self, tenant_id: TenantId, inbox_id: str) -> InboxItem | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, kind, payload, conflict_with, status
+            SELECT id, tenant_id, persona_id, kind, payload, conflict_with, status, created_at
             FROM inbox_items
             WHERE id = %s AND tenant_id = %s::uuid
             """,
@@ -28,7 +28,7 @@ class PgInboxRepository:
     def list_pending(self, tenant_id: TenantId, persona_id: PersonaId) -> list[InboxItem]:
         rows = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, kind, payload, conflict_with, status
+            SELECT id, tenant_id, persona_id, kind, payload, conflict_with, status, created_at
             FROM inbox_items
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid AND status = 'pending'
             """,

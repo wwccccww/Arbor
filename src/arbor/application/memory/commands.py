@@ -5,6 +5,7 @@ from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, UserId
+from arbor.observability.inbox_age import inbox_age_seconds
 from arbor.observability.noop import NoopObservability
 
 
@@ -108,6 +109,7 @@ class ConfirmInboxItem:
             from_status=from_status,
             to_status=item.status,
             kind=item.kind,
+            age_seconds=inbox_age_seconds(getattr(item, "created_at", None)),
         )
         obs.increment(
             "arbor_inbox_transitions_total",
@@ -209,6 +211,7 @@ class DismissInboxItem:
             from_status=from_status,
             to_status=item.status,
             kind=item.kind,
+            age_seconds=inbox_age_seconds(getattr(item, "created_at", None)),
         )
         obs.increment(
             "arbor_inbox_transitions_total",

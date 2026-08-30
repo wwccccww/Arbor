@@ -8,6 +8,27 @@ type Props = {
   onBack: () => void
 }
 
+const GRAFANA_BASE = (import.meta.env.VITE_GRAFANA_URL as string | undefined)?.replace(/\/$/, '') || 'http://localhost:3000'
+
+function grafanaExploreLink(requestId: string, datasource: 'loki' | 'tempo') {
+  if (datasource === 'loki') {
+    const left = encodeURIComponent(
+      JSON.stringify({
+        datasource: 'loki',
+        queries: [{ expr: `{service=~"arbor-.*"} |= "${requestId}"`, refId: 'A' }],
+      }),
+    )
+    return `${GRAFANA_BASE}/explore?left=${left}`
+  }
+  const left = encodeURIComponent(
+    JSON.stringify({
+      datasource: 'tempo',
+      queries: [{ query: requestId, queryType: 'traceql', refId: 'A' }],
+    }),
+  )
+  return `${GRAFANA_BASE}/explore?left=${left}`
+}
+
 export function DebugPage({ client, onBack }: Props) {
   const [requestId, setRequestId] = useState('')
   const [result, setResult] = useState<DebugRequest | null>(null)
@@ -93,6 +114,14 @@ export function DebugPage({ client, onBack }: Props) {
           <p className="muted">
             thread {result.thread_id ?? '—'} · message {result.message_id ?? '—'}
           </p>
+          <div className="inline-form">
+            <a className="link-button" href={grafanaExploreLink(result.request_id, 'tempo')} target="_blank" rel="noreferrer">
+              Tempo 追踪
+            </a>
+            <a className="link-button" href={grafanaExploreLink(result.request_id, 'loki')} target="_blank" rel="noreferrer">
+              Loki 日志
+            </a>
+          </div>
           {result.content_sampled ? (
             <div className="inline-form">
               <button type="button" disabled={busy} onClick={() => void loadContent()}>

@@ -32,3 +32,206 @@ groups:
           severity: warning
         annotations:
           summary: HTTP 5xx above 1%
+
+      - uid: arbor-chat-slow
+        title: Arbor chat P95 slow
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, sum(rate(arbor_chat_duration_seconds_bucket[5m])) by (le))
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [15]
+                    type: gt
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Chat P95 above 15 seconds
+
+      - uid: arbor-llm-errors
+        title: Arbor LLM upstream errors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(arbor_llm_upstream_errors_total[5m])) / clamp_min(sum(rate(arbor_llm_requests_total[5m])), 0.001)
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0.02]
+                    type: gt
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM upstream error rate above 2%
+
+      - uid: arbor-empty-retrieval
+        title: Arbor empty retrieval spike
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(arbor_rag_empty_retrieval_total[1h])) / clamp_min(sum(rate(arbor_chat_requests_total[1h])), 0.001)
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 604800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(arbor_rag_empty_retrieval_total[7d])) / clamp_min(sum(rate(arbor_chat_requests_total[7d])), 0.001)
+              refId: B
+          - refId: D
+            datasourceUid: __expr__
+            model:
+              expression: $A / clamp_min($B, 0.0001)
+              type: math
+              refId: D
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: D
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1.3]
+                    type: gt
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: Empty retrieval rate 30% above 7-day baseline
+
+      - uid: arbor-queue-backlog
+        title: Arbor import queue backlog
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: max(arbor_import_jobs_pending) + max(arbor_arq_queue_depth)
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [10]
+                    type: gt
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Import queue backlog above threshold
+
+      - uid: arbor-tenant-leak
+        title: Arbor tenant leak detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(arbor_tenant_leak_total[5m])
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: tenant_leak_count greater than zero
+
+      - uid: arbor-citation-violation
+        title: Arbor citation out of injection
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: increase(arbor_citation_out_of_injection_total[5m])
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Citations outside injected memory set
+
+      - uid: arbor-dependency-down
+        title: Arbor dependency unavailable
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 120
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: min(arbor_dependency_up)
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [1]
+                    type: lt
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: One or more required dependencies are down

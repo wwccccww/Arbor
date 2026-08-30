@@ -24,6 +24,7 @@ from arbor.observability.decision_trace import (
     build_decision_trace_summary,
     decision_trace_expires_at,
 )
+from arbor.observability.eval_metrics import record_citation_violation
 from arbor.observability.noop import NoopObservability
 from arbor.observability.runtime import decision_trace_retention_days
 from arbor.ports.outbound import (
@@ -223,8 +224,11 @@ class SendMessage:
                 self._record_llm_chat_metrics(model=model, duration_ms=ctx.llm_duration_ms, stream="true")
                 merged = dict(parsed or {})
                 merged["text"] = merged.get("text", "") or "".join(deltas)
-                citations = [c for c in (merged.get("citations") or []) if c in ctx.slots.injected_memory_ids]
-                merged["citations"] = citations
+                merged["citations"] = _filter_citations(
+                    merged.get("citations") or [],
+                    set(ctx.slots.injected_memory_ids),
+                    self.observability,
+                )
                 merged = self._maybe_llm_tool_round(ctx, merged)
                 if merged.pop("tool_round_applied", False):
                     from arbor.domain.conversation.stream import chunk_text
@@ -258,15 +262,17 @@ class SendMessage:
         capabilities: list[Capability] | None,
         attachments: list | None,
     ) -> _Context:
-        persona = self.personas.get(tenant_id, persona_id)
-        if persona is None:
-            raise DomainError("NOT_FOUND", "persona not found")
-        caps = capabilities or self.auth.capabilities_for(persona, user_id)
-        thread = self.threads.get(tenant_id, thread_id)
-        if thread is None:
-            thread = Thread(id=thread_id, tenant_id=tenant_id, persona_id=persona_id)
-        if not self.auth.can_chat(persona, user_id) and Capability.CHAT not in caps:
-            raise DomainError("FORBIDDEN_CHAT", "chat grant required")
+        obs = self._obs()
+        with obs.span("auth.authorize", persona_id=persona_id.value):
+            persona = self.personas.get(tenant_id, persona_id)
+            if persona is None:
+                raise DomainError("NOT_FOUND", "persona not found")
+            caps = capabilities or self.auth.capabilities_for(persona, user_id)
+            thread = self.threads.get(tenant_id, thread_id)
+            if thread is None:
+                thread = Thread(id=thread_id, tenant_id=tenant_id, persona_id=persona_id)
+            if not self.auth.can_chat(persona, user_id) and Capability.CHAT not in caps:
+                raise DomainError("FORBIDDEN_CHAT", "chat grant required")
 
         stored_attachments = _normalize_attachments(attachments)
         llm_text = self._enrich_text_with_attachments(text, stored_attachments)
@@ -274,28 +280,22 @@ class SendMessage:
         event_nodes = self.events.list_nodes(tenant_id, persona_id)
         event_edges = self.events.list_edges(tenant_id, persona_id)
 
-        obs = self._obs()
-        with obs.span("rag.compile_context", thread_id=thread_id.value):
-            compile_started = time.perf_counter()
-            compiled = self._compiler().compile(
-                persona=persona,
-                thread=thread,
-                query=llm_text,
-                capabilities=caps,
-                tenant_id=tenant_id,
-                persona_id=persona_id,
-                memories=active,
-                event_nodes=event_nodes,
-                vector_search=self.vectors.search,
-                embed=self.embed.embed,
-                user_text=llm_text,
-                event_edges=event_edges,
-                lexical_search=getattr(self.vectors, "lexical_search", None),
-            )
-            obs.observe(
-                "arbor_rag_context_duration_seconds",
-                time.perf_counter() - compile_started,
-            )
+        compiled = self._compiler().compile(
+            persona=persona,
+            thread=thread,
+            query=llm_text,
+            capabilities=caps,
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            memories=active,
+            event_nodes=event_nodes,
+            vector_search=self.vectors.search,
+            embed=self.embed.embed,
+            user_text=llm_text,
+            event_edges=event_edges,
+            lexical_search=getattr(self.vectors, "lexical_search", None),
+            observability=self.observability,
+        )
         retrieval_meta = dict(compiled.retrieval_meta or {})
         strategy = str(retrieval_meta.get("strategy") or self.strategy)
         hit_count = len(retrieval_meta.get("hit_ids") or [])
@@ -304,21 +304,6 @@ class SendMessage:
         for source, count in (retrieval_meta.get("per_source_counts") or {}).items():
             if int(count or 0) > 0:
                 obs.increment("arbor_rag_hits_total", float(count), source=str(source))
-        with obs.span("rag.retrieve", strategy=strategy, hit_count=hit_count):
-            obs.event(
-                "rag.retrieve",
-                strategy=strategy,
-                hit_count=hit_count,
-                per_source_counts=retrieval_meta.get("per_source_counts") or {},
-            )
-        obs.observe(
-            "arbor_rag_retrieval_duration_seconds",
-            time.perf_counter() - compile_started,
-            strategy=strategy,
-        )
-        for note in compiled.truncation_notes:
-            reason = str(note).split(":", 1)[0]
-            obs.increment("arbor_rag_context_trimmed_total", reason=reason)
         if tool_mode() in {"keywords", "both"}:
             tool_results = run_persona_tools(
                 llm_text,
@@ -327,6 +312,7 @@ class SendMessage:
                 user_id=user_id,
                 calendar_tool=self.calendar_tool,
                 ticket_tool=self.ticket_tool,
+                observability=self.observability,
             )
             compiled = self._compiler().apply_tool_results(compiled, tool_results)
 
@@ -361,6 +347,7 @@ class SendMessage:
                 kind=extracted.get("kind", "fact"),
                 payload={"text": extracted["text"]},
                 conflicts_with=conflicts_with,
+                created_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             )
             self.inbox.add(item)
             inbox_added = 1
@@ -427,10 +414,7 @@ class SendMessage:
 
     def _finish(self, ctx: _Context, llm_out: dict) -> dict:
         allowed = set(ctx.slots.injected_memory_ids)
-        citations = []
-        for cid in llm_out.get("citations") or []:
-            if cid in allowed:
-                citations.append(cid)
+        citations = _filter_citations(llm_out.get("citations") or [], allowed, self.observability)
         by_id = {item.id.value: item for item in ctx.hits}
         citation_items = [_citation_item(cid, by_id.get(cid)) for cid in citations]
         user_message_id = self.ids.new_id()
@@ -459,7 +443,8 @@ class SendMessage:
         summary = compress_thread_summary(ctx.thread, self.reasoner)
         if summary:
             ctx.thread.summary = summary
-        self.threads.save(ctx.thread)
+        with self._obs().span("postgres.persist_message"):
+            self.threads.save(ctx.thread)
         request_ctx = current_request_context()
         request_id = request_ctx.request_id if request_ctx is not None else self.ids.new_id()
         model = self._chat_model_label()
@@ -544,6 +529,13 @@ class _Context:
     compiled: object
     reasoner_meta: dict
     llm_duration_ms: float
+
+
+def _filter_citations(raw: list, allowed: set[str], observability: object | None) -> list:
+    violations = [cid for cid in raw if cid not in allowed]
+    if violations:
+        record_citation_violation(observability, count=len(violations))
+    return [cid for cid in raw if cid in allowed]
 
 
 def _normalize_attachments(raw) -> list[dict]:

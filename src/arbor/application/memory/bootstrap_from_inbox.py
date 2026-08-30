@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+import time
 
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+from arbor.observability.noop import NoopObservability
 
 _EVENT_MARKERS = ("吵架", "吵起来", "见面", "分手", "结婚", "生日", "旅行", "事故", "离职", "入职")
 
@@ -48,11 +50,15 @@ def _looks_like_event(kind: str, payload: dict) -> bool:
 class BootstrapFromInbox:
     """Turn pending Inbox items into profile hints, memories, and first event nodes."""
 
-    def __init__(self, *, personas, inbox, confirm, auth: AuthorizationPolicy) -> None:
+    def __init__(self, *, personas, inbox, confirm, auth: AuthorizationPolicy, observability=None) -> None:
         self.personas = personas
         self.inbox = inbox
         self.confirm = confirm
         self.auth = auth
+        self.observability = observability
+
+    def _obs(self):
+        return self.observability or NoopObservability()
 
     def __call__(
         self,
@@ -64,6 +70,8 @@ class BootstrapFromInbox:
         max_events: int = 5,
         max_facts: int = 12,
     ) -> dict:
+        obs = self._obs()
+        started = time.perf_counter()
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
             raise DomainError("NOT_FOUND", "not found")
@@ -73,6 +81,7 @@ class BootstrapFromInbox:
 
         pending = self.inbox.list_pending(tenant_id, persona_id)
         if not pending:
+            obs.event("bootstrap.inbox", result="empty", inbox_processed=0)
             return {
                 "profile_updated": False,
                 "events_created": 0,
@@ -80,68 +89,76 @@ class BootstrapFromInbox:
                 "inbox_processed": 0,
             }
 
-        profile_updated = False
-        one_liner_candidate = None
-        taboo_candidates: list[str] = []
-        for item in pending:
-            hints = _profile_hints_from_text(str(item.payload.get("text") or ""))
-            if not persona.profile.one_liner and hints.get("one_liner_candidate"):
-                one_liner_candidate = one_liner_candidate or hints["one_liner_candidate"]
-            if hints.get("location_line") and not persona.profile.one_liner:
-                one_liner_candidate = hints["location_line"]
-            for taboo in hints.get("taboos") or []:
-                if taboo not in taboo_candidates:
-                    taboo_candidates.append(taboo)
+        with obs.span("bootstrap.inbox", pending_count=len(pending)):
+            profile_updated = False
+            one_liner_candidate = None
+            taboo_candidates: list[str] = []
+            for item in pending:
+                hints = _profile_hints_from_text(str(item.payload.get("text") or ""))
+                if not persona.profile.one_liner and hints.get("one_liner_candidate"):
+                    one_liner_candidate = one_liner_candidate or hints["one_liner_candidate"]
+                if hints.get("location_line") and not persona.profile.one_liner:
+                    one_liner_candidate = hints["location_line"]
+                for taboo in hints.get("taboos") or []:
+                    if taboo not in taboo_candidates:
+                        taboo_candidates.append(taboo)
 
-        if one_liner_candidate and not persona.profile.one_liner:
-            persona.profile.one_liner = one_liner_candidate
-            profile_updated = True
-        if taboo_candidates:
-            merged = list(persona.profile.taboos)
-            for taboo in taboo_candidates:
-                if taboo not in merged:
-                    merged.append(taboo)
-            if merged != list(persona.profile.taboos):
-                persona.profile.taboos = merged
+            if one_liner_candidate and not persona.profile.one_liner:
+                persona.profile.one_liner = one_liner_candidate
                 profile_updated = True
-        if profile_updated:
-            self.personas.save(persona)
+            if taboo_candidates:
+                merged = list(persona.profile.taboos)
+                for taboo in taboo_candidates:
+                    if taboo not in merged:
+                        merged.append(taboo)
+                if merged != list(persona.profile.taboos):
+                    persona.profile.taboos = merged
+                    profile_updated = True
+            if profile_updated:
+                self.personas.save(persona)
 
-        event_items = [item for item in pending if _looks_like_event(item.kind, item.payload)]
-        fact_items = [item for item in pending if item not in event_items]
+            event_items = [item for item in pending if _looks_like_event(item.kind, item.payload)]
+            fact_items = [item for item in pending if item not in event_items]
 
-        events_created = 0
-        memories_created = 0
-        inbox_processed = 0
+            events_created = 0
+            memories_created = 0
+            inbox_processed = 0
 
-        for item in event_items[:max_events]:
-            self.confirm(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                persona_id=persona_id,
-                inbox_id=item.id,
-                capabilities=caps,
-                mark_key_event=True,
-            )
-            events_created += 1
-            memories_created += 1
-            inbox_processed += 1
+            for item in event_items[:max_events]:
+                self.confirm(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    persona_id=persona_id,
+                    inbox_id=item.id,
+                    capabilities=caps,
+                    mark_key_event=True,
+                )
+                events_created += 1
+                memories_created += 1
+                inbox_processed += 1
 
-        for item in fact_items[:max_facts]:
-            self.confirm(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                persona_id=persona_id,
-                inbox_id=item.id,
-                capabilities=caps,
-                mark_key_event=False,
-            )
-            memories_created += 1
-            inbox_processed += 1
+            for item in fact_items[:max_facts]:
+                self.confirm(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    persona_id=persona_id,
+                    inbox_id=item.id,
+                    capabilities=caps,
+                    mark_key_event=False,
+                )
+                memories_created += 1
+                inbox_processed += 1
 
-        return {
-            "profile_updated": profile_updated,
-            "events_created": events_created,
-            "memories_created": memories_created,
-            "inbox_processed": inbox_processed,
-        }
+            result = {
+                "profile_updated": profile_updated,
+                "events_created": events_created,
+                "memories_created": memories_created,
+                "inbox_processed": inbox_processed,
+            }
+        obs.event(
+            "bootstrap.inbox",
+            result="success",
+            duration_ms=round((time.perf_counter() - started) * 1000, 2),
+            **result,
+        )
+        return result

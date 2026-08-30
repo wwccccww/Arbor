@@ -1,0 +1,91 @@
+{
+  "editable": true,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "expr": "arbor_import_jobs_pending", "legendFormat": "pending", "refId": "A" },
+        { "expr": "arbor_import_jobs_in_progress", "legendFormat": "running", "refId": "B" },
+        { "expr": "arbor_arq_queue_depth", "legendFormat": "arq depth", "refId": "C" }
+      ],
+      "title": "Import queue depth",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_import_jobs_total[5m])) by (parser, status)",
+          "legendFormat": "{{parser}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Import jobs by parser/status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_import_job_duration_seconds_bucket[5m])) by (le, parser))",
+          "legendFormat": "{{parser}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Import job duration P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "expr": "arbor_inbox_pending", "legendFormat": "pending", "refId": "A" }
+      ],
+      "title": "Inbox pending",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_inbox_transitions_total[5m])) by (kind, to_status)",
+          "legendFormat": "{{kind}} → {{to_status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Inbox transitions",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_memory_transitions_total[5m])) by (type, to_status)",
+          "legendFormat": "{{type}} → {{to_status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memory transitions",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["arbor", "import", "memory"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Arbor Import & Memory",
+  "uid": "arbor-import-memory",
+  "version": 1
+}

@@ -54,6 +54,7 @@ class InboxItem:
     payload: dict
     status: str = "pending"
     conflicts_with: MemoryId | None = None
+    created_at: str | None = None
 
     def confirm(self, new_memory: MemoryItem, old: MemoryItem | None) -> MemoryItem:
         if self.status != "pending":

@@ -1,0 +1,82 @@
+{
+  "editable": true,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "arbor_eval_metric",
+          "legendFormat": "{{suite}} {{strategy}} {{metric_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Eval metrics (latest gauge)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "increase(arbor_tenant_leak_total[24h])",
+          "legendFormat": "tenant leaks",
+          "refId": "A"
+        }
+      ],
+      "title": "Tenant leak count (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "increase(arbor_citation_out_of_injection_total[24h])",
+          "legendFormat": "citation violations",
+          "refId": "A"
+        }
+      ],
+      "title": "Citation out-of-injection (24h)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_rate_limit_rejections_total[5m]))",
+          "legendFormat": "429 rejections",
+          "refId": "A"
+        }
+      ],
+      "title": "Rate limit rejections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "min by (dependency) (arbor_dependency_up)",
+          "legendFormat": "{{dependency}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Dependency health",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["arbor", "quality", "safety"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Arbor Quality & Safety",
+  "uid": "arbor-quality-safety",
+  "version": 1
+}

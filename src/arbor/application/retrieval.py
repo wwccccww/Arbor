@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from collections import defaultdict
 
 from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
@@ -14,6 +16,7 @@ from arbor.application.retrieval_lexical import (
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryItem, MemoryType
 from arbor.domain.shared.ids import PersonaId, TenantId
+from arbor.observability.noop import NoopObservability
 
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
 
@@ -153,11 +156,70 @@ def retrieve(
     k_pool: int | None = None,
     k_rerank: int | None = None,
     lexical_search=None,
+    observability: object | None = None,
 ) -> dict:
     """Return hit layers. Isolation is the caller's VectorIndex filter."""
+    obs = observability or NoopObservability()
+    retrieve_started = time.perf_counter()
     if strategy not in STRATEGIES:
         raise ValueError(strategy)
 
+    with obs.span("rag.retrieve", strategy=strategy):
+        result = _retrieve_inner(
+            strategy=strategy,
+            query=query,
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            k=k,
+            memories=memories,
+            events=events,
+            summary=summary,
+            vector_search=vector_search,
+            embed=embed,
+            edges=edges,
+            config=config,
+            k_pool=k_pool,
+            k_rerank=k_rerank,
+            lexical_search=lexical_search,
+            observability=obs,
+        )
+    per_source = result.get("per_source_counts") or {}
+    obs.event(
+        "rag.retrieve",
+        strategy=strategy,
+        candidate_count=sum(int(v) for v in per_source.values()),
+        hit_count=len(result.get("hits") or []),
+        per_source_counts=dict(per_source),
+        duration_ms=round((time.perf_counter() - retrieve_started) * 1000, 2),
+    )
+    obs.observe(
+        "arbor_rag_retrieval_duration_seconds",
+        time.perf_counter() - retrieve_started,
+        strategy=strategy,
+    )
+    return result
+
+
+def _retrieve_inner(
+    *,
+    strategy: str,
+    query: str,
+    tenant_id: TenantId,
+    persona_id: PersonaId,
+    k: int,
+    memories: list[MemoryItem],
+    events: list[EventNode],
+    summary: str,
+    vector_search,
+    embed,
+    edges: list[EventEdge] | None = None,
+    config: RetrievalConfig | None = None,
+    k_pool: int | None = None,
+    k_rerank: int | None = None,
+    lexical_search=None,
+    observability: object | None = None,
+) -> dict:
+    obs = observability or NoopObservability()
     cfg = config or RetrievalConfig.from_env()
     final_k = k_rerank if k_rerank is not None else min(k, cfg.rerank_k)
     pool_k = k_pool if k_pool is not None else max(cfg.pool_k, k, final_k)
@@ -196,7 +258,8 @@ def retrieve(
         event_hits_batch: list[MemoryItem] = []
 
         if strategy == "layered_tree":
-            seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
+            with obs.span("event_tree.route", intent=intent):
+                seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
             expand_depth = cfg.event_expand_depth + (1 if intent == "causal" else 0)
             sub_event_nodes, expanded_event_ids = expand_event_nodes(
                 seeds,
@@ -228,24 +291,26 @@ def retrieve(
             if intent != "causal":
                 exclude_ids.update(memory.id.value for memory in event_hits)
             qv = embed(sub_query)
-            global_raw = vector_search(
-                tenant_id=tenant_id,
-                persona_id=persona_id,
-                query_vector=qv,
-                k=sub_pool_k,
-            )
-            scoped_raw: list[tuple[MemoryItem, float]] = []
-            if expanded_event_ids:
-                scoped_raw = vector_search(
+            with obs.span("vector.search", scope="global", k=sub_pool_k):
+                global_raw = vector_search(
                     tenant_id=tenant_id,
                     persona_id=persona_id,
                     query_vector=qv,
-                    k=max(10, sub_pool_k // 2),
-                    filters={
-                        "event_ids": list(expanded_event_ids),
-                        "exclude_ids": list(exclude_ids),
-                    },
+                    k=sub_pool_k,
                 )
+            scoped_raw: list[tuple[MemoryItem, float]] = []
+            if expanded_event_ids:
+                with obs.span("vector.search", scope="scoped", k=max(10, sub_pool_k // 2)):
+                    scoped_raw = vector_search(
+                        tenant_id=tenant_id,
+                        persona_id=persona_id,
+                        query_vector=qv,
+                        k=max(10, sub_pool_k // 2),
+                        filters={
+                            "event_ids": list(expanded_event_ids),
+                            "exclude_ids": list(exclude_ids),
+                        },
+                    )
 
             merged_vectors = _merge_vector_hits(global_raw, scoped_raw)
             merged_vectors = [
@@ -300,7 +365,18 @@ def retrieve(
     per_source_counts["vector"] = len(vector_hits)
 
     if strategy != "summary_only":
-        rag_hits, all_hit_scores = rerank_memories(query, rag_pool, embed, limit=final_k, config=cfg)
+        rerank_started = time.perf_counter()
+        input_count = len(rag_pool)
+        with obs.span("rag.rerank", input_count=input_count):
+            rag_hits, all_hit_scores = rerank_memories(
+                query, rag_pool, embed, limit=final_k, config=cfg
+            )
+        obs.event(
+            "rag.rerank",
+            input_count=input_count,
+            output_count=len(rag_hits),
+            duration_ms=round((time.perf_counter() - rerank_started) * 1000, 2),
+        )
         if any(plan.get("intent") == "causal" for plan in planned) and strategy == "layered_tree":
             rag_hits = _stabilize_causal_hits(rag_hits, event_hits, rag_pool, final_k)
     else:

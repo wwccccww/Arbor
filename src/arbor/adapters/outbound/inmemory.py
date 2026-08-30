@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from arbor.domain.audit.log import AuditLog
 from arbor.domain.conversation.stream import StreamFinished, chunk_text
@@ -157,6 +158,8 @@ class InMemoryInboxRepository:
         self.stores = stores
 
     def add(self, item: InboxItem) -> None:
+        if item.created_at is None:
+            item.created_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         self.stores.inbox[item.id] = item
 
     def get(self, tenant_id: TenantId, inbox_id: str) -> InboxItem | None:
