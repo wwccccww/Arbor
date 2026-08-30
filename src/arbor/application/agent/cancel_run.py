@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from arbor.application.agent.step_tree import build_agent_step_tree
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import TenantId, UserId
@@ -55,6 +56,7 @@ class GetAgentRun:
         payload = {
             "run": _run_dict(run),
             "steps": [_step_dict(step) for step in steps],
+            "step_tree": build_agent_step_tree(steps, run_goal=run.goal),
         }
         if self.lineage is not None:
             payload["lineage"] = self.lineage.list_for_run(tenant_id, run_id)
@@ -73,6 +75,8 @@ def _run_dict(run) -> dict:
         "max_steps": run.max_steps,
         "token_budget": run.token_budget,
         "consumed_tokens": run.consumed_tokens,
+        "cost_budget_micros": run.cost_budget_micros,
+        "consumed_cost_micros": run.consumed_cost_micros,
         "version": run.version,
         "employee_definition_version": run.employee_definition_version,
         "final_output": run.final_output,

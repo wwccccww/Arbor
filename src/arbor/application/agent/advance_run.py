@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from datetime import UTC, datetime
 
 from arbor.application.agent.planner import ScriptedPlanner
@@ -144,6 +145,7 @@ class AdvanceAgentRun:
         )
 
         with obs.span("agent.step", kind=step.kind.value, sequence=sequence):
+            step_started = time.perf_counter()
             try:
                 self._execute_action(
                     run=run,
@@ -162,6 +164,17 @@ class AdvanceAgentRun:
                 self.steps.add(step)
                 self.runs.save(run)
                 return run
+            latency_ms = round((time.perf_counter() - step_started) * 1000, 2)
+            step.observation = dict(step.observation or {})
+            step.observation["latency_ms"] = latency_ms
+            metrics = dict(run.metadata.get("metrics") or {})
+            latencies = list(metrics.get("step_latencies_ms") or [])
+            latencies.append(latency_ms)
+            metrics["step_latencies_ms"] = latencies
+            metrics["total_latency_ms"] = round(sum(latencies), 2)
+            metrics["step_count"] = len(latencies)
+            run.metadata["metrics"] = metrics
+            run.consumed_cost_micros += 50_000
 
         step.finished_at = _now_iso()
         self.steps.add(step)

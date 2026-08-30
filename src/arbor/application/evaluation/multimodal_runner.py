@@ -11,6 +11,7 @@ def run_multimodal_smoke(
     fixture_path: Path,
     record_artifact: RecordArtifactEvidence,
     personas,
+    artifacts,
     segments,
     lineage,
 ) -> dict:
@@ -62,6 +63,21 @@ def run_multimodal_smoke(
                 ok = seg.time_start_ms == int(case["expect_start_ms"])
             if case.get("expect_end_ms") is not None:
                 ok = ok and seg.time_end_ms == int(case["expect_end_ms"])
+        elif layer == "retrieval":
+            query = str(case.get("query") or "")
+            found = False
+            for artifact in artifacts.list_for_persona(tenant_id, persona_id, limit=50):
+                for seg in segments.list_for_artifact(tenant_id, artifact.id):
+                    if query and query in (seg.text or ""):
+                        if case.get("expect_page_number") is not None:
+                            found = seg.page_number == int(case["expect_page_number"])
+                        else:
+                            found = True
+                        if found:
+                            break
+                if found:
+                    break
+            ok = found
         elif layer == "agent":
             rows = lineage.list_for_run(tenant_id, str(case.get("expect_run_id") or run_id))
             ok = any(row.get("artifact_id") == artifact_id for row in rows)

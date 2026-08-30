@@ -7,7 +7,7 @@ from arbor.application.memory.consolidate_episodes import ConsolidateEpisodicMem
 from arbor.application.memory.consolidation import is_consolidation
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.validity import is_memory_searchable
-from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import InboxItem, MemoryClass, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
 
@@ -22,11 +22,15 @@ def run_memory_smoke(
     ids,
     consolidate: ConsolidateEpisodicMemories | None = None,
     delete: DeleteMemory | None = None,
+    confirm=None,
+    inbox=None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     results: list[dict] = []
     duplicate_pairs = 0
     stale_injections = 0
+    writes_attempted = 0
+    writes_correct = 0
 
     for case in payload.get("cases") or []:
         tenant_id = TenantId(str(case["tenant_id"]))
@@ -155,17 +159,50 @@ def run_memory_smoke(
             consolidations = [m for m in episodic_active if is_consolidation(m)]
             ok = len(consolidations) == 1 and len(episodic_active) == 1
 
+        elif action == "confirm_inbox_write" and confirm is not None and inbox is not None:
+            user_id = UserId(str(case.get("user_id") or "0a000000-0000-4000-a000-000000000002"))
+            persona = personas.get(tenant_id, persona_id)
+            if persona is not None:
+                persona.grants.append(Grant(user_id=user_id, capabilities=list(Capability)))
+            text = str(case.get("text") or "")
+            inbox_id = str(case.get("inbox_id") or ids.new_id())
+            inbox.add(
+                InboxItem(
+                    id=inbox_id,
+                    tenant_id=tenant_id,
+                    persona_id=persona_id,
+                    kind="extract",
+                    payload={"text": text, "memory_type": "fact"},
+                    status="pending",
+                )
+            )
+            confirm(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                persona_id=persona_id,
+                inbox_id=inbox_id,
+                capabilities=list(Capability),
+            )
+            writes_attempted += 1
+            hits = vectors.search(tenant_id, persona_id, embed.embed(str(case.get("query") or text)), 5)
+            ok = any(hit.text == text for hit, _ in hits)
+            if ok:
+                writes_correct += 1
+
         results.append({"id": case["id"], "ok": ok})
 
     passed = sum(1 for row in results if row.get("ok"))
     total = len(results)
     duplicate_rate = duplicate_pairs / total if total else 0.0
     stale_rate = stale_injections / total if total else 0.0
+    write_precision = writes_correct / writes_attempted if writes_attempted else 1.0
     return {
         "suite_version": payload.get("suite_version"),
         "gate_pass_rate": passed / total if total else 0.0,
         "duplicate_memory_rate": duplicate_rate,
         "stale_memory_injection_rate": stale_rate,
+        "conflict_injection_rate": stale_rate,
+        "memory_write_precision": write_precision,
         "deletion_completeness_rate": 1.0 if all(
             row.get("ok") for row in results if row.get("id") == "delete-completeness"
         ) else 0.0,

@@ -3,6 +3,16 @@
   "description": "Deterministic memory lifecycle checks for agent memory gates.",
   "cases": [
     {
+      "id": "inbox-write-precision",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "confirm_inbox_write",
+      "inbox_id": "inbox-write-001",
+      "text": "林夏偏好清淡口味",
+      "query": "清淡口味"
+    },
+    {
       "id": "decayed-episodic-excluded",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
       "persona_id": "0a000000-0000-4000-a000-000000000010",

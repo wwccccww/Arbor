@@ -27,14 +27,32 @@ export type AgentStep = {
   observation: Record<string, unknown>
 }
 
+export type AgentStepTreeNode = {
+  id?: string
+  type?: string
+  kind?: string
+  status?: string
+  label?: string
+  sequence?: number
+  latency_ms?: number
+  started_at?: string
+  finished_at?: string
+  children?: AgentStepTreeNode[]
+}
+
 export type AgentRunDetail = {
   run: AgentRunSummary & {
     employee_definition_version?: string
     final_output?: Record<string, unknown> | null
     failure?: Record<string, unknown> | null
     metadata?: Record<string, unknown>
+    consumed_tokens?: number
+    token_budget?: number
+    consumed_cost_micros?: number
+    cost_budget_micros?: number
   }
   steps: AgentStep[]
+  step_tree?: AgentStepTreeNode
   lineage?: Array<Record<string, unknown>>
 }
 

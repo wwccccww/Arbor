@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ArborClient } from '../api/client'
 import type { AgentApproval, AgentRunDetail, AgentRunSummary } from '../api/types'
+import { AgentStepTree } from '../components/AgentStepTree'
 
 type Props = {
   client: ArborClient
@@ -146,7 +147,19 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
             {detail.run.employee_definition_version
               ? ` · 岗位 v${detail.run.employee_definition_version}`
               : ''}
+            {detail.run.consumed_tokens != null
+              ? ` · tokens ${detail.run.consumed_tokens}/${detail.run.token_budget ?? '—'}`
+              : ''}
+            {detail.run.consumed_cost_micros != null
+              ? ` · 成本 ${detail.run.consumed_cost_micros}µ`
+              : ''}
           </p>
+          {detail.step_tree ? (
+            <details className="agent-trace" open>
+              <summary>步骤树（Run → Step → RAG/Tool/Approval）</summary>
+              <AgentStepTree tree={detail.step_tree} />
+            </details>
+          ) : null}
           {detail.run.metadata?.context_manifest ? (
             <details className="agent-trace">
               <summary>上下文 manifest</summary>

@@ -39,6 +39,25 @@
       "expect_end_ms": 4500
     },
     {
+      "id": "segment-retrieval-hit",
+      "layer": "retrieval",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "grant_write_memory": true,
+      "object_uri": "s3://bucket/sop.pdf",
+      "mime_type": "application/pdf",
+      "parser": "pdf",
+      "parser_version": "1.0",
+      "segment": {
+        "modality": "text",
+        "text": "冷凝器清洁步骤",
+        "page_number": 7
+      },
+      "query": "冷凝器",
+      "expect_page_number": 7
+    },
+    {
       "id": "lineage-agent-binding",
       "layer": "agent",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",

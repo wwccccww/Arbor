@@ -46,7 +46,9 @@ def test_multimodal_v1_layered_smoke():
         fixture_path=ROOT / "eval" / "fixtures" / "multimodal-v1" / "cases.json",
         record_artifact=record,
         personas=personas,
+        artifacts=artifacts,
         segments=segments,
         lineage=lineage,
     )
     assert report["layer_pass_rate"] == 1.0
+    assert len(report["cases"]) == 4

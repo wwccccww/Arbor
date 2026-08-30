@@ -437,6 +437,44 @@ export function Checkup({
           </div>
         ) : null}
 
+        {agentEval && baselines.length ? (
+          <div className="table-wrap">
+            <table>
+              <caption>Agent Eval 对比（现场 vs agent-v1-smoke 基线）</caption>
+              <thead>
+                <tr>
+                  <th>指标</th>
+                  <th>现场</th>
+                  <th>基线</th>
+                  <th>Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { key: 'task_success_rate', label: '任务成功率' },
+                  { key: 'unauthorized_action_rate', label: '越权率' },
+                  { key: 'approval_bypass_rate', label: '审批绕过率' },
+                  { key: 'duplicate_side_effect_rate', label: '重复副作用率' },
+                ].map((row) => {
+                  const baselineRow = baselines.find((item) => item.id === 'agent-v1-smoke')
+                  const baselineMetrics = (baselineRow?.metrics as Record<string, unknown>) || {}
+                  const live = Number(agentEval[row.key] ?? 0)
+                  const frozen = Number(baselineMetrics[row.key] ?? agentEval.baseline_task_success_rate ?? 0)
+                  const delta = live - frozen
+                  return (
+                    <tr key={row.key}>
+                      <td>{row.label}</td>
+                      <td>{live.toFixed(2)}</td>
+                      <td>{frozen.toFixed(2)}</td>
+                      <td>{delta >= 0 ? '+' : ''}{delta.toFixed(2)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
         {agentEval ? (
           <div className="table-wrap">
             <table>
