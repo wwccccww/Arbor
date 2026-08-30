@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from arbor.domain.conversation.thread import Thread
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
-from arbor.domain.memory.memory import InboxItem, MemoryItem, MemoryStatus, MemoryType
+from arbor.domain.memory.memory import InboxItem, MemoryClass, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import Capability, Grant, Persona, Profile, ToolPolicy
 from arbor.domain.shared.ids import EventId, MemoryId, PersonaId, TenantId, ThreadId, UserId
 
@@ -53,6 +53,8 @@ def memory_from_row(row: dict) -> MemoryItem:
     thread_id = row.get("thread_id")
     supersedes = row.get("supersedes")
     source = row.get("source")
+    memory_class_raw = row.get("memory_class")
+    memory_class = MemoryClass(memory_class_raw) if memory_class_raw else None
     return MemoryItem(
         id=MemoryId(str(row["id"])),
         tenant_id=TenantId(str(row["tenant_id"])),
@@ -64,6 +66,7 @@ def memory_from_row(row: dict) -> MemoryItem:
         thread_id=ThreadId(str(thread_id)) if thread_id else None,
         supersedes=MemoryId(str(supersedes)) if supersedes else None,
         source=dict(source) if source else None,
+        memory_class=memory_class,
     )
 
 

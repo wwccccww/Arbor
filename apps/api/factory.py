@@ -588,6 +588,89 @@ def create_app(
         observability=observability,
     )
 
+    from arbor.adapters.inbound.http.register_agent import AgentHttpDeps, register_agent_routes
+    from arbor.adapters.outbound.inmemory_agent import (
+        InMemoryAgentRunRepository,
+        InMemoryAgentStepRepository,
+        InMemoryAgentStores,
+        InMemoryApprovalRepository,
+        InMemoryToolExecutionRepository,
+        SyncAgentJobQueue,
+    )
+    from arbor.application.agent.advance_run import AdvanceAgentRun
+    from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
+    from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
+    from arbor.application.agent.employee_templates import default_employee_templates
+    from arbor.application.agent.start_run import StartAgentRun
+    from arbor.application.agent.tool_executor import build_default_tool_registry, ToolExecutor
+
+    if session is not None:
+        agent_runs = session.agent_runs
+        agent_steps = session.agent_steps
+        agent_approvals = session.approvals
+        tool_executions = session.tool_executions
+    else:
+        agent_stores = InMemoryAgentStores()
+        agent_runs = InMemoryAgentRunRepository(agent_stores)
+        agent_steps = InMemoryAgentStepRepository(agent_stores)
+        agent_approvals = InMemoryApprovalRepository(agent_stores)
+        tool_executions = InMemoryToolExecutionRepository(agent_stores)
+
+    tool_registry = build_default_tool_registry()
+    tool_executor = ToolExecutor(
+        registry=tool_registry,
+        tool_executions=tool_executions,
+        calendar_tool=calendar_tool,
+        ticket_tool=ticket_tool,
+        observability=observability,
+    )
+    advance_agent_run = AdvanceAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        steps=agent_steps,
+        approvals=agent_approvals,
+        memories=memories,
+        events=events,
+        auth=AuthorizationPolicy(),
+        ids=ids,
+        vector_search=vectors.search,
+        embed=resolved_embed.embed,
+        tool_executor=tool_executor,
+        observability=observability,
+        lexical_search=getattr(vectors, "lexical_search", None),
+    )
+    agent_job_queue = SyncAgentJobQueue(advance_agent_run)
+    employee_definitions = default_employee_templates()
+    start_agent_run = StartAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+        ids=ids,
+        employee_definitions=employee_definitions,
+        job_queue=agent_job_queue,
+        observability=observability,
+    )
+    approve_agent_step = ApproveAgentStep(
+        runs=agent_runs,
+        approvals=agent_approvals,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+        advance=advance_agent_run,
+    )
+    reject_agent_step = RejectAgentStep(
+        runs=agent_runs,
+        approvals=agent_approvals,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
+    cancel_agent_run = CancelAgentRun(runs=agent_runs, personas=personas, auth=AuthorizationPolicy())
+    get_agent_run = GetAgentRun(
+        runs=agent_runs,
+        steps=agent_steps,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
+
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
         raw = (x_tenant_id or user.get("tenant_id") or "").strip()
         if not raw:
@@ -839,6 +922,20 @@ def create_app(
         app,
         AuditHttpDeps(
             list_audit_logs=list_audit_logs,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+        ),
+    )
+    register_agent_routes(
+        app,
+        AgentHttpDeps(
+            start_run=start_agent_run,
+            get_run=get_agent_run,
+            cancel_run=cancel_agent_run,
+            approve_step=approve_agent_step,
+            reject_step=reject_agent_step,
+            approvals=agent_approvals,
+            personas=personas,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
         ),

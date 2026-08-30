@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from arbor.adapters.outbound.inmemory import FixtureEmbeddingClient
+from arbor.adapters.outbound.postgres.agent import (
+    PgAgentRunRepository,
+    PgAgentStepRepository,
+    PgApprovalRepository,
+    PgToolExecutionRepository,
+)
 from arbor.adapters.outbound.postgres.alembic_runner import upgrade_head
 from arbor.adapters.outbound.postgres.audit import PgAuditLogRepository
 from arbor.adapters.outbound.postgres.connection import connect, wipe_public_schema
@@ -41,6 +47,10 @@ class PostgresSession:
         self.decision_traces = PgDecisionTraceRepository(self.conn)
         self.tenants = PgTenantRepository(self.conn)
         self.users = PgUserRepository(self.conn)
+        self.agent_runs = PgAgentRunRepository(self.conn)
+        self.agent_steps = PgAgentStepRepository(self.conn)
+        self.approvals = PgApprovalRepository(self.conn)
+        self.tool_executions = PgToolExecutionRepository(self.conn)
 
     def checkout(self) -> tuple[object, bool]:
         if self._pool is None:

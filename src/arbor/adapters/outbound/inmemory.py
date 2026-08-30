@@ -32,7 +32,14 @@ def _apply_inmemory_filters(item: MemoryItem, filters: dict | None) -> bool:
         if item.type.value not in allowed_types:
             return False
     exclude_ids = filters.get("exclude_ids")
-    return exclude_ids is None or item.id.value not in {str(value) for value in exclude_ids}
+    if exclude_ids is not None and item.id.value in {str(value) for value in exclude_ids}:
+        return False
+    memory_classes = filters.get("memory_classes")
+    if memory_classes is not None:
+        allowed_classes = {str(value) for value in memory_classes}
+        if item.memory_class is None or item.memory_class.value not in allowed_classes:
+            return False
+    return True
 
 
 @dataclass

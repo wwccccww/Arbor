@@ -1,0 +1,63 @@
+{
+  "suite_version": "agent-v1",
+  "description": "Frozen agent task scenarios for smoke eval (Fake LLM / scripted planner).",
+  "cases": [
+    {
+      "id": "ticket-with-approval",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：会议室空调故障",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "空调故障处理",
+          "scopes": ["semantic_memory", "procedural_memory"],
+          "reason": "find SOP"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "会议室空调故障", "priority": "high"},
+          "evidence_ids": [],
+          "reason": "create ticket"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "retrieve-only-handoff",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "查询退货政策",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "退货政策",
+          "scopes": ["semantic_memory"],
+          "reason": "policy lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "7天无理由退货",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_final_status": "completed"
+    }
+  ]
+}

@@ -15,7 +15,7 @@ class PgMemoryRepository:
     def get(self, tenant_id: TenantId, memory_id: MemoryId) -> MemoryItem | None:
         row = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source, memory_class
             FROM memory_items
             WHERE id = %s::uuid AND tenant_id = %s::uuid
             """,
@@ -26,7 +26,7 @@ class PgMemoryRepository:
     def list_active(self, tenant_id: TenantId, persona_id: PersonaId) -> list[MemoryItem]:
         rows = self.conn.execute(
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source, memory_class
             FROM memory_items
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid AND status = 'active'
             """,
@@ -45,7 +45,7 @@ class PgMemoryRepository:
     ) -> list[MemoryItem]:
         sql = [
             """
-            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source
+            SELECT id, tenant_id, persona_id, text, type, status, event_id, thread_id, supersedes, source, memory_class
             FROM memory_items
             WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
             """
@@ -68,10 +68,10 @@ class PgMemoryRepository:
         self.conn.execute(
             """
             INSERT INTO memory_items (
-                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes, source, text_tsv
+                id, tenant_id, persona_id, thread_id, event_id, type, text, status, supersedes, source, memory_class, text_tsv
             )
             VALUES (
-                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s,
+                %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s,
                 to_tsvector('simple', %s)
             )
             ON CONFLICT (id) DO UPDATE SET
@@ -82,6 +82,7 @@ class PgMemoryRepository:
                 thread_id = EXCLUDED.thread_id,
                 supersedes = EXCLUDED.supersedes,
                 source = EXCLUDED.source,
+                memory_class = EXCLUDED.memory_class,
                 text_tsv = EXCLUDED.text_tsv
             """,
             (
@@ -95,6 +96,7 @@ class PgMemoryRepository:
                 item.status.value,
                 item.supersedes.value if item.supersedes else None,
                 Jsonb(item.source) if item.source else None,
+                item.memory_class.value if item.memory_class else None,
                 memory_lexical_tokens(item.text),
             ),
         )
