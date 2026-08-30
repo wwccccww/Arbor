@@ -7,8 +7,8 @@ from arbor.adapters.outbound.inmemory import (
     InMemoryVectorIndex,
     SeqIdGenerator,
 )
-from arbor.application.memory.consolidation import is_consolidation
 from arbor.application.memory.consolidate_episodes import ConsolidateEpisodicMemories
+from arbor.application.memory.consolidation import is_consolidation
 from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId

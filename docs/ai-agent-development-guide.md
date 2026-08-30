@@ -953,7 +953,7 @@ src/arbor/
 - `VectorIndex.search(filters)` 支持 `memory_class`，现有稳定金标 ID 不迁移；
 - Run 完成后的候选经验提取；
 - Inbox 去重、冲突、确认；
-- consolidation、失效与删除传播；
+- consolidation、失效与删除传播（`ConsolidateEpisodicMemories` + 删除派生 consolidation）；
 - Memory Eval。
 
 验收：

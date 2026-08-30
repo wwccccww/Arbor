@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from arbor.application.storage.object_gc import delete_stored_object, object_uris_from_memory_source
 from arbor.application.memory.consolidation import consolidations_deriving_from, is_consolidation
+from arbor.application.storage.object_gc import delete_stored_object, object_uris_from_memory_source
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
