@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from arbor.application.memory.decay import is_episodic_decayed
 from arbor.domain.memory.memory import MemoryItem
 
 
@@ -34,4 +35,8 @@ def is_memory_expired(item: MemoryItem, *, now: datetime | None = None) -> bool:
 
 
 def is_memory_searchable(item: MemoryItem, *, now: datetime | None = None) -> bool:
-    return item.is_searchable() and not is_memory_expired(item, now=now)
+    return (
+        item.is_searchable()
+        and not is_memory_expired(item, now=now)
+        and not is_episodic_decayed(item, now=now)
+    )

@@ -34,7 +34,28 @@ def run_memory_smoke(
         action = str(case.get("action") or "")
         ok = False
 
-        if action == "search_excludes_expired":
+        if action == "search_excludes_decayed_episodic":
+            source = {"recorded_at": str(case.get("recorded_at") or "")}
+            if case.get("decay_after_days") is not None:
+                source["decay_after_days"] = int(case["decay_after_days"])
+            item = MemoryItem(
+                id=MemoryId(str(case["memory_id"])),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                text=str(case.get("text") or ""),
+                type=MemoryType.EPISODE_SUMMARY,
+                status=MemoryStatus.ACTIVE,
+                memory_class=MemoryClass.EPISODIC,
+                source=source,
+            )
+            memories.save(item)
+            vectors.upsert(tenant_id, persona_id, item.id, embed.embed(item.text), item.status)
+            hits = vectors.search(tenant_id, persona_id, embed.embed(str(case.get("query") or "")), 5)
+            ok = not any(hit.id == item.id for hit, _ in hits)
+            if not ok:
+                stale_injections += 1
+
+        elif action == "search_excludes_expired":
             item = MemoryItem(
                 id=MemoryId(str(case["memory_id"])),
                 tenant_id=tenant_id,

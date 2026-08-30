@@ -3,6 +3,17 @@
   "description": "Deterministic memory lifecycle checks for agent memory gates.",
   "cases": [
     {
+      "id": "decayed-episodic-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_decayed_episodic",
+      "memory_id": "mem-decay-001",
+      "text": "古老的情景记忆",
+      "recorded_at": "2019-01-01T00:00:00Z",
+      "decay_after_days": 30,
+      "query": "古老的情景"
+    },
+    {
       "id": "expired-excluded",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
       "persona_id": "0a000000-0000-4000-a000-000000000010",
