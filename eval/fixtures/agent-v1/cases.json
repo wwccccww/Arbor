@@ -114,6 +114,40 @@
       "expect_final_status": "failed"
     },
     {
+      "id": "ticket-timeout-retry",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：超时重试场景",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单超时处理",
+          "scopes": ["semantic_memory"],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {"title": "超时重试测试工单", "priority": "high"},
+          "evidence_ids": [],
+          "reason": "create ticket with timeout retry"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记（超时重试后）",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_timeout_retry": true,
+      "expect_final_status": "completed"
+    },
+    {
       "id": "worker-resume",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
       "persona_id": "0a000000-0000-4000-a000-000000000010",

@@ -22,10 +22,19 @@ class McpJsonRpcTransport:
             result = {"tools": self._adapter.list_tools()}
         elif method == "tools/call":
             tool_name = str(params.get("name") or "")
-            result = {
-                "content": [{"type": "text", "text": f"stub result for {tool_name}"}],
-                "isError": False,
-            }
+            arguments = dict(params.get("arguments") or {})
+            try:
+                payload = self._adapter.invoke_tool(tool_name, arguments)
+                result = {
+                    "content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}],
+                    "isError": False,
+                }
+            except ValueError as exc:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": str(exc)},
+                }
         else:
             return {
                 "jsonrpc": "2.0",

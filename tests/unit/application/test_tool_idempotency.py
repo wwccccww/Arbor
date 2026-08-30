@@ -5,7 +5,9 @@ from arbor.adapters.outbound.inmemory_agent import (
     InMemoryToolExecutionRepository,
 )
 from arbor.adapters.outbound.tools.counting_ticket import CountingTicketTool
+from arbor.adapters.outbound.tools.flaky_ticket import FlakyTicketTool
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
+from arbor.application.tools.registry import ToolRegistry
 from arbor.domain.agent.run import AgentRun, AgentRunStatus
 from arbor.domain.agent.step import AgentStep, StepKind, StepStatus
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
@@ -15,12 +17,12 @@ PERSONA = PersonaId("0a000000-0000-4000-a000-000000000010")
 USER = UserId("0a000000-0000-4000-a000-000000000002")
 
 
-def _executor(counter: CountingTicketTool) -> ToolExecutor:
+def _executor(ticket_tool, registry: ToolRegistry | None = None) -> ToolExecutor:
     stores = InMemoryAgentStores()
     return ToolExecutor(
-        registry=build_default_tool_registry(),
+        registry=registry or build_default_tool_registry(),
         tool_executions=InMemoryToolExecutionRepository(stores),
-        ticket_tool=counter,
+        ticket_tool=ticket_tool,
     )
 
 
@@ -75,6 +77,24 @@ def test_ticket_create_idempotency_prevents_duplicate_side_effects():
     assert counter.create_calls == 1
     assert first == second
     assert first["ticket_id"] == "count-001"
+
+
+def test_ticket_create_timeout_retries_with_single_side_effect():
+    flaky = FlakyTicketTool()
+    executor = _executor(flaky)
+    run, step = _run_and_step()
+    args = {"title": "超时重试测试工单", "priority": "high"}
+    result = executor.execute(
+        tenant_id=TENANT,
+        user_id=USER,
+        run=run,
+        step=step,
+        tool_name="ticket.create",
+        arguments=args,
+        allowed_tools={"ticket", "ticket.create"},
+    )
+    assert flaky.create_calls == 1
+    assert result["provider"] == "flaky"
 
 
 def test_ticket_create_distinct_steps_invoke_twice():

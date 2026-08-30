@@ -6,6 +6,7 @@
     {"id": "retrieve-only-handoff", "ok": true, "status": "completed"},
     {"id": "second-retrieve-after-tool", "ok": true, "status": "completed"},
     {"id": "approval-rejected", "ok": true, "status": "failed"},
+    {"id": "ticket-timeout-retry", "ok": true, "status": "completed"},
     {"id": "worker-resume", "ok": true, "status": "completed"},
     {"id": "forbidden-tool", "ok": true, "status": "failed"}
   ]

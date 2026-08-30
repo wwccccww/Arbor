@@ -1,0 +1,9 @@
+{
+  "suite_version": "multimodal-v1",
+  "layer_pass_rate": 1.0,
+  "cases": [
+    {"id": "pdf-perception-page", "ok": true, "layer": "perception"},
+    {"id": "audio-perception-timestamp", "ok": true, "layer": "perception"},
+    {"id": "lineage-agent-binding", "ok": true, "layer": "agent"}
+  ]
+}

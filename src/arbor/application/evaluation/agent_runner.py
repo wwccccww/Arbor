@@ -19,6 +19,7 @@ def run_agent_smoke(
     resume_run=None,
     personas,
     runs,
+    flaky_ticket_tool=None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     results: list[dict] = []
@@ -46,6 +47,10 @@ def run_agent_smoke(
                 persona.grants.append(
                     Grant(user_id=user_id, capabilities=[Capability.ADMIN, Capability.CHAT])
                 )
+
+        ticket_calls_before = (
+            flaky_ticket_tool.create_calls if flaky_ticket_tool is not None and case.get("expect_timeout_retry") else None
+        )
 
         try:
             enqueue = not case.get("simulate_worker_restart")
@@ -125,6 +130,8 @@ def run_agent_smoke(
             if tool_steps and run.status.value == "completed" and case.get("expect_waiting_approval"):
                 approval_bypass += 1
                 ok = False
+        if case.get("expect_timeout_retry") and flaky_ticket_tool is not None:
+            ok = ok and flaky_ticket_tool.create_calls == ticket_calls_before + 1
         results.append(
             {
                 "id": case["id"],

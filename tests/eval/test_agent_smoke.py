@@ -18,11 +18,18 @@ from arbor.adapters.outbound.inmemory_agent import (
     InMemoryToolExecutionRepository,
     SyncAgentJobQueue,
 )
+from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
+from arbor.adapters.outbound.mcp.stub_adapter import default_mcp_stub
+from arbor.adapters.outbound.tools.flaky_ticket import FlakyTicketTool
 from arbor.application.agent.advance_run import AdvanceAgentRun
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
 from arbor.application.agent.resume_run import ResumeAgentRun
 from arbor.application.agent.start_run import StartAgentRun
-from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
+from arbor.application.agent.tool_executor import (
+    ToolExecutor,
+    build_default_tool_registry,
+    register_mcp_stub_tools,
+)
 from arbor.application.evaluation.agent_runner import run_agent_smoke
 from arbor.domain.persona.authorization import AuthorizationPolicy
 
@@ -42,7 +49,18 @@ def test_agent_smoke_ticket_approval_flow():
     approvals = InMemoryApprovalRepository(agent_stores)
     tool_executions = InMemoryToolExecutionRepository(agent_stores)
     registry = build_default_tool_registry()
-    executor = ToolExecutor(registry=registry, tool_executions=tool_executions)
+    mcp_stub = default_mcp_stub()
+    register_mcp_stub_tools(registry, mcp_stub)
+    ticket_def = registry.get("ticket.create")
+    assert ticket_def is not None
+    ticket_def.timeout_ms = 100
+    flaky = FlakyTicketTool()
+    executor = ToolExecutor(
+        registry=registry,
+        tool_executions=tool_executions,
+        ticket_tool=flaky,
+        mcp_transport=McpJsonRpcTransport(mcp_stub),
+    )
     advance = AdvanceAgentRun(
         personas=personas,
         runs=runs,
@@ -92,5 +110,6 @@ def test_agent_smoke_ticket_approval_flow():
         resume_run=resume,
         personas=personas,
         runs=runs,
+        flaky_ticket_tool=flaky,
     )
     assert report["task_success_rate"] == 1.0

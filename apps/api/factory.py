@@ -635,12 +635,17 @@ def create_app(
         artifact_lineage = InMemoryArtifactLineageRepository(artifact_stores)
 
     tool_registry = build_default_tool_registry()
-    register_mcp_stub_tools(tool_registry, default_mcp_stub())
+    from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
+
+    mcp_stub = default_mcp_stub()
+    register_mcp_stub_tools(tool_registry, mcp_stub)
+    mcp_transport = McpJsonRpcTransport(mcp_stub)
     tool_executor = ToolExecutor(
         registry=tool_registry,
         tool_executions=tool_executions,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
+        mcp_transport=mcp_transport,
         observability=observability,
     )
     extract_run_memory = ExtractRunMemory(

@@ -38,6 +38,25 @@ class McpStubAdapter:
             for key, manifest in self._manifests.items()
         ]
 
+    def invoke_tool(self, key: str, arguments: dict) -> dict:
+        manifest = self._manifests.get(key)
+        if manifest is None:
+            raise ValueError(f"unknown mcp tool: {key}")
+        if manifest.name == "search":
+            query = str(arguments.get("query") or "").strip()
+            return {
+                "tool": key,
+                "status": "ok",
+                "provider": manifest.server_name,
+                "results": [{"text": f"stub hit for {query or 'empty'}"}],
+            }
+        return {
+            "tool": key,
+            "status": "ok",
+            "provider": manifest.server_name,
+            "arguments": dict(arguments),
+        }
+
     def to_registry_specs(self) -> list[dict]:
         specs: list[dict] = []
         for key, manifest in self._manifests.items():

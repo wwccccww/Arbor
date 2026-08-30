@@ -104,6 +104,7 @@ export function Checkup({
 }) {
   const [run, setRun] = useState<EvalRun | null>(null)
   const [rows, setRows] = useState<EvalRun[]>([])
+  const [agentEval, setAgentEval] = useState<Record<string, unknown> | null>(null)
   const [busy, setBusy] = useState(false)
   const [busyLabel, setBusyLabel] = useState<string | null>(null)
   const [forbidden, setForbidden] = useState(false)
@@ -139,6 +140,23 @@ export function Checkup({
     try {
       const started = await client.startPersonaEvalRun(personaId, 'layered_tree')
       setRun(await client.getEvalRun(started.id))
+      setRows([])
+    } catch (err) {
+      if (asForbidden(err)) setForbidden(true)
+      else setError((err as Error).message)
+    } finally {
+      setBusy(false)
+      setBusyLabel(null)
+    }
+  }
+
+  async function runAgentEval() {
+    setBusy(true)
+    setBusyLabel('正在跑 agent-v1 场景集…')
+    setError(null)
+    try {
+      setAgentEval(await client.startAgentEval())
+      setRun(null)
       setRows([])
     } catch (err) {
       if (asForbidden(err)) setForbidden(true)
@@ -379,7 +397,57 @@ export function Checkup({
           <button type="button" disabled={busy || forbidden} onClick={() => void loadRecentComparison()}>
             加载最近四策略
           </button>
+          <button type="button" disabled={busy || forbidden} onClick={() => void runAgentEval()}>
+            Agent Eval（agent-v1）
+          </button>
         </div>
+
+        {agentEval ? (
+          <div className="table-wrap">
+            <table>
+              <caption>Agent Eval · {String(agentEval.suite_version ?? 'agent-v1')}</caption>
+              <thead>
+                <tr>
+                  <th>任务成功率</th>
+                  <th>越权率</th>
+                  <th>审批绕过率</th>
+                  <th>重复副作用率</th>
+                  <th>基线成功率</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{Number(agentEval.task_success_rate ?? 0).toFixed(2)}</td>
+                  <td>{Number(agentEval.unauthorized_action_rate ?? 0).toFixed(2)}</td>
+                  <td>{Number(agentEval.approval_bypass_rate ?? 0).toFixed(2)}</td>
+                  <td>{Number(agentEval.duplicate_side_effect_rate ?? 0).toFixed(2)}</td>
+                  <td>
+                    {agentEval.baseline_task_success_rate != null
+                      ? Number(agentEval.baseline_task_success_rate).toFixed(2)
+                      : '—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            {Array.isArray(agentEval.cases) ? (
+              <ul className="case-list" aria-label="Agent Eval 场景">
+                {(agentEval.cases as Array<Record<string, unknown>>).map((row) => (
+                  <li key={String(row.id)} className="case-row" data-pass={row.ok ? 'true' : 'false'}>
+                    <span className={`badge ${row.ok ? 'badge--ok' : 'badge--fail'}`}>
+                      {row.ok ? '通过' : '未通过'}
+                    </span>
+                    <div className="case-row__body">
+                      <p className="case-row__query">{String(row.id)}</p>
+                      <p className="case-row__meta">
+                        <span className="badge">状态 {String(row.status ?? '—')}</span>
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
 
         {run ? <MetricBar metrics={run.metrics} leakZero={run.p0_tenant_leak_zero} mode={run.mode} /> : null}
 
