@@ -103,7 +103,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.suite != "agent-v1":
             print("agent mode requires --suite agent-v1", file=sys.stderr)
             return 1
-        from arbor.application.evaluation.agent_eval_stack import build_agent_eval_stack, agent_fixture_path
+        from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack, agent_fixture_path
+        from arbor.application.evaluation.agent_evolution import run_agent_evolution_tracks
         from arbor.application.evaluation.agent_runner import run_agent_smoke
 
         stack = build_agent_eval_stack()
@@ -118,11 +119,15 @@ def main(argv: list[str] | None = None) -> int:
             flaky_ticket_tool=stack["flaky_ticket_tool"],
             counting_ticket_tool=stack["counting_ticket_tool"],
         )
+        evolution = run_agent_evolution_tracks(
+            stack=build_agent_eval_stack(use_employee_templates=False),
+        )
         baseline_path = BASELINE_FILES["agent-v1"]
         baseline = {}
         if baseline_path.is_file():
             baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
         report["baseline_task_success_rate"] = baseline.get("task_success_rate")
+        report["evolution_tracks"] = evolution.get("tracks")
         _export_metrics(
             suite="agent-v1",
             strategy="agent-smoke",

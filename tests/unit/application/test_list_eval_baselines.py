@@ -9,3 +9,4 @@ def test_list_eval_baselines_reads_smoke_files():
     assert "agent-v1-smoke" in ids
     assert "memory-v1-smoke" in ids
     assert "multimodal-v1-smoke" in ids
+    assert "agent-evolution-v1" in ids

@@ -23,6 +23,8 @@ def run_agent_smoke(
     flaky_ticket_tool=None,
     counting_ticket_tool=None,
     persona_id: PersonaId | None = None,
+    case_ids: set[str] | None = None,
+    max_steps_cap: int | None = None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     results: list[dict] = []
@@ -37,6 +39,8 @@ def run_agent_smoke(
         filtered = [c for c in cases if str(c.get("persona_id")) == persona_id.value]
         if filtered:
             cases = filtered
+    if case_ids is not None:
+        cases = [c for c in cases if c.get("id") in case_ids]
 
     for case in cases:
         tenant_id = TenantId(str(case["tenant_id"]))
@@ -77,6 +81,9 @@ def run_agent_smoke(
                 goal=str(case.get("goal") or ""),
                 plan_script=list(case.get("plan_script") or []),
                 enqueue=enqueue,
+                max_steps=int(
+                    max_steps_cap if max_steps_cap is not None else int(case.get("max_steps") or 8)
+                ),
             )
             if case.get("simulate_worker_restart") and resume_run is not None:
                 approve_step.advance(

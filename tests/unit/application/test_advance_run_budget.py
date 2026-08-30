@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from arbor.application.evaluation.agent_eval_stack import build_agent_eval_stack
+from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
 from arbor.domain.shared.ids import TenantId, UserId
 from arbor.application.agent.employee_templates import LINXIA_PERSONA_ID
 

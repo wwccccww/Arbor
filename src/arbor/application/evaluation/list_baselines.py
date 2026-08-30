@@ -25,8 +25,9 @@ def list_eval_baselines() -> dict:
                 "metrics": {
                     k: v
                     for k, v in payload.items()
-                    if k not in {"suite_version", "cases"} and not isinstance(v, list)
+                    if k not in {"suite_version", "cases", "tracks"} and not isinstance(v, list)
                 },
+                "tracks": list(payload.get("tracks") or []),
                 "case_count": len(payload.get("cases") or []),
             }
         )

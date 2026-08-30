@@ -69,6 +69,7 @@
 | 交付 | 证据 |
 |------|------|
 | agent-v1 runner + baseline | `agent_runner.py`；`eval_cli --mode agent`；`eval/baselines/agent-v1-smoke.json` |
+| §11.3 四轨演进基线 | `agent_evolution.py`；`eval/baselines/agent-evolution-v1.json`；`test_agent_evolution.py`；Checkup 四轨表 |
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
@@ -124,4 +125,4 @@
 - Nightly 真实模型轨（`ARBOR_JUDGE_API_KEY` / DeepSeek）— `nightly.yml` generation-llm job
 - Nightly Agent smoke（Fake Planner）— `nightly.yml` agent-smoke job
 - 生产 Tempo Agent Run 端到端 — `test_tempo_trace_search_by_agent_run_request_id`（observability job `continue-on-error`）
-- 全量多 Agent（Phase 8 明确为可选，当前未拆分）
+- 全量多 Agent（Phase 8 明确为可选，**不要求**完成 Phase 0–8）

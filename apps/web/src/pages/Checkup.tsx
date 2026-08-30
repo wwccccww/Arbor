@@ -437,6 +437,33 @@ export function Checkup({
           </div>
         ) : null}
 
+        {baselines.some((row) => row.id === 'agent-evolution-v1' && Array.isArray(row.tracks)) ? (
+          <div className="table-wrap">
+            <table>
+              <caption>Agent 四轨演进基线（§11.3）</caption>
+              <thead>
+                <tr>
+                  <th>轨道</th>
+                  <th>任务成功率</th>
+                  <th>用例数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(
+                  (baselines.find((row) => row.id === 'agent-evolution-v1')?.tracks as Array<Record<string, unknown>>) ||
+                  []
+                ).map((track) => (
+                  <tr key={String(track.id)}>
+                    <td>{String(track.label ?? track.id)}</td>
+                    <td>{Number(track.task_success_rate ?? 0).toFixed(2)}</td>
+                    <td>{String(track.case_count ?? '—')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
         {agentEval && baselines.length ? (
           <div className="table-wrap">
             <table>
