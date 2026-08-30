@@ -333,3 +333,9 @@ def agent_compat_chat() -> bool:
         "yes",
         "on",
     }
+
+
+def mcp_server_url() -> str | None:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_MCP_SERVER_URL") or "").strip()
+    return raw or None

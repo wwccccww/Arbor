@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from arbor.application.storage.object_gc import delete_stored_object, object_uris_from_memory_source
+from arbor.application.memory.consolidation import consolidations_deriving_from, is_consolidation
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
@@ -47,6 +48,16 @@ class DeleteMemory:
         if item is None or item.persona_id != persona_id:
             raise DomainError("NOT_FOUND", "not found")
         from_status = item.status.value
+        persona_active = self.memories.list_active(tenant_id, persona_id)
+        for derived in consolidations_deriving_from(persona_active, memory_id.value):
+            self.memories.delete(tenant_id, derived.id)
+            self.vectors.delete(tenant_id, derived.id)
+        if is_consolidation(item):
+            for source_id in (item.source or {}).get("derived_from") or []:
+                source = self.memories.get(tenant_id, MemoryId(str(source_id)))
+                if source is not None and source.status.value == "superseded":
+                    self.memories.delete(tenant_id, source.id)
+                    self.vectors.delete(tenant_id, source.id)
         self.memories.delete(tenant_id, memory_id)
         self.vectors.delete(tenant_id, memory_id)
         obs = self._obs()

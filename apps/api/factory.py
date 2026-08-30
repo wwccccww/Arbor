@@ -636,10 +636,17 @@ def create_app(
 
     tool_registry = build_default_tool_registry()
     from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
+    from arbor.env import mcp_server_url
 
     mcp_stub = default_mcp_stub()
     register_mcp_stub_tools(tool_registry, mcp_stub)
-    mcp_transport = McpJsonRpcTransport(mcp_stub)
+    mcp_url = mcp_server_url()
+    if mcp_url:
+        from arbor.adapters.outbound.mcp.http_transport import McpHttpJsonRpcTransport
+
+        mcp_transport = McpHttpJsonRpcTransport(mcp_url, fallback_adapter=mcp_stub)
+    else:
+        mcp_transport = McpJsonRpcTransport(mcp_stub)
     tool_executor = ToolExecutor(
         registry=tool_registry,
         tool_executions=tool_executions,
