@@ -1,6 +1,8 @@
 {
   "suite_version": "agent-v1",
   "task_success_rate": 1.0,
+  "avg_latency_ms": 0.0,
+  "avg_cost_micros": 0.0,
   "cases": [
     {"id": "ticket-with-approval", "ok": true, "status": "completed"},
     {"id": "retrieve-only-handoff", "ok": true, "status": "completed"},

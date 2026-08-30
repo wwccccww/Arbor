@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from arbor.application.memory.conflict_detection import enrich_inbox_extract
 from arbor.application.memory.consolidate_episodes import ConsolidateEpisodicMemories
-from arbor.application.memory.consolidation import is_consolidation
+from arbor.application.memory.consolidation import is_consolidation, derived_from_ids
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.validity import is_memory_searchable
 from arbor.domain.memory.memory import InboxItem, MemoryClass, MemoryItem, MemoryStatus, MemoryType
@@ -29,8 +30,11 @@ def run_memory_smoke(
     results: list[dict] = []
     duplicate_pairs = 0
     stale_injections = 0
+    conflict_injections = 0
     writes_attempted = 0
     writes_correct = 0
+    helpful_queries = 0
+    helpful_hits = 0
 
     for case in payload.get("cases") or []:
         tenant_id = TenantId(str(case["tenant_id"]))
@@ -157,7 +161,8 @@ def run_memory_smoke(
                 and is_memory_searchable(m)
             ]
             consolidations = [m for m in episodic_active if is_consolidation(m)]
-            ok = len(consolidations) == 1 and len(episodic_active) == 1
+            expected_ids = {str(ep["id"]) for ep in case.get("episodes") or []}
+            ok = any(expected_ids.issubset(set(derived_from_ids(c))) for c in consolidations)
 
         elif action == "confirm_inbox_write" and confirm is not None and inbox is not None:
             user_id = UserId(str(case.get("user_id") or "0a000000-0000-4000-a000-000000000002"))
@@ -189,6 +194,93 @@ def run_memory_smoke(
             if ok:
                 writes_correct += 1
 
+        elif action == "detect_inbox_conflict":
+            active = MemoryItem(
+                id=MemoryId(str(case.get("active_id") or "mem-conflict-active")),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                text=str(case.get("active_text") or ""),
+                type=MemoryType.FACT,
+                status=MemoryStatus.ACTIVE,
+            )
+            memories.save(active)
+            enriched = enrich_inbox_extract(
+                {"text": str(case.get("proposed_text") or "")},
+                [active],
+            )
+            ok = enriched.get("conflicts_with") == active.id.value
+            if not ok:
+                conflict_injections += 1
+
+        elif action == "confirm_conflict_supersedes" and confirm is not None and inbox is not None:
+            user_id = UserId(str(case.get("user_id") or "0a000000-0000-4000-a000-000000000002"))
+            persona = personas.get(tenant_id, persona_id)
+            if persona is not None:
+                persona.grants.append(Grant(user_id=user_id, capabilities=list(Capability)))
+            active = MemoryItem(
+                id=MemoryId(str(case.get("active_id") or "mem-conflict-old")),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                text=str(case.get("active_text") or ""),
+                type=MemoryType.FACT,
+                status=MemoryStatus.ACTIVE,
+            )
+            memories.save(active)
+            vectors.upsert(tenant_id, persona_id, active.id, embed.embed(active.text), active.status)
+            proposed = str(case.get("proposed_text") or "")
+            inbox_id = str(case.get("inbox_id") or ids.new_id())
+            inbox.add(
+                InboxItem(
+                    id=inbox_id,
+                    tenant_id=tenant_id,
+                    persona_id=persona_id,
+                    kind="conflict",
+                    payload={
+                        "text": proposed,
+                        "memory_type": "fact",
+                        "conflicts_with": active.id.value,
+                    },
+                    status="pending",
+                    conflicts_with=active.id,
+                )
+            )
+            confirm(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                persona_id=persona_id,
+                inbox_id=inbox_id,
+                capabilities=list(Capability),
+            )
+            stored_old = memories.get(tenant_id, active.id)
+            hits = vectors.search(tenant_id, persona_id, embed.embed(str(case.get("query") or proposed)), 5)
+            hit_texts = [hit.text for hit, _ in hits]
+            ok = (
+                stored_old is not None
+                and stored_old.status == MemoryStatus.SUPERSEDED
+                and proposed in hit_texts
+                and str(case.get("active_text") or "") not in hit_texts
+            )
+            if str(case.get("active_text") or "") in hit_texts:
+                conflict_injections += 1
+
+        elif action == "retrieval_helpfulness":
+            item = MemoryItem(
+                id=MemoryId(str(case.get("memory_id") or ids.new_id())),
+                tenant_id=tenant_id,
+                persona_id=persona_id,
+                text=str(case.get("text") or ""),
+                type=MemoryType.EPISODE_SUMMARY,
+                status=MemoryStatus.ACTIVE,
+                memory_class=MemoryClass.EPISODIC,
+            )
+            memories.save(item)
+            vectors.upsert(tenant_id, persona_id, item.id, embed.embed(item.text), item.status)
+            helpful_queries += 1
+            hits = vectors.search(tenant_id, persona_id, embed.embed(str(case.get("query") or "")), 5)
+            ok = any(hit.id == item.id for hit, _ in hits)
+            if ok:
+                helpful_hits += 1
+
         results.append({"id": case["id"], "ok": ok})
 
     passed = sum(1 for row in results if row.get("ok"))
@@ -196,13 +288,16 @@ def run_memory_smoke(
     duplicate_rate = duplicate_pairs / total if total else 0.0
     stale_rate = stale_injections / total if total else 0.0
     write_precision = writes_correct / writes_attempted if writes_attempted else 1.0
+    conflict_rate = conflict_injections / total if total else 0.0
+    helpfulness_rate = helpful_hits / helpful_queries if helpful_queries else 1.0
     return {
         "suite_version": payload.get("suite_version"),
         "gate_pass_rate": passed / total if total else 0.0,
         "duplicate_memory_rate": duplicate_rate,
         "stale_memory_injection_rate": stale_rate,
-        "conflict_injection_rate": stale_rate,
+        "conflict_injection_rate": conflict_rate,
         "memory_write_precision": write_precision,
+        "memory_helpfulness_rate": helpfulness_rate,
         "deletion_completeness_rate": 1.0 if all(
             row.get("ok") for row in results if row.get("id") == "delete-completeness"
         ) else 0.0,

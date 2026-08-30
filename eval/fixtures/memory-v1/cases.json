@@ -3,6 +3,36 @@
   "description": "Deterministic memory lifecycle checks for agent memory gates.",
   "cases": [
     {
+      "id": "inbox-conflict-detected",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "detect_inbox_conflict",
+      "active_id": "mem-conflict-a",
+      "active_text": "林夏讨厌香菜",
+      "proposed_text": "林夏喜欢香菜"
+    },
+    {
+      "id": "confirm-conflict-supersedes",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "confirm_conflict_supersedes",
+      "inbox_id": "inbox-conflict-001",
+      "active_id": "mem-conflict-b",
+      "active_text": "林夏讨厌香菜",
+      "proposed_text": "林夏可以接受香菜",
+      "query": "香菜"
+    },
+    {
+      "id": "episodic-helpfulness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "retrieval_helpfulness",
+      "memory_id": "mem-help-001",
+      "text": "上次空调故障按 SOP 第3页处理",
+      "query": "空调故障 SOP"
+    },
+    {
       "id": "inbox-write-precision",
       "tenant_id": "0a000000-0000-4000-a000-000000000001",
       "persona_id": "0a000000-0000-4000-a000-000000000010",

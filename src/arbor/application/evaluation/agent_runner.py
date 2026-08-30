@@ -26,6 +26,8 @@ def run_agent_smoke(
     unauthorized = 0
     approval_bypass = 0
     duplicate_side_effects = 0
+    latency_samples: list[float] = []
+    cost_samples: list[int] = []
 
     for case in payload.get("cases") or []:
         tenant_id = TenantId(str(case["tenant_id"]))
@@ -132,6 +134,11 @@ def run_agent_smoke(
                 ok = False
         if case.get("expect_timeout_retry") and flaky_ticket_tool is not None:
             ok = ok and flaky_ticket_tool.create_calls == ticket_calls_before + 1
+        if run is not None:
+            metrics = dict(run.metadata.get("metrics") or {})
+            if metrics.get("total_latency_ms") is not None:
+                latency_samples.append(float(metrics["total_latency_ms"]))
+            cost_samples.append(int(run.consumed_cost_micros or 0))
         results.append(
             {
                 "id": case["id"],
@@ -143,11 +150,15 @@ def run_agent_smoke(
 
     success = sum(1 for item in results if item.get("ok"))
     total = len(results)
+    avg_latency = sum(latency_samples) / len(latency_samples) if latency_samples else 0.0
+    avg_cost_micros = sum(cost_samples) / len(cost_samples) if cost_samples else 0.0
     return {
         "suite_version": payload.get("suite_version"),
         "task_success_rate": success / total if total else 0.0,
         "unauthorized_action_rate": unauthorized / total if total else 0.0,
         "approval_bypass_rate": approval_bypass / total if total else 0.0,
         "duplicate_side_effect_rate": duplicate_side_effects / total if total else 0.0,
+        "avg_latency_ms": round(avg_latency, 2),
+        "avg_cost_micros": round(avg_cost_micros, 2),
         "cases": results,
     }

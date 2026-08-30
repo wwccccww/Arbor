@@ -753,6 +753,8 @@ def create_app(
         runs=agent_runs,
         resume_run=resume_agent_run,
         observability=observability,
+        eval_runs=eval_runs,
+        ids=ids,
     )
     list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
     from arbor.application.agent.compat_chat import AgentCompatRecorder

@@ -71,5 +71,7 @@ def test_memory_v1_smoke_gates():
     )
     assert report["gate_pass_rate"] == 1.0
     assert report["stale_memory_injection_rate"] == 0.0
+    assert report["conflict_injection_rate"] == 0.0
     assert report["memory_write_precision"] == 1.0
-    assert len(report["cases"]) == 6
+    assert report["memory_helpfulness_rate"] == 1.0
+    assert len(report["cases"]) == 9

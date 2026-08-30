@@ -223,4 +223,5 @@ def register_agent_routes(app, deps: AgentHttpDeps) -> None:
                 raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
             return deps.start_agent_eval(
                 workspace_admin=deps.workspace_admin_for(user, x_tenant_id),
+                tenant_id=x_tenant_id,
             )

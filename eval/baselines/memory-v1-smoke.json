@@ -2,8 +2,13 @@
   "suite_version": "memory-v1",
   "gate_pass_rate": 1.0,
   "memory_write_precision": 1.0,
+  "memory_helpfulness_rate": 1.0,
   "stale_memory_injection_rate": 0.0,
+  "conflict_injection_rate": 0.0,
   "cases": [
+    {"id": "inbox-conflict-detected", "ok": true},
+    {"id": "confirm-conflict-supersedes", "ok": true},
+    {"id": "episodic-helpfulness", "ok": true},
     {"id": "inbox-write-precision", "ok": true},
     {"id": "decayed-episodic-excluded", "ok": true},
     {"id": "expired-excluded", "ok": true},
