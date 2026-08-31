@@ -114,8 +114,8 @@ class PgAgentRunRepository:
                 created_at, updated_at, finished_at
             ) VALUES (
                 %s, %s::uuid, %s::uuid, %s::uuid, %s::uuid, %s, %s,
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s::timestamptz, %s::timestamptz, %s::timestamptz
+                %s, %s, %s, %s,                 %s, %s, %s, %s, %s, %s, %s,
+                COALESCE(%s::timestamptz, now()), COALESCE(%s::timestamptz, now()), %s::timestamptz
             )
             ON CONFLICT (id) DO UPDATE SET
                 status = EXCLUDED.status,

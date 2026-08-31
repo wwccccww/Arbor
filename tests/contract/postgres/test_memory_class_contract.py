@@ -22,7 +22,7 @@ LINXIA = PersonaId("0a000000-0000-4000-a000-000000000010")
     reason="Postgres contract tests need DATABASE_URL",
 )
 def test_memory_class_episodic_searchable(pg):
-    memory_id = MemoryId("0a000000-0000-4000-a000-0000000999")
+    memory_id = MemoryId("0a000000-0000-4000-a000-000000000999")
     item = MemoryItem(
         id=memory_id,
         tenant_id=TENANT,
