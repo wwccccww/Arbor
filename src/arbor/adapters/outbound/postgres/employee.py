@@ -243,6 +243,22 @@ class PgEmployeeDefinitionRepository:
             raise DomainError("NOT_FOUND", "employee definition not found")
         return _definition_from_row(row)
 
+    def archive_all_for_persona(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+    ) -> int:
+        result = self.conn.execute(
+            """
+            UPDATE employee_definitions
+            SET release_status = 'archived', updated_at = now()
+            WHERE tenant_id = %s::uuid AND persona_id = %s::uuid
+              AND release_status <> 'archived'
+            """,
+            (tenant_id.value, persona_id.value),
+        )
+        return int(result.rowcount or 0)
+
     def ensure_published(
         self,
         tenant_id: TenantId,

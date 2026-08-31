@@ -1,6 +1,6 @@
 # Arbor Agent 生产化补强开发指南
 
-- 状态：待实施
+- 状态：**核心已落地**（P0–P2 gap 补齐见 `cursor/hardening-gaps-full-d39e`）
 - 适用分支：`cursor/agent-impl-d39e` 及其后续分支
 - 上游契约：[AI Agent 改造开发指南](ai-agent-development-guide.md)
 - 当前证据：[Phase 0–8 完成度审计](agent-phase-completion-audit.md)

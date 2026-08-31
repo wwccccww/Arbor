@@ -1,0 +1,12 @@
+{
+  "suite_version": "agent-ablation-v1-llm",
+  "description": "Nightly real LLM planner track (separate from fake baseline agent-ablation-v1.json)",
+  "planner_kind": "real",
+  "variant_id": "bounded_loop_rag_recovery_hitl",
+  "task_success_rate": null,
+  "unauthorized_action_rate": 0.0,
+  "approval_bypass_rate": 0.0,
+  "duplicate_side_effect_rate": 0.0,
+  "tenant_leak_rate": 0.0,
+  "note": "task_success_rate filled by nightly when ARBOR_WRITE_LLM_BASELINE=1"
+}

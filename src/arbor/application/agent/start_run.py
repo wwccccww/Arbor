@@ -6,6 +6,7 @@ from arbor.domain.agent.run import AgentRun, AgentRunStatus
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
+from arbor.env import allow_plan_script
 from arbor.observability.context import current_request_context
 
 
@@ -57,6 +58,11 @@ class StartAgentRun:
         goal_text = (goal or "").strip()
         if not goal_text:
             raise DomainError("VALIDATION_ERROR", "goal required")
+        if plan_script and not allow_plan_script():
+            raise DomainError(
+                "FORBIDDEN_PLAN_SCRIPT",
+                "plan_script is disabled in this environment",
+            )
 
         definition_version = employee_definition_version
         budget_policy: dict = {}

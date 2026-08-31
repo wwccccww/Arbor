@@ -335,6 +335,26 @@ def agent_compat_chat() -> bool:
     }
 
 
+def allow_plan_script() -> bool:
+    """plan_script is test/admin only unless explicitly enabled."""
+    load_dotenv()
+    return (os.environ.get("ARBOR_ALLOW_PLAN_SCRIPT") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
+def working_memory_max_items() -> int:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_WORKING_MEMORY_MAX_ITEMS") or "32").strip()
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 32
+
+
 def mcp_server_url() -> str | None:
     load_dotenv()
     raw = (os.environ.get("ARBOR_MCP_SERVER_URL") or "").strip()

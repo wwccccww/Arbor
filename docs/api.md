@@ -28,12 +28,24 @@
 |---|---|
 | 400 | `VALIDATION_ERROR` |
 | 401 | `UNAUTHENTICATED` |
-| 403 | `FORBIDDEN_WORKSPACE` `FORBIDDEN_CHAT` `FORBIDDEN_MEMORY_READ` `FORBIDDEN_MEMORY_WRITE` |
+| 403 | `FORBIDDEN_WORKSPACE` `FORBIDDEN_CHAT` `FORBIDDEN_MEMORY_READ` `FORBIDDEN_MEMORY_WRITE` `FORBIDDEN_PLAN_SCRIPT` |
 | 404 | `NOT_FOUND` |
 | 409 | `CONFLICT_INBOX_STATE` `PERSONA_TENANT_MISMATCH` |
 | 422 | 请求体 schema |
 | 429 | `RATE_LIMITED` |
 | 503 | `UPSTREAM_UNAVAILABLE`（DeepSeek 不可用） |
+
+Agent / 数字员工专用错误码（HTTP 400/403/404/409）：
+
+| code | 含义 |
+|---|---|
+| `FORBIDDEN_PLAN_SCRIPT` | 生产环境禁止 `plan_script`（测试需 `ARBOR_ALLOW_PLAN_SCRIPT=1`） |
+| `FORBIDDEN_TOOL` | 工具未注册或岗位策略不允许 |
+| `APPROVAL_EXPIRED` | 审批已过期，副作用不得执行 |
+| `AGENT_RUN_TERMINAL` | Run 已终态，不可继续推进 |
+| `AGENT_VERSION_CONFLICT` | 并发推进版本冲突 |
+| `EMPLOYEE_EVAL_GATE` | 岗位评测未通过，不可发布定义 |
+| `WORKING_MEMORY_CAPACITY` | Run 级 Working Memory 条目达上限 |
 
 跨租户或跨人设「猜 UUID」一律 404，不暴露存在性（实现可对无权资源返回 404）。
 

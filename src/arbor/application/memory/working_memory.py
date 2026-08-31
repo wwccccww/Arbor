@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus
+from arbor.env import working_memory_max_items
 
 
 def _parse_iso(value: str) -> datetime | None:
@@ -77,6 +79,33 @@ def is_working_memory_searchable(
     if not is_working_memory_for_run(item, run_id):
         return False
     return not is_working_memory_expired(item, now=now)
+
+
+def count_working_memory_for_run(memories, tenant_id, persona_id, run_id: str) -> int:
+    total = 0
+    for item in memories.list_active(tenant_id, persona_id):
+        if item.memory_class != MemoryClass.WORKING:
+            continue
+        if working_memory_run_id(item) == run_id:
+            total += 1
+    return total
+
+
+def enforce_working_memory_capacity(memories, tenant_id, persona_id, run_id: str) -> None:
+    limit = working_memory_max_items()
+    if count_working_memory_for_run(memories, tenant_id, persona_id, run_id) >= limit:
+        raise DomainError(
+            "WORKING_MEMORY_CAPACITY",
+            f"working memory limit {limit} reached for run",
+        )
+
+
+def working_memory_may_enter_inbox(item: MemoryItem) -> bool:
+    """Only summarized episodic candidates may enter Inbox — not raw working notes."""
+    if item.memory_class != MemoryClass.WORKING:
+        return True
+    source = item.source or {}
+    return bool(source.get("inbox_candidate"))
 
 
 def clear_working_memory_for_run(memories, tenant_id, persona_id, run_id: str) -> int:

@@ -26,6 +26,7 @@ class PersonaHttpDeps:
     list_personas: Callable
     create_persona: Callable
     patch_persona: Callable
+    delete_persona: Callable | None = None
     replace_grants: Callable
     list_memories: Callable
     delete_memory: Callable
@@ -149,6 +150,24 @@ def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
             avatar=payload.avatar,
         )
         return persona_json(updated, caps)
+
+    if deps.delete_persona is not None:
+
+        @app.delete("/v1/personas/{persona_id}", status_code=200)
+        def delete_persona_route(
+            persona_id: str,
+            authorization: str | None = Header(default=None),
+            x_tenant_id: str | None = Header(default=None),
+        ):
+            user = deps.current_user(authorization)
+            if not x_tenant_id:
+                raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+            return deps.delete_persona(
+                tenant_id=TenantId(x_tenant_id),
+                user_id=UserId(user["user_id"]),
+                persona_id=PersonaId(persona_id),
+                workspace_admin=deps.workspace_admin_for(user, x_tenant_id),
+            )
 
     @app.get("/v1/personas/{persona_id}/memories")
     def get_memories(

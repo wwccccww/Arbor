@@ -13,6 +13,18 @@
       "detail": "failed"
     },
     {
+      "id": "token-budget-exhausted",
+      "scenario": "token_budget_exhausted",
+      "ok": true,
+      "detail": "failed"
+    },
+    {
+      "id": "cost-budget-exhausted",
+      "scenario": "cost_budget_exhausted",
+      "ok": true,
+      "detail": "failed"
+    },
+    {
       "id": "concurrent-advance-once",
       "scenario": "concurrent_advance_once",
       "ok": true,
@@ -29,6 +41,24 @@
       "scenario": "expired_policy_excluded",
       "ok": true,
       "detail": "items=['identity:profile', 'policy:tenant_isolation', 'task:goal']"
+    },
+    {
+      "id": "conflict-policy-excluded",
+      "scenario": "conflict_policy_excluded",
+      "ok": true,
+      "detail": "selected=['0a000000-0000-4000-a000-000000000902', 'identity:profile', 'policy:tenant_isolation', 'task:goal']"
+    },
+    {
+      "id": "multimodal-locator",
+      "scenario": "multimodal_locator",
+      "ok": true,
+      "detail": "artifact=00000000-0000-4000-a000-000000000001 segments=1"
+    },
+    {
+      "id": "object-deletion-propagation",
+      "scenario": "object_deletion_propagation",
+      "ok": true,
+      "detail": "invalidated=['00000000-0000-4000-a000-000000000001']"
     },
     {
       "id": "approval-expired-no-side-effect",

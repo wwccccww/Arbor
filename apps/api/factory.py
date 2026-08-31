@@ -95,6 +95,7 @@ from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
+from arbor.application.persona.delete_persona import DeletePersona
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
 from arbor.domain.identity.tenant import Role
@@ -1000,6 +1001,12 @@ def create_app(
             list_personas=list_personas,
             create_persona=create_persona,
             patch_persona=patch_persona,
+            delete_persona=DeletePersona(
+                personas=personas,
+                employee_definitions=employee_definitions,
+                auth=AuthorizationPolicy(),
+                audit=record_audit,
+            ),
             replace_grants=replace_grants,
             list_memories=list_memories,
             delete_memory=delete_memory,

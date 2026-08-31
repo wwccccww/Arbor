@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import pytest
+
 from arbor.application.memory.procedural_memory import (
     agent_may_write_procedural,
     is_procedural_memory_searchable,
@@ -68,6 +70,23 @@ def test_procedural_draft_and_pinning():
     assert is_procedural_memory_searchable(published)
     assert is_procedural_memory_searchable(published, pinned_version="v1")
     assert not is_procedural_memory_searchable(published, pinned_version="v2")
+
+
+def test_working_memory_capacity_limit():
+    from arbor.adapters.outbound.inmemory import InMemoryMemoryRepository, InMemoryStores
+    from arbor.application.memory.working_memory import enforce_working_memory_capacity
+    from arbor.domain.errors import DomainError
+
+    stores = InMemoryStores()
+    memories = InMemoryMemoryRepository(stores)
+    run_id = "run-capacity"
+    for i in range(32):
+        item = _working(run_id=run_id, expires_at="2099-01-01T00:00:00Z")
+        item.id = MemoryId(f"mem-w-{i:03d}")
+        memories.save(item)
+    with pytest.raises(DomainError) as exc:
+        enforce_working_memory_capacity(memories, TENANT, PERSONA, run_id)
+    assert exc.value.code == "WORKING_MEMORY_CAPACITY"
 
 
 def test_agent_cannot_write_procedural_from_run():

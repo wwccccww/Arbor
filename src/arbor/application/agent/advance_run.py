@@ -111,6 +111,7 @@ class AdvanceAgentRun:
             run.mark_failed({"kind": "budget_exhausted"})
             run.updated_at = _now_iso()
             self._finalize_terminal_run(run)
+            self._record_run_metrics(run)
             self.runs.save(run)
             return run
 
@@ -135,99 +136,141 @@ class AdvanceAgentRun:
             for step in prior_steps
         ]
 
-        action = self.planner.next_action(
-            goal=run.goal,
-            steps=step_summaries,
-            context_manifest=dict(run.metadata.get("context_manifest") or {}),
-            tool_schemas=self._tool_schemas(),
-            budget={
-                "max_steps": run.max_steps,
-                "current_step": run.current_step,
-                "token_budget": run.token_budget,
-                "consumed_tokens": run.consumed_tokens,
-                "cost_budget_micros": run.cost_budget_micros,
-                "consumed_cost_micros": run.consumed_cost_micros,
-            },
-            plan_script=list(run.metadata.get("plan_script") or []),
-            evidence_ids=evidence_ids,
-            run_metadata=run.metadata,
-        )
-        action = validate_planner_action(action)
-        if is_repeated_action_loop(
-            [{"input": dict(s.input or {})} for s in prior_steps],
-            action,
-        ):
-            run.mark_failed({"kind": "action_loop", "message": "repeated planner action"})
-            run.updated_at = _now_iso()
-            self._finalize_terminal_run(run)
-            self.runs.save(run)
-            return run
-        planner_meta = getattr(self.planner, "last_metadata", None)
-        if isinstance(planner_meta, dict) and planner_meta:
-            run.metadata["planner"] = dict(planner_meta)
-
-        step_id = self.ids.new_id()
-        trace_id = str(run.metadata.get("request_id") or "")
-        ctx = current_request_context()
-        if not trace_id and ctx is not None:
-            trace_id = ctx.request_id
-        if not trace_id:
-            trace_id = run.id
-        if not run.metadata.get("request_id"):
-            run.metadata["request_id"] = trace_id
-        step = AgentStep(
-            id=step_id,
-            run_id=run.id,
-            tenant_id=tenant_id,
-            persona_id=run.persona_id,
-            sequence=sequence,
-            kind=self._kind_for_action(action["action"]),
-            status=StepStatus.RUNNING,
-            input=action,
-            started_at=now,
-            trace_id=trace_id,
-        )
-
-        with obs.span("agent.step", kind=step.kind.value, sequence=sequence):
-            step_started = time.perf_counter()
-            try:
-                self._execute_action(
-                    run=run,
-                    step=step,
-                    action=action,
-                    persona=persona,
-                    user_id=user_id,
-                    tenant_id=tenant_id,
+        with obs.span("agent.run", run_id=run_id):
+            with obs.span("planner.call"):
+                action = self.planner.next_action(
+                    goal=run.goal,
+                    steps=step_summaries,
+                    context_manifest=dict(run.metadata.get("context_manifest") or {}),
+                    tool_schemas=self._tool_schemas(),
+                    budget={
+                        "max_steps": run.max_steps,
+                        "current_step": run.current_step,
+                        "token_budget": run.token_budget,
+                        "consumed_tokens": run.consumed_tokens,
+                        "cost_budget_micros": run.cost_budget_micros,
+                        "consumed_cost_micros": run.consumed_cost_micros,
+                    },
+                    plan_script=list(run.metadata.get("plan_script") or []),
                     evidence_ids=evidence_ids,
-                    prior_steps=prior_steps,
+                    run_metadata=run.metadata,
                 )
-            except DomainError as exc:
-                step.mark_failed(exc.code, str(exc))
-                run.mark_failed({"kind": exc.code, "message": str(exc)})
+            action = validate_planner_action(action)
+            if is_repeated_action_loop(
+                [{"input": dict(s.input or {})} for s in prior_steps],
+                action,
+            ):
+                run.mark_failed({"kind": "action_loop", "message": "repeated planner action"})
                 run.updated_at = _now_iso()
-                self.steps.add(step)
                 self._finalize_terminal_run(run)
+                self._record_run_metrics(run)
                 self.runs.save(run)
                 return run
-            latency_ms = round((time.perf_counter() - step_started) * 1000, 2)
-            step.observation = dict(step.observation or {})
-            step.observation["latency_ms"] = latency_ms
-            metrics = dict(run.metadata.get("metrics") or {})
-            latencies = list(metrics.get("step_latencies_ms") or [])
-            latencies.append(latency_ms)
-            metrics["step_latencies_ms"] = latencies
-            metrics["total_latency_ms"] = round(sum(latencies), 2)
-            metrics["step_count"] = len(latencies)
-            run.metadata["metrics"] = metrics
-            run.consumed_cost_micros += 50_000
+            planner_meta = getattr(self.planner, "last_metadata", None)
+            if isinstance(planner_meta, dict) and planner_meta:
+                run.metadata["planner"] = dict(planner_meta)
+
+            step_id = self.ids.new_id()
+            trace_id = str(run.metadata.get("request_id") or "")
+            ctx = current_request_context()
+            if not trace_id and ctx is not None:
+                trace_id = ctx.request_id
+            if not trace_id:
+                trace_id = run.id
+            if not run.metadata.get("request_id"):
+                run.metadata["request_id"] = trace_id
+            step = AgentStep(
+                id=step_id,
+                run_id=run.id,
+                tenant_id=tenant_id,
+                persona_id=run.persona_id,
+                sequence=sequence,
+                kind=self._kind_for_action(action["action"]),
+                status=StepStatus.RUNNING,
+                input=action,
+                started_at=now,
+                trace_id=trace_id,
+            )
+
+            with obs.span("agent.step", kind=step.kind.value, sequence=sequence):
+                step_started = time.perf_counter()
+                try:
+                    self._execute_action(
+                        run=run,
+                        step=step,
+                        action=action,
+                        persona=persona,
+                        user_id=user_id,
+                        tenant_id=tenant_id,
+                        evidence_ids=evidence_ids,
+                        prior_steps=prior_steps,
+                    )
+                except DomainError as exc:
+                    step.mark_failed(exc.code, str(exc))
+                    run.mark_failed({"kind": exc.code, "message": str(exc)})
+                    run.updated_at = _now_iso()
+                    self.steps.add(step)
+                    self._finalize_terminal_run(run)
+                    self._record_run_metrics(run)
+                    self.runs.save(run)
+                    return run
+                latency_ms = round((time.perf_counter() - step_started) * 1000, 2)
+                step.observation = dict(step.observation or {})
+                step.observation["latency_ms"] = latency_ms
+                metrics = dict(run.metadata.get("metrics") or {})
+                latencies = list(metrics.get("step_latencies_ms") or [])
+                latencies.append(latency_ms)
+                metrics["step_latencies_ms"] = latencies
+                metrics["total_latency_ms"] = round(sum(latencies), 2)
+                metrics["step_count"] = len(latencies)
+                if latencies:
+                    sorted_lat = sorted(latencies)
+                    p95_idx = max(0, min(len(sorted_lat) - 1, int(len(sorted_lat) * 0.95) - 1))
+                    metrics["p95_latency_ms"] = sorted_lat[p95_idx]
+                run.metadata["metrics"] = metrics
+                run.consumed_cost_micros += 50_000
+
+            if run.budget_exhausted() and run.can_advance():
+                run.mark_failed({"kind": "budget_exhausted"})
+                run.updated_at = _now_iso()
+                step.finished_at = _now_iso()
+                self.steps.add(step)
+                self._finalize_terminal_run(run)
+                self._record_run_metrics(run)
+                self.runs.save(run)
+                return run
 
         step.finished_at = _now_iso()
         self.steps.add(step)
+        if run.is_terminal():
+            self._finalize_terminal_run(run)
+            self._record_run_metrics(run)
         self.runs.save(run)
 
         if enqueue_next and self.job_queue is not None and run.can_advance() and not run.budget_exhausted():
             self.job_queue.enqueue_run(tenant_id, run.id, run.version)
         return run
+
+    def _record_run_metrics(self, run: AgentRun) -> None:
+        obs = obs_or_noop(self.observability)
+        status = run.status.value
+        obs.increment("arbor_agent_run_total", status=status)
+        metrics = dict(run.metadata.get("metrics") or {})
+        total_ms = float(metrics.get("total_latency_ms") or 0.0)
+        if total_ms > 0:
+            obs.observe("arbor_agent_run_latency_ms", total_ms, status=status)
+            p95 = metrics.get("p95_latency_ms")
+            if p95 is not None:
+                obs.observe("arbor_agent_run_p95_latency_ms", float(p95), status=status)
+        if run.status == AgentRunStatus.COMPLETED:
+            obs.observe("arbor_agent_run_steps", float(run.current_step))
+            obs.observe("arbor_agent_run_tokens", float(run.consumed_tokens))
+            obs.observe("arbor_agent_run_cost_micros", float(run.consumed_cost_micros))
+        failure_kind = (run.failure or {}).get("kind") if run.failure else None
+        if failure_kind == "approval_expired":
+            obs.increment("arbor_agent_approval_expire_total")
+        if failure_kind and str(failure_kind).startswith("FORBIDDEN"):
+            obs.increment("arbor_agent_unauthorized_total")
 
     def _kind_for_action(self, action: str) -> StepKind:
         mapping = {
@@ -297,13 +340,14 @@ class AdvanceAgentRun:
             run.metadata.pop("pending_retrieve_query", None)
             active = self.memories.list_active(tenant_id, run.persona_id)
             by_id = {m.id.value: m for m in active}
-            _, manifest = build_step_context_items(
-                goal=run.goal,
-                persona_profile={"display_name": persona.profile.display_name},
-                evidence_ids=evidence_ids,
-                memories_by_id=by_id,
-                tool_results=list(run.metadata.get("tool_results") or []),
-            )
+            with obs_or_noop(self.observability).span("rag.compile_context"):
+                _, manifest = build_step_context_items(
+                    goal=run.goal,
+                    persona_profile={"display_name": persona.profile.display_name},
+                    evidence_ids=evidence_ids,
+                    memories_by_id=by_id,
+                    tool_results=list(run.metadata.get("tool_results") or []),
+                )
             run.metadata["context_manifest"] = manifest
             obs_or_noop(self.observability).observe(
                 "arbor_agent_context_tokens", manifest.get("token_usage", 0)
@@ -326,19 +370,20 @@ class AdvanceAgentRun:
 
         if action["action"] == "tool":
             tool_name = str(action.get("tool_name") or "")
-            tool_def = self.tool_executor.registry.get(tool_name)
-            if tool_def is None:
-                raise DomainError("FORBIDDEN_TOOL", f"unknown tool: {tool_name}")
-            allowed = allowed_tool_names(persona.tool_policy)
-            canonical = tool_def.name
-            allowed_normalized = set(allowed)
-            for name in allowed:
-                normalized = normalize_tool_name(str(name))
-                if normalized:
-                    allowed_normalized.add(normalized)
-            canonical_short = normalize_tool_name(canonical) or canonical.split(".", 1)[0]
-            if canonical not in allowed_normalized and canonical_short not in allowed_normalized:
-                raise DomainError("FORBIDDEN_TOOL", f"tool not allowed: {canonical}")
+            with obs_or_noop(self.observability).span("policy.check", tool=tool_name):
+                tool_def = self.tool_executor.registry.get(tool_name)
+                if tool_def is None:
+                    raise DomainError("FORBIDDEN_TOOL", f"unknown tool: {tool_name}")
+                allowed = allowed_tool_names(persona.tool_policy)
+                canonical = tool_def.name
+                allowed_normalized = set(allowed)
+                for name in allowed:
+                    normalized = normalize_tool_name(str(name))
+                    if normalized:
+                        allowed_normalized.add(normalized)
+                canonical_short = normalize_tool_name(canonical) or canonical.split(".", 1)[0]
+                if canonical not in allowed_normalized and canonical_short not in allowed_normalized:
+                    raise DomainError("FORBIDDEN_TOOL", f"tool not allowed: {canonical}")
             if tool_def.approval_required:
                 eval_variant = dict(run.metadata.get("eval_variant") or {})
                 if eval_variant.get("approval_enabled") is False:
@@ -350,37 +395,39 @@ class AdvanceAgentRun:
                     run.finished_at = _now_iso()
                     step.mark_completed(run.final_output, observation={"approval_disabled": True})
                     return
-                approval = ApprovalRequest(
-                    id=self.ids.new_id(),
-                    tenant_id=tenant_id,
-                    run_id=run.id,
-                    step_id=step.id,
-                    persona_id=run.persona_id,
-                    requested_by=user_id,
-                    tool_name=canonical,
-                    arguments=dict(action.get("arguments") or {}),
-                    reason=str(action.get("reason") or ""),
-                    evidence_ids=list(action.get("evidence_ids") or evidence_ids),
-                    created_at=_now_iso(),
-                )
-                self.approvals.add(approval)
-                run.metadata["pending_approval_id"] = approval.id
-                run.mark_waiting_approval()
-                step.mark_completed(
-                    {"approval_id": approval.id, "status": "waiting_approval"},
-                    observation={"approval_required": True},
-                )
-                return
+                with obs_or_noop(self.observability).span("approval.wait"):
+                    approval = ApprovalRequest(
+                        id=self.ids.new_id(),
+                        tenant_id=tenant_id,
+                        run_id=run.id,
+                        step_id=step.id,
+                        persona_id=run.persona_id,
+                        requested_by=user_id,
+                        tool_name=canonical,
+                        arguments=dict(action.get("arguments") or {}),
+                        reason=str(action.get("reason") or ""),
+                        evidence_ids=list(action.get("evidence_ids") or evidence_ids),
+                        created_at=_now_iso(),
+                    )
+                    self.approvals.add(approval)
+                    run.metadata["pending_approval_id"] = approval.id
+                    run.mark_waiting_approval()
+                    step.mark_completed(
+                        {"approval_id": approval.id, "status": "waiting_approval"},
+                        observation={"approval_required": True},
+                    )
+                    return
 
-            result = self.tool_executor.execute(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                run=run,
-                step=step,
-                tool_name=tool_name,
-                arguments=dict(action.get("arguments") or {}),
-                allowed_tools=allowed,
-            )
+            with obs_or_noop(self.observability).span("tool.call", tool=canonical):
+                result = self.tool_executor.execute(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    run=run,
+                    step=step,
+                    tool_name=tool_name,
+                    arguments=dict(action.get("arguments") or {}),
+                    allowed_tools=allowed,
+                )
             run.consumed_tokens += 100
             run.metadata.setdefault("tool_results", []).append(result)
             pending = str(result.get("title") or result.get("ticket_id") or "").strip()

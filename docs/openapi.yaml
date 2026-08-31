@@ -1303,6 +1303,12 @@ paths:
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
         - $ref: "#/components/parameters/ThreadId"
+        - name: stream
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: 为 true 时以 SSE（text/event-stream）返回 ChatSseEvent 流
       requestBody:
         required: true
         content:
@@ -1329,11 +1335,14 @@ paths:
                   description: 默认上限 32MB
       responses:
         "200":
-          description: 助手消息
+          description: 助手消息；stream=true 时为 text/event-stream（ChatSseEvent）
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AssistantMessage"
+            text/event-stream:
+              schema:
+                $ref: "#/components/schemas/ChatSseEvent"
         "403":
           $ref: "#/components/responses/Error"
 

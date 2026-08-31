@@ -79,6 +79,27 @@ def test_approvals_forbidden_without_admin():
     assert response.json()["error"]["code"] == "FORBIDDEN_WORKSPACE"
 
 
+def test_agent_run_create_forbidden_plan_script(monkeypatch):
+    monkeypatch.delenv("ARBOR_ALLOW_PLAN_SCRIPT", raising=False)
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers=_headers(),
+        json={"goal": "test", "plan_script": [{"schema_version": 1, "action": "answer", "text": "x", "completion": True}]},
+    )
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "FORBIDDEN_PLAN_SCRIPT"
+
+
+def test_list_employee_definition_versions():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    listed = client.get(f"/v1/personas/{LINXIA}/employee-definitions", headers=_headers())
+    assert listed.status_code == 200
+    body = listed.json()
+    assert isinstance(body.get("items"), list)
+    assert len(body["items"]) >= 1
+
+
 def test_employee_definition_and_eval_gate():
     client = TestClient(create_app(), raise_server_exceptions=False)
     definition = client.get(

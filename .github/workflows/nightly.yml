@@ -62,6 +62,8 @@ jobs:
       - run: pip install -e ".[dev,api]"
       - name: Agent ablation with real LLM planner (skip without key)
         if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        env:
+          ARBOR_WRITE_LLM_BASELINE: "1"
         run: python3 -m pytest tests/eval/test_agent_ablation_llm.py -q -m llm --tb=short
   bge-retrieval:
     runs-on: ubuntu-latest

@@ -2,7 +2,7 @@
 
 对照 `docs/ai-agent-development-guide.md` §14 与 §16.1。状态：**核心交付已落地**；本表记录可复现证据路径。
 
-仍需补齐的演示证据包（P2），按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行；P0–P1 核心补强见下表。
+仍需补齐的演示证据包（P2），按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行；**P0–P2 核心 gap 已补齐**（agent-security 11 场景、Planner 测试、观测 span/指标、OpenAPI/api.md、Grafana Agent 面板等），见下表。
 
 ## 横切 invariant
 
