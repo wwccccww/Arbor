@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from arbor.domain.shared.ids import PersonaId
+from arbor.domain.shared.ids import PersonaId, TenantId
 
 
 class EmployeeReleaseStatus(str, Enum):
@@ -19,6 +19,7 @@ class DigitalEmployeeDefinition:
     persona_id: PersonaId
     version: str
     role: str
+    tenant_id: TenantId | None = None
     goals: list[str] = field(default_factory=list)
     skills: list[str] = field(default_factory=list)
     knowledge_scopes: list[str] = field(default_factory=list)
@@ -29,3 +30,4 @@ class DigitalEmployeeDefinition:
     run_budget_policy: dict = field(default_factory=dict)
     evaluation_suite: str = "agent-v1"
     release_status: EmployeeReleaseStatus = EmployeeReleaseStatus.PUBLISHED
+    eval_gate_passed: bool = False

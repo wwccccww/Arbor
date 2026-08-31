@@ -90,6 +90,7 @@ def test_running_run_keeps_pinned_employee_definition_after_new_publish():
 
     employee_definitions.register(
         DigitalEmployeeDefinition(
+            tenant_id=TENANT,
             persona_id=LINXIA_PERSONA_ID,
             version="2.0",
             role="customer_service",
