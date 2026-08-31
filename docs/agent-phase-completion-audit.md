@@ -56,7 +56,7 @@
 |------|------|
 | memory_class / 有效期 / 衰减 | `application/memory/validity.py`、`decay.py`；PG `test_memory_class_contract.py` |
 | consolidation / 删除传播 | `consolidate_episodes.py`；memory-v1 smoke |
-| Memory Eval 全指标 | `memory_runner.py`；9 cases；`memory_write_precision`、`memory_helpfulness_rate`、`conflict_injection_rate` |
+| Memory Eval 全指标 | `memory_runner.py`；**15 cases**；`memory_write_precision`、`memory_helpfulness_rate`、`conflict_injection_rate` |
 
 ## Phase 5：多模态证据链
 
@@ -75,7 +75,7 @@
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
-| 演示录屏 | `docs/demo-script.md` + 离线 demo-v1（13 步）；录屏二进制待入库 |
+| 演示录屏 | `docs/demo/recordings/agent-production-demo.mp4` + 离线 demo-v1（13 步） |
 
 ## Phase 7：数字员工治理
 
@@ -136,9 +136,10 @@
 | P0-2 PlannerPort | `ports/outbound/planner.py`；`LLMPlanner`/`FallbackPlanner`；`test_planner_port.py` |
 | P0-3 数字员工 PG | `postgres/employee.py`；`employee_commands.py`；`test_pg_employee_definition.py` |
 | P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` 11 cases + baseline；`test_agent_security_smoke.py` |
-| P1-2 OpenAPI/契约 | `docs/openapi.yaml` Agent/Employee/SSE schema；`validate_openapi_fastapi.py`；`tests/api/test_agent_contracts.py` + `test_agent_runs.py` + `test_chat_stream_inbox.py`；`docs/api.md` Agent 错误码 |
+| P1-2 OpenAPI/契约 | `docs/openapi.yaml` + `docs/api.md` §8；`validate_openapi_fastapi.py`；`tests/api/test_agent_contracts.py`（26+ 用例含 publish/employee/approval/SSE error） |
 | Procedural 发布 | `PublishProceduralMemory` + `POST /v1/personas/{id}/memories/{id}/publish` |
 | Persona 删除归档 | `DeletePersona` + `DELETE /v1/personas/{id}` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
 | P1-4 四类记忆 | `working_memory.py` `procedural_memory.py` `procedural_commands.py`；memory-v1 +6 cases（15 total）；`POST .../memories/{id}/publish` |
-| P2 演示证据 | `demo_smoke.py` e2e-agent-chain 步骤；`demo-v1` 13 步 manifest+baseline；`docs/demo-script.md` + `004-production-hardening-evidence.md`（录屏待入库） |
+| P2 演示证据 | demo-v1 13 步 + `docs/demo/recordings/agent-production-demo.mp4` + `test_agent_contracts.py` |
+| 演示录屏 | `docs/demo/recordings/agent-production-demo.mp4` + `docs/demo-script.md` |

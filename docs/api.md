@@ -384,7 +384,91 @@ Query：`view=tree|timeline`、`key_only=true`。
 事件卡：节点 + 附件 + 相关记忆预览。需要 `read_memory`。无权限 404。  
 响应含 `confidence`、`participants`、`causal_in`、`causal_out`、`verbatim`（原话类记忆）与 `attachments`。
 
-## 8. 评测
+## 8. Agent Runtime 与数字员工
+
+需要 `chat`；审批列表与岗位治理需要空间 Admin（`token-a` / owner）。
+
+### `POST /v1/personas/{persona_id}/agent-runs`
+
+创建 Agent Run。`202` 返回 `{ id, status, version }`。测试环境可通过 `plan_script` 注入确定性步骤（需 `ARBOR_ALLOW_PLAN_SCRIPT=1`；生产返回 403 `FORBIDDEN_PLAN_SCRIPT`）。
+
+### `GET /v1/agent-runs/{run_id}`
+
+Run 详情 + 步骤树 + 可选 lineage。无 Chat 权限 403；跨成员 403。
+
+### `GET /v1/personas/{persona_id}/agent-runs`
+
+列出 persona 下最近 Run（`items[]`）。
+
+### `GET /v1/agent-runs/{run_id}/steps`
+
+步骤列表 `{ run_id, steps[] }`。
+
+### `POST /v1/agent-runs/{run_id}/resume`
+
+恢复非终态 Run（如 `waiting_approval`）。终态 Run 返回 400 `AGENT_RUN_TERMINAL`。
+
+### `POST /v1/agent-runs/{run_id}/cancel`
+
+取消 Run；已终态则返回当前状态。
+
+### `GET /v1/approvals`
+
+待审批队列（Admin）。`items[]` 含 `id`、`run_id`、`tool_name`、`status`。
+
+### `POST /v1/approvals/{approval_id}/approve`
+
+可选 body：`{ "modified_arguments": {…} }`。过期审批 400 `APPROVAL_EXPIRED`。
+
+### `POST /v1/approvals/{approval_id}/reject`
+
+拒绝审批并终止 Run 工具步骤。
+
+### `POST /v1/agent-eval/runs`
+
+空间 Admin 触发 workspace 级 agent-v1 smoke；返回评测报告摘要。
+
+### `GET /v1/employee-templates`
+
+岗位模板列表（需登录）。
+
+### `GET /v1/personas/{persona_id}/employee-definition`
+
+当前发布版或指定 `?version=` 的定义。
+
+### `GET /v1/personas/{persona_id}/employee-definitions`
+
+版本历史 `items[]`（含 `release_status`、`eval_gate_passed`）。
+
+### `POST /v1/personas/{persona_id}/employee-definitions`
+
+Admin 创建 draft 定义（`201`）。body 含 `version`、`role`、`evaluation_suite`、`tool_policy` 等。
+
+### `POST /v1/personas/{persona_id}/employee-eval`
+
+Admin 跑岗位绑定评测套件；Query 可选 `version`。响应含 `gate_passed`、`task_success_rate`、`p0_security`。
+
+### `POST /v1/personas/{persona_id}/employee-definitions/{version}/publish`
+
+评测门禁通过后发布；未通过 400 `EMPLOYEE_EVAL_GATE`。
+
+### `POST /v1/personas/{persona_id}/memories/{memory_id}/publish`
+
+Admin 发布 procedural draft（supersede 同版本旧条目）。非 draft 或非 procedural 返回 400。
+
+### `DELETE /v1/personas/{persona_id}`
+
+Admin 软删除 persona 并归档 employee definitions。响应 `{ deleted, employee_definitions_archived }`。
+
+### Chat SSE（`POST /v1/threads/{thread_id}/messages?stream=true`）
+
+`text/event-stream` 事件：
+
+- `{ "type": "delta", "text": "…" }`
+- `{ "type": "done", … }`（含 `message_id`、`citations`、`inbox_created`）
+- `{ "type": "error", "error": { "code", "message" } }`
+
+## 9. 评测
 
 ### `POST /v1/personas/{persona_id}/eval/runs`
 
@@ -429,13 +513,13 @@ Query：`view=tree|timeline`、`key_only=true`。
 
 `tenant_leak_count` 必须为 0，否则该策略不得标为默认。`ragas_faithfulness` 仅 generation 有值；检索 run 可省略。接线见 [ragas.md](ragas.md)。
 
-## 9. 审计
+## 10. 审计
 
 ### `GET /v1/audit-logs`
 
 Owner/Admin。过滤 action、persona_id、时间。
 
-## 10. 版本与兼容
+## 11. 版本与兼容
 
 - 破坏性变更走 `/v2`，不静默改 v1 语义。
 - OpenAPI 是契约；未写入的字段响应端不应依赖。

@@ -18,3 +18,11 @@ def test_demo_v1_smoke_matches_baseline():
     assert len(live.get("steps") or []) == len(baseline.get("steps") or [])
     for step in live.get("steps") or []:
         assert step.get("ok") is True, step
+
+
+def test_demo_recording_artifact_present():
+    from arbor.paths import repo_root
+
+    recording = repo_root() / "docs" / "demo" / "recordings" / "agent-production-demo.mp4"
+    assert recording.is_file(), "P2 recording missing — see docs/demo-script.md"
+    assert recording.stat().st_size > 10_000

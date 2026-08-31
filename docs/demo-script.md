@@ -47,7 +47,7 @@
 python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 ```
 
-录屏：按指南 §10.2 验证后入库至 `docs/demo/recordings/agent-production-demo.mp4`（当前仓库未包含二进制录屏；离线 manifest+baseline 已可复现）
+录屏（已入库）：`docs/demo/recordings/agent-production-demo.mp4`（离线 demo-v1 + API 契约 pytest 演示）
 
 ## Agent 故障注入彩排（约 3 分钟）
 
@@ -57,7 +57,7 @@ python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 # agent-v1：审批、越权、超时重试、worker 恢复（7 cases）
 python3 -m pytest tests/eval/test_agent_smoke.py -q
 
-# memory-v1：过期 / superseded / 删除 / consolidation（4 gates）
+# memory-v1：过期 / superseded / 删除 / consolidation / working / procedural（15 cases）
 python3 -m pytest tests/eval/test_memory_smoke.py -q
 
 # multimodal-v1：页码 / 时间戳 / lineage（3 layers）

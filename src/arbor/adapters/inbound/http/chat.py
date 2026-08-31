@@ -69,12 +69,21 @@ async def sse_stream(streamer, extra_inbox_created: int = 0):
     from arbor.domain.conversation.stream import StreamFinished
 
     final: dict | None = None
-    async for chunk in iterate_in_threadpool(streamer):
-        if isinstance(chunk, StreamFinished):
-            final = parse_stream_finished(chunk.raw)
-            continue
-        if isinstance(chunk, str) and chunk:
-            yield sse_event({"type": "delta", "text": chunk})
+    try:
+        async for chunk in iterate_in_threadpool(streamer):
+            if isinstance(chunk, StreamFinished):
+                final = parse_stream_finished(chunk.raw)
+                continue
+            if isinstance(chunk, str) and chunk:
+                yield sse_event({"type": "delta", "text": chunk})
+    except DomainError as exc:
+        yield sse_event(
+            {
+                "type": "error",
+                "error": {"code": exc.code, "message": str(exc)},
+            }
+        )
+        return
     if final is None:
         final = {"text": ""}
     yield sse_event(

@@ -38,7 +38,7 @@
 ## 演示录屏
 
 - 脚本：`docs/demo-script.md` §Agent 生产化演示
-- 文件：`docs/demo/recordings/agent-production-demo.mp4`（验证后入库）
+- 文件：`docs/demo/recordings/agent-production-demo.mp4`（demo-v1 + Agent API 契约 pytest 录屏）
 
 ## 建议简历补充句（补强完成后）
 
