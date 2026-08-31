@@ -351,7 +351,7 @@ class AdvanceAgentRun:
                 eval_variant.get("context_token_budget") or run.token_budget or 4000
             )
             with obs_or_noop(self.observability).span("rag.compile_context"):
-                _, manifest = build_step_context_items(
+                selected, manifest = build_step_context_items(
                     goal=run.goal,
                     persona_profile={"display_name": persona.profile.display_name},
                     evidence_ids=evidence_ids,
@@ -359,6 +359,13 @@ class AdvanceAgentRun:
                     tool_results=list(run.metadata.get("tool_results") or []),
                     token_budget=context_budget,
                 )
+            from arbor.application.agent.context_engine import ContextItemKind
+
+            manifest["evidence_snippets"] = [
+                {"id": item.id, "text": (item.content or "")[:800]}
+                for item in selected
+                if item.kind == ContextItemKind.EVIDENCE and (item.content or "").strip()
+            ][:6]
             run.metadata["context_manifest"] = manifest
             obs_or_noop(self.observability).observe(
                 "arbor_agent_context_tokens", manifest.get("token_usage", 0)

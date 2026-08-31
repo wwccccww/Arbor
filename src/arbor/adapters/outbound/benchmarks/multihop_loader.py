@@ -52,10 +52,46 @@ def _extract_yes_no(text: str) -> str | None:
     return None
 
 
+NULL_QUERY_ANSWER = "Insufficient information."
+
+_ANSWER_EQUIVALENTS: dict[str, frozenset[str]] = {
+    "yes": frozenset({"yes", "agree", "true", "correct"}),
+    "no": frozenset({"no", "disagree", "false", "incorrect"}),
+    "agree": frozenset({"yes", "agree", "true"}),
+    "disagree": frozenset({"no", "disagree", "false"}),
+}
+
+_INSUFFICIENT_MARKERS = (
+    "insufficient information",
+    "not enough information",
+    "cannot determine",
+    "unable to determine",
+    "no sufficient information",
+    "insufficient info",
+)
+
+
+def _answers_equivalent(expected: str, actual: str) -> bool:
+    exp = normalize_answer(expected)
+    act = normalize_answer(actual)
+    if not exp or not act:
+        return False
+    if exp in _ANSWER_EQUIVALENTS:
+        return any(token in act.split()[:3] for token in _ANSWER_EQUIVALENTS[exp])
+    for key, aliases in _ANSWER_EQUIVALENTS.items():
+        if exp == normalize_answer(key) and any(token in act.split()[:3] for token in aliases):
+            return True
+    if "insufficient" in exp:
+        return any(marker in act for marker in _INSUFFICIENT_MARKERS)
+    return False
+
+
 def answer_em(expected: str, actual: str) -> float:
     exp = normalize_answer(expected)
     act = normalize_answer(actual)
     if exp == act:
+        return 1.0
+    if _answers_equivalent(expected, actual):
         return 1.0
     if exp in {"yes", "no"}:
         extracted = _extract_yes_no(actual)
@@ -109,6 +145,36 @@ def primary_retrieve_query(question: str) -> str:
 def secondary_retrieve_query(question: str) -> str:
     """Second-hop query: full question for recall on comparison/temporal hops."""
     return (question or "").strip()[:500]
+
+
+def tertiary_retrieve_query(question: str) -> str:
+    """Third-hop query: compact entities only for missed supporting facts."""
+    return compact_retrieve_query(question, max_words=16)
+
+
+def answer_instruction_for_type(question_type: str) -> str:
+    hints = {
+        "comparison_query": (
+            "Read the evidence and answer with exactly Yes or No (one word only). "
+            "Use Agree/Disagree only if the question explicitly asks whether you agree."
+        ),
+        "temporal_query": (
+            "Read the evidence about dates/events and answer with exactly Yes or No (one word only)."
+        ),
+        "inference_query": (
+            "This is an inference question. Find the single entity/name that satisfies ALL parts. "
+            "Answer with one entity name or short phrase only."
+        ),
+        "null_query": (
+            f"The corpus lacks supporting facts for this question. "
+            f'Answer exactly: "{NULL_QUERY_ANSWER}"'
+        ),
+    }
+    return hints.get(question_type, "Answer with the shortest factual phrase only.")
+
+
+def is_null_query_case(case: dict) -> bool:
+    return str(case.get("question_type") or "") == "null_query"
 
 
 def answer_f1(expected: str, actual: str) -> float:

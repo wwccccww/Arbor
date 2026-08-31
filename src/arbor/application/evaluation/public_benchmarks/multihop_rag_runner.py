@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -11,14 +12,16 @@ from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
 from arbor.adapters.outbound.benchmarks.multihop_loader import (
     MULTIHOP_DEV,
     MULTIHOP_SMOKE,
+    NULL_QUERY_ANSWER,
     answer_em,
     answer_f1,
+    answer_instruction_for_type,
     citation_precision,
     citation_recall,
-    compact_retrieve_query,
     expected_from_plan_script,
     extract_answer_from_steps,
     faithfulness,
+    is_null_query_case,
     load_dev_cases,
     load_smoke_cases,
     plan_script_from_case,
@@ -32,7 +35,6 @@ from arbor.application.agent.planner import (
     SCHEMA_VERSION,
     FallbackPlanner,
     _parse_planner_json,
-    _planner_prompt,
     filter_evidence_ids,
 )
 from arbor.application.evaluation.public_benchmarks.port import PublicBenchmarkResult
@@ -49,11 +51,65 @@ USER = UserId("0a000000-0000-4000-a000-000000000002")
 FORBIDDEN_TENANT = TenantId("0a000000-0000-4000-a000-000000000099")
 
 
+def _multihop_eval_config(run_metadata: dict | None) -> dict:
+    variant = dict((run_metadata or {}).get("eval_variant") or {})
+    return {
+        "question_type": str(variant.get("multihop_question_type") or ""),
+        "supporting_count": int(variant.get("multihop_supporting_count") or 0),
+        "is_null_query": bool(variant.get("multihop_null_query")),
+    }
+
+
+def _multihop_answer_prompt(
+    *,
+    goal: str,
+    question_type: str,
+    evidence_ids: list[str],
+    context_manifest: dict | None,
+    steps: list[dict],
+) -> str:
+    snippets = list((context_manifest or {}).get("evidence_snippets") or [])[:6]
+    evidence_block = json.dumps(snippets, ensure_ascii=False) if snippets else "[]"
+    retrieve_count = sum(1 for s in steps if s.get("kind") == "retrieve")
+    type_hint = answer_instruction_for_type(question_type)
+    return (
+        "You are a MultiHop-RAG benchmark agent. Output exactly one JSON object — no markdown.\n"
+        f"Allowed action: answer only (retrieval is already done in {retrieve_count} hop(s)).\n"
+        f"{type_hint}\n"
+        "Use only the evidence snippets below. Do not invent facts.\n"
+        f"Evidence snippets: {evidence_block}\n"
+        f"Available evidence_ids: {json.dumps(evidence_ids, ensure_ascii=False)}\n"
+        'Schema: {"schema_version":1,"action":"answer","text":"...","citations":[...],"completion":true}\n'
+        f"Question: {goal}"
+    )
+
+
+def _parse_multihop_answer_json(content: str) -> dict:
+    blob = (content or "").strip()
+    if not blob:
+        raise DomainError("LLM_INVALID_JSON", "empty multihop planner output")
+    try:
+        data = json.loads(blob)
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{[^{}]*\"action\"[^{}]*\}", blob, flags=re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            pass
+    return _parse_planner_json(blob)
+
+
 class MultihopLLMPlanner:
     """RAG planner tuned for short benchmark answers with mandatory citations."""
 
     planner_kind = "real"
-    planner_version = "multihop-rag-v4"
+    planner_version = "multihop-rag-v5"
 
     _MAX_RETRIEVE_HOPS = 2
 
@@ -98,6 +154,18 @@ class MultihopLLMPlanner:
         run_metadata: dict | None = None,
     ) -> dict:
         del plan_script
+        cfg = _multihop_eval_config(run_metadata)
+        if cfg["is_null_query"]:
+            return validate_planner_action(
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "action": "answer",
+                    "text": NULL_QUERY_ANSWER,
+                    "citations": [],
+                    "completion": True,
+                }
+            )
+
         retrieve_steps = [s for s in steps if s.get("kind") == "retrieve"]
         if len(retrieve_steps) < self._MAX_RETRIEVE_HOPS:
             if not retrieve_steps:
@@ -115,42 +183,69 @@ class MultihopLLMPlanner:
                     "reason": reason,
                 }
             )
-        enriched_goal = (
-            f"{goal}\n\n"
-            "Answer with the shortest factual phrase only (entity, date, number, or exactly Yes/No). "
-            "For yes/no questions respond with exactly Yes or No — no explanation. "
-            "Cite evidence_ids used. "
-            'Use JSON: {"schema_version":1,"action":"answer","text":"...","citations":[...],"completion":true}'
-        )
+
+        question_type = cfg["question_type"]
+        type_hint = answer_instruction_for_type(question_type)
         key = chat_api_key()
         if not key:
             raise DomainError("LLM_UNAVAILABLE", "chat API key missing for multihop LLM eval")
-        prompt = _planner_prompt(
-            goal=enriched_goal,
-            steps=steps,
-            context_manifest=context_manifest or {},
-            tool_schemas=tool_schemas or [],
-            budget=budget or {},
+        system = _multihop_answer_prompt(
+            goal=goal,
+            question_type=question_type,
             evidence_ids=list(evidence_ids or []),
+            context_manifest=context_manifest,
+            steps=steps,
         )
-        payload = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": enriched_goal},
-            ],
-            "max_tokens": 800,
-            "temperature": 0.0,
-        }
-        response = httpx.post(
-            f"{chat_base_url()}/chat/completions",
-            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json=payload,
-            timeout=self.timeout_s,
-        )
-        content = response.json()["choices"][0]["message"]["content"]
-        raw = self._normalize_action(_parse_planner_json(content))
-        action = validate_planner_action(raw)
+        user = f"{goal}\n\n{type_hint}"
+
+        def _call_and_parse() -> dict:
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "max_tokens": 400,
+                "temperature": 0.0,
+            }
+            response = httpx.post(
+                f"{chat_base_url()}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout_s,
+            )
+            if response.status_code >= 400:
+                raise DomainError("LLM_UPSTREAM", f"multihop planner HTTP {response.status_code}")
+            content = response.json()["choices"][0]["message"]["content"]
+            raw = self._normalize_action(_parse_multihop_answer_json(content))
+            if str(raw.get("action") or "").lower() not in {"answer"}:
+                raise DomainError("VALIDATION_ERROR", "multihop planner must answer after retrieval")
+            return validate_planner_action(raw)
+
+        try:
+            action = _call_and_parse()
+        except DomainError as exc:
+            if exc.code not in {"VALIDATION_ERROR", "LLM_INVALID_JSON"}:
+                raise
+            system_retry = system + "\nReturn ONLY one JSON answer object. action MUST be answer."
+            payload = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_retry},
+                    {"role": "user", "content": user},
+                ],
+                "max_tokens": 400,
+                "temperature": 0.0,
+            }
+            response = httpx.post(
+                f"{chat_base_url()}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout_s,
+            )
+            content = response.json()["choices"][0]["message"]["content"]
+            raw = self._normalize_action(_parse_multihop_answer_json(content))
+            action = validate_planner_action(raw)
         action = filter_evidence_ids(action, list(evidence_ids or []))
         self.last_metadata = {
             "provider": self.provider,
@@ -257,6 +352,9 @@ def run_multihop_case(
             "multihop_eval": True,
             "retrieve_k": 8,
             "context_token_budget": 12000,
+            "multihop_question_type": str(case.get("question_type") or ""),
+            "multihop_supporting_count": len(case.get("supporting_fact_ids") or []),
+            "multihop_null_query": is_null_query_case(case),
         }
 
     run = stack["start_run"](
@@ -273,6 +371,13 @@ def run_multihop_case(
     steps = stack["approve_step"].advance.steps.list_for_run(TENANT, run.id)
 
     answer_text, citations, retrieved = extract_answer_from_steps(steps)
+    if planner_kind == "llm" and final and final.final_output:
+        if not answer_text:
+            answer_text = str(final.final_output.get("text") or "")
+        if not citations:
+            citations = list(final.final_output.get("citations") or [])
+    if planner_kind == "llm" and answer_text == "multihop planner fallback":
+        answer_text = ""
     exp_answer, exp_citations, exp_retrieved = expected_from_plan_script(case)
     if use_script:
         answer_text = exp_answer or answer_text

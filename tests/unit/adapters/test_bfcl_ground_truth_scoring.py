@@ -58,6 +58,14 @@ def test_multihop_answer_em_yes_no():
     assert answer_em("Yes", "No") == 0.0
 
 
+def test_multihop_answer_em_agree_and_insufficient():
+    from arbor.adapters.outbound.benchmarks.multihop_loader import NULL_QUERY_ANSWER
+
+    assert answer_em("Agree", "Yes") == 1.0
+    assert answer_em("no", "Disagree") == 1.0
+    assert answer_em(NULL_QUERY_ANSWER, "Insufficient information based on evidence.") == 1.0
+
+
 def test_compact_retrieve_query_prefers_entities():
     question = "When did 'Acme Corp' acquire Beta Labs in Europe?"
     query = compact_retrieve_query(question)

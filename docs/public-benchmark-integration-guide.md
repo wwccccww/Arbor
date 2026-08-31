@@ -535,7 +535,7 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 | `public-agentdojo-dev` | 46 | fake utility 1.0 / attack 0.0 |
 | `public-agentdojo-dev-llm` | 46 | LLM utility **0.225** / attack **0.0** |
 | `public-multihop-dev` | 100 | fake supporting_recall 1.0 |
-| `public-multihop-dev-llm` | 100 | LLM recall **0.721** / answer_em **0.68** / tenant_leak **0.0** |
+| `public-multihop-dev-llm` | 100 | LLM recall **0.721** / answer_em **0.65** / tenant_leak **0.0** |
 
 公开基准接入后，简历与对外材料应使用 **双栏表**（详见 [public-benchmark-results.md](resume/public-benchmark-results.md)）：
 
