@@ -264,13 +264,7 @@ def _value_in_options(actual: object, options: list) -> bool:
         if isinstance(opt, float) or isinstance(actual, float):
             if abs(float(opt) - float(actual)) <= 1e-6:
                 return True
-        elif isinstance(opt, int) and isinstance(actual, (int, float)):
-            if int(opt) == int(actual):
-                return True
-        elif isinstance(actual, int) and isinstance(opt, (int, float)):
-            if int(actual) == int(opt):
-                return True
-        if isinstance(opt, str) and isinstance(actual, str) and opt.lower() == actual.lower():
+        elif isinstance(opt, int) and isinstance(actual, (int, float)) and int(opt) == int(actual) or isinstance(actual, int) and isinstance(opt, (int, float)) and int(actual) == int(opt) or isinstance(opt, str) and isinstance(actual, str) and opt.lower() == actual.lower():
             return True
     return False
 
