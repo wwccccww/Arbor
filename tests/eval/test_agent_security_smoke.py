@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
-from arbor.adapters.outbound.inmemory import InMemoryPersonaRepository, InMemoryStores, SeqIdGenerator
+from arbor.adapters.outbound.inmemory import (
+    InMemoryPersonaRepository,
+    InMemoryStores,
+    SeqIdGenerator,
+)
 from arbor.adapters.outbound.inmemory_artifacts import (
     InMemoryArtifactLineageRepository,
     InMemoryArtifactRepository,
@@ -20,7 +22,7 @@ from arbor.application.evaluation.agent_security_runner import (
 from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
 from arbor.application.multimodal.record_artifact import RecordArtifactEvidence
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+from arbor.domain.shared.ids import PersonaId, TenantId
 from tests.unit.application.test_send_message import USER, load_mini
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")

@@ -75,7 +75,7 @@
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
-| 演示录屏 | `docs/demo-script.md`（手动彩排；录屏未入库） |
+| 演示录屏 | `docs/demo-script.md` + `docs/demo/recordings/agent-production-demo.mp4` |
 
 ## Phase 7：数字员工治理
 
@@ -139,4 +139,4 @@
 | P1-2 OpenAPI | `docs/openapi.yaml` Agent/Employee schemas；`scripts/validate_openapi_fastapi.py`；`test_openapi_fastapi_alignment.py` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
 | P1-4 四类记忆 | `working_memory.py` `procedural_memory.py`；memory-v1 +6 cases（15 total） |
-| P2 演示证据 | 未完成 — `docs/demo-script.md` 录屏未入库 |
+| P2 演示证据 | `demo_runner.py`；`demo-v1` manifest+baseline；`test_demo_v1_smoke.py`；`scripts/demo-agent.sh`；录屏 `docs/demo/recordings/agent-production-demo.mp4` |
