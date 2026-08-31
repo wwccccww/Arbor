@@ -2,7 +2,7 @@
 
 对照 `docs/ai-agent-development-guide.md` §14 与 §16.1。状态：**核心交付已落地**；本表记录可复现证据路径。
 
-仍需补齐的演示证据包（P2），按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行；P0–P1 核心补强见下表。
+仍需补齐的演示证据包（P2），按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行；**P0–P2 核心 gap 已补齐**（agent-security 11 场景、Planner 测试、观测 span/指标、OpenAPI/api.md、Grafana Agent 面板等），见下表。
 
 ## 横切 invariant
 
@@ -56,7 +56,7 @@
 |------|------|
 | memory_class / 有效期 / 衰减 | `application/memory/validity.py`、`decay.py`；PG `test_memory_class_contract.py` |
 | consolidation / 删除传播 | `consolidate_episodes.py`；memory-v1 smoke |
-| Memory Eval 全指标 | `memory_runner.py`；9 cases；`memory_write_precision`、`memory_helpfulness_rate`、`conflict_injection_rate` |
+| Memory Eval 全指标 | `memory_runner.py`；**15 cases**；`memory_write_precision`、`memory_helpfulness_rate`、`conflict_injection_rate` |
 
 ## Phase 5：多模态证据链
 
@@ -75,7 +75,7 @@
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
-| 演示录屏 | `docs/demo-script.md` + `docs/demo/recordings/agent-production-demo.mp4` |
+| 演示录屏 | `docs/demo/recordings/agent-production-demo.mp4` + 离线 demo-v1（13 步） |
 
 ## Phase 7：数字员工治理
 
@@ -135,8 +135,11 @@
 | P0-1 公平四轨消融 | `agent_ablation.py`；`eval/fixtures/agent-ablation-v1/`；`eval/baselines/agent-ablation-v1.json`；`test_agent_ablation.py` |
 | P0-2 PlannerPort | `ports/outbound/planner.py`；`LLMPlanner`/`FallbackPlanner`；`test_planner_port.py` |
 | P0-3 数字员工 PG | `postgres/employee.py`；`employee_commands.py`；`test_pg_employee_definition.py` |
-| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` fixture+baseline；`test_agent_security_smoke.py` |
-| P1-2 OpenAPI | `docs/openapi.yaml` Agent/Employee schemas；`scripts/validate_openapi_fastapi.py`；`test_openapi_fastapi_alignment.py` |
+| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` 11 cases + baseline；`test_agent_security_smoke.py` |
+| P1-2 OpenAPI/契约 | `docs/openapi.yaml` + `docs/api.md` §8；`validate_openapi_fastapi.py`；`tests/api/test_agent_contracts.py`（26+ 用例含 publish/employee/approval/SSE error） |
+| Procedural 发布 | `PublishProceduralMemory` + `POST /v1/personas/{id}/memories/{id}/publish` |
+| Persona 删除归档 | `DeletePersona` + `DELETE /v1/personas/{id}` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
-| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py`；memory-v1 +6 cases（15 total） |
-| P2 演示证据 | `adapters/inbound/demo_smoke.py`；`demo-v1` manifest+baseline；`test_demo_v1_smoke.py`；`scripts/demo-agent.sh`；录屏 `docs/demo/recordings/agent-production-demo.mp4` |
+| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py` `procedural_commands.py`；memory-v1 +6 cases（15 total）；`POST .../memories/{id}/publish` |
+| P2 演示证据 | demo-v1 13 步 + `docs/demo/recordings/agent-production-demo.mp4` + `test_agent_contracts.py` |
+| 演示录屏 | `docs/demo/recordings/agent-production-demo.mp4` + `docs/demo-script.md` |

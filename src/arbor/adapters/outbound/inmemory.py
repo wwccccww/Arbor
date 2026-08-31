@@ -114,6 +114,13 @@ class InMemoryPersonaRepository:
     def save(self, persona: Persona) -> None:
         self.stores.personas[persona.id.value] = persona
 
+    def delete(self, tenant_id: TenantId, persona_id: PersonaId) -> bool:
+        persona = self.get(tenant_id, persona_id)
+        if persona is None:
+            return False
+        del self.stores.personas[persona_id.value]
+        return True
+
 
 class InMemoryMemoryRepository:
     def __init__(self, stores: InMemoryStores) -> None:

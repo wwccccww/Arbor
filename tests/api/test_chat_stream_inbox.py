@@ -24,6 +24,34 @@ def _parse_sse(body: str) -> list[dict]:
     return events
 
 
+def test_stream_error_event_on_domain_failure(monkeypatch):
+    from arbor.domain.errors import DomainError
+
+    app = create_app()
+
+    def _fail_stream(*args, **kwargs):
+        def _gen():
+            raise DomainError("UPSTREAM_UNAVAILABLE", "stream failed")
+            yield "never"
+
+        return _gen()
+
+    app.state.send.stream_reply = _fail_stream
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post(
+        f"/v1/threads/{THREAD}/messages?stream=true",
+        headers=_headers(),
+        json={"text": "触发流式错误"},
+    )
+    assert response.status_code == 200
+    error = next(
+        event
+        for event in _parse_sse(response.text)
+        if event.get("type") == "error"
+    )
+    assert error["error"]["code"] == "UPSTREAM_UNAVAILABLE"
+
+
 def test_stream_done_inbox_created_includes_attachment_parse():
     client = TestClient(create_app(), raise_server_exceptions=False)
     response = client.post(

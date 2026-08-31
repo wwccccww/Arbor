@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -102,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     if args.mode == "agent":
+        # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
+        os.environ.setdefault("ARBOR_ALLOW_PLAN_SCRIPT", "1")
         if args.suite not in ("agent-v1", "agent-ablation-v1"):
             print("agent mode requires --suite agent-v1 or agent-ablation-v1", file=sys.stderr)
             return 1

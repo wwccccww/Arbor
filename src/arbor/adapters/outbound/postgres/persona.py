@@ -93,3 +93,14 @@ class PgPersonaRepository:
                 """,
                 (persona.id.value, persona.tenant_id.value, grant.user_id.value, caps),
             )
+
+    def delete(self, tenant_id: TenantId, persona_id: PersonaId) -> bool:
+        row = self.conn.execute(
+            """
+            DELETE FROM personas
+            WHERE id = %s::uuid AND tenant_id = %s::uuid
+            RETURNING id
+            """,
+            (persona_id.value, tenant_id.value),
+        ).fetchone()
+        return row is not None

@@ -30,9 +30,14 @@ def run_agent_security_smoke(*, stack: dict, fixture_path: Path | None = None) -
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     handlers = {
         "step_budget_exhausted": _scenario_step_budget,
+        "token_budget_exhausted": _scenario_token_budget,
+        "cost_budget_exhausted": _scenario_cost_budget,
         "concurrent_advance_once": _scenario_concurrent_advance,
         "malicious_doc_untrusted": _scenario_malicious_doc,
         "expired_policy_excluded": _scenario_expired_policy,
+        "conflict_policy_excluded": _scenario_conflict_policy,
+        "multimodal_locator": _scenario_multimodal_locator,
+        "object_deletion_propagation": _scenario_object_deletion,
         "approval_expired": _scenario_approval_expired,
         "goal_change": _scenario_goal_change,
     }
@@ -319,3 +324,151 @@ def _scenario_goal_change(stack: dict, case: dict) -> tuple[bool, str]:
         and len(final.metadata.get("goal_events") or []) >= 1
     )
     return ok, f"revision={revision.get('goal_revision')} tickets={stack['eval_ticket_tool'].create_calls}"
+
+
+def _scenario_token_budget(stack: dict, case: dict) -> tuple[bool, str]:
+    _ensure_grants(stack)
+    start = stack["start_run"]
+    runs = stack["runs"]
+    run = start(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        goal="token 预算耗尽",
+        max_steps=8,
+        token_budget=50,
+        plan_script=[
+            {"schema_version": 1, "action": "retrieve", "query": "政策", "scopes": ["semantic_memory"]},
+            {"schema_version": 1, "action": "retrieve", "query": "二次", "scopes": ["semantic_memory"]},
+        ],
+        enqueue=True,
+    )
+    final = runs.get(TENANT, run.id)
+    ok = (
+        final is not None
+        and final.status.value == "failed"
+        and (final.failure or {}).get("kind") == "budget_exhausted"
+    )
+    return ok, final.status.value if final else "missing"
+
+
+def _scenario_cost_budget(stack: dict, case: dict) -> tuple[bool, str]:
+    _ensure_grants(stack)
+    start = stack["start_run"]
+    runs = stack["runs"]
+    run = start(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        goal="cost 预算耗尽",
+        max_steps=8,
+        cost_budget_micros=60_000,
+        plan_script=[
+            {"schema_version": 1, "action": "retrieve", "query": "政策", "scopes": ["semantic_memory"]},
+            {"schema_version": 1, "action": "retrieve", "query": "二次", "scopes": ["semantic_memory"]},
+        ],
+        enqueue=True,
+    )
+    final = runs.get(TENANT, run.id)
+    ok = (
+        final is not None
+        and final.status.value == "failed"
+        and (final.failure or {}).get("kind") == "budget_exhausted"
+    )
+    return ok, final.status.value if final else "missing"
+
+
+def _scenario_conflict_policy(stack: dict, case: dict) -> tuple[bool, str]:
+    _ensure_grants(stack)
+    memories = stack["approve_step"].advance.memories
+    active_id = MemoryId("0a000000-0000-4000-a000-000000000902")
+    conflict_id = MemoryId("0a000000-0000-4000-a000-000000000903")
+    active = MemoryItem(
+        id=active_id,
+        tenant_id=TENANT,
+        persona_id=LINXIA,
+        text="退货政策：7天无理由",
+        type=MemoryType.FACT,
+        status=MemoryStatus.ACTIVE,
+        memory_class=MemoryClass.SEMANTIC,
+    )
+    conflicting = MemoryItem(
+        id=conflict_id,
+        tenant_id=TENANT,
+        persona_id=LINXIA,
+        text="退货政策：不退货",
+        type=MemoryType.FACT,
+        status=MemoryStatus.SUPERSEDED,
+        memory_class=MemoryClass.SEMANTIC,
+    )
+    memories.save(active)
+    memories.save(conflicting)
+    from arbor.application.agent.step_retrieval import build_step_context_items
+    from arbor.application.memory.validity import is_memory_searchable
+
+    assert is_memory_searchable(active)
+    assert not is_memory_searchable(conflicting)
+    _, manifest = build_step_context_items(
+        goal="退货政策",
+        persona_profile={"display_name": "林夏"},
+        evidence_ids=[active_id.value, conflict_id.value],
+        memories_by_id={active_id.value: active, conflict_id.value: conflicting},
+        tool_results=[],
+    )
+    selected = set(manifest.get("selected_item_ids") or [])
+    ok = active_id.value in selected and conflict_id.value not in selected
+    return ok, f"selected={sorted(selected)}"
+
+
+def _scenario_multimodal_locator(stack: dict, case: dict) -> tuple[bool, str]:
+    record = stack.get("record_artifact")
+    segments = stack.get("artifact_segments")
+    if record is None or segments is None:
+        return False, "artifact stack not configured"
+    created = record(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        object_uri="s3://bucket/security-locator.pdf",
+        mime_type="application/pdf",
+        segment_payloads=[{"modality": "text", "text": "页码 5", "page_number": 5, "time_start_ms": 900}],
+    )
+    seg_list = segments.list_for_artifact(TENANT, created["artifact_id"])
+    ok = bool(seg_list) and seg_list[0].page_number == 5 and seg_list[0].time_start_ms == 900
+    return ok, f"artifact={created.get('artifact_id')} segments={len(seg_list)}"
+
+
+def _scenario_object_deletion(stack: dict, case: dict) -> tuple[bool, str]:
+    from arbor.domain.persona.authorization import Capability
+
+    record = stack.get("record_artifact")
+    invalidate = stack.get("invalidate_artifacts")
+    artifacts = stack.get("artifacts")
+    if record is None or invalidate is None or artifacts is None:
+        return False, "artifact stack not configured"
+    persona = stack["personas"].get(TENANT, LINXIA)
+    if persona is not None:
+        persona.grants.append(Grant(user_id=USER, capabilities=list(Capability)))
+    uri = "s3://bucket/security-delete.pdf"
+    created = record(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        object_uri=uri,
+        mime_type="application/pdf",
+        segment_payloads=[{"modality": "text", "text": "待删除", "page_number": 1}],
+    )
+    result = invalidate(
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        object_uri=uri,
+        capabilities=list(Capability),
+    )
+    saved = artifacts.get(TENANT, created["artifact_id"])
+    ok = (
+        created["artifact_id"] in result["invalidated_artifact_ids"]
+        and saved is not None
+        and saved.status == "deleted"
+    )
+    return ok, f"invalidated={result.get('invalidated_artifact_ids')}"

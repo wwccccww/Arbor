@@ -3,9 +3,14 @@
   "description": "Frozen agent security and recovery scenarios (Fake Planner).",
   "cases": [
     {"id": "step-budget-exhausted", "scenario": "step_budget_exhausted"},
+    {"id": "token-budget-exhausted", "scenario": "token_budget_exhausted"},
+    {"id": "cost-budget-exhausted", "scenario": "cost_budget_exhausted"},
     {"id": "concurrent-advance-once", "scenario": "concurrent_advance_once"},
     {"id": "malicious-doc-untrusted", "scenario": "malicious_doc_untrusted"},
     {"id": "expired-policy-excluded", "scenario": "expired_policy_excluded"},
+    {"id": "conflict-policy-excluded", "scenario": "conflict_policy_excluded"},
+    {"id": "multimodal-locator", "scenario": "multimodal_locator"},
+    {"id": "object-deletion-propagation", "scenario": "object_deletion_propagation"},
     {"id": "approval-expired-no-side-effect", "scenario": "approval_expired"},
     {"id": "goal-change-no-stale-side-effect", "scenario": "goal_change"}
   ]

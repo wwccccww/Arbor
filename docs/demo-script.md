@@ -41,13 +41,13 @@
 | 3:00 | 返回 **记忆体检** → demo-v1 链接 baselines | 见 `eval/fixtures/demo-v1/expected-output.md` |
 | 3:30 | （可选）Grafana/Tempo 链接或 Debug 页 | request_id 可搜到 agent.run trace |
 
-离线十二步证据链（无需 UI）：
+离线十三步证据链（含 e2e-agent-chain，无需 UI）：
 
 ```bash
 python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 ```
 
-录屏文件（验证后入库）：`docs/demo/recordings/agent-production-demo.mp4`
+录屏（已入库）：`docs/demo/recordings/agent-production-demo.mp4`（离线 demo-v1 + API 契约 pytest 演示）
 
 ## Agent 故障注入彩排（约 3 分钟）
 
@@ -57,7 +57,7 @@ python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 # agent-v1：审批、越权、超时重试、worker 恢复（7 cases）
 python3 -m pytest tests/eval/test_agent_smoke.py -q
 
-# memory-v1：过期 / superseded / 删除 / consolidation（4 gates）
+# memory-v1：过期 / superseded / 删除 / consolidation / working / procedural（15 cases）
 python3 -m pytest tests/eval/test_memory_smoke.py -q
 
 # multimodal-v1：页码 / 时间戳 / lineage（3 layers）

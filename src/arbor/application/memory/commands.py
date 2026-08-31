@@ -75,6 +75,12 @@ class ConfirmInboxItem:
             item = self.inbox.get(tenant_id, inbox_id)
             if item is None or item.persona_id != persona_id:
                 raise DomainError("NOT_FOUND", "no pending inbox")
+        payload = dict(item.payload or {})
+        if str(payload.get("memory_class") or "") == MemoryClass.WORKING.value:
+            raise DomainError(
+                "FORBIDDEN_MEMORY_WRITE",
+                "working memory cannot be confirmed into long-term store",
+            )
         from_status = item.status
         old = None
         if item.conflicts_with:

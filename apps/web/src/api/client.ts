@@ -750,6 +750,14 @@ export function createClient(
       return (await request(`/personas/${personaId}/employee-definition`)) as EmployeeDefinition
     },
 
+    async listEmployeeDefinitionVersions(
+      personaId: string,
+    ): Promise<{ items: EmployeeDefinition[] }> {
+      return (await request(`/personas/${personaId}/employee-definitions`)) as {
+        items: EmployeeDefinition[]
+      }
+    },
+
     async startEmployeeEval(personaId: string): Promise<Record<string, unknown>> {
       return (await request(`/personas/${personaId}/employee-eval`, { method: 'POST' })) as Record<
         string,

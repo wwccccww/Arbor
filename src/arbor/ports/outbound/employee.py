@@ -49,3 +49,9 @@ class EmployeeDefinitionRepository(Protocol):
         persona_id: PersonaId,
         version: str,
     ) -> DigitalEmployeeDefinition: ...
+
+    def archive_all_for_persona(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+    ) -> int: ...

@@ -1,0 +1,81 @@
+{
+  "editable": true,
+  "title": "Arbor Agent Runtime",
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "P0 — Agent run outcomes",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(increase(arbor_agent_run_total{status=\"completed\"}[24h]))",
+          "legendFormat": "completed",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(arbor_agent_run_total{status=\"failed\"}[24h]))",
+          "legendFormat": "failed",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "title": "安全 — unauthorized / approval expire",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "increase(arbor_agent_unauthorized_total[24h])",
+          "legendFormat": "unauthorized",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(arbor_agent_approval_expire_total[24h])",
+          "legendFormat": "approval expire",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "title": "效率 — p95 run latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_agent_run_p95_latency_ms_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "title": "依赖 — tool retry / idempotent",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(arbor_tool_call_total{result=\"timeout_retry\"}[5m]))",
+          "legendFormat": "timeout retry",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(arbor_tool_call_total{result=\"idempotent_hit\"}[5m]))",
+          "legendFormat": "idempotent hit",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["arbor", "agent"],
+  "timezone": "browser",
+  "uid": "arbor-agent-runtime"
+}

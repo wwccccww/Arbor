@@ -40,6 +40,7 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const [employeeDef, setEmployeeDef] = useState<EmployeeDefinition | null>(null)
+  const [employeeVersions, setEmployeeVersions] = useState<EmployeeDefinition[]>([])
   const [employeeEval, setEmployeeEval] = useState<Record<string, unknown> | null>(null)
 
   const refresh = useCallback(async () => {
@@ -57,6 +58,10 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
       .getEmployeeDefinition(personaId)
       .then(setEmployeeDef)
       .catch(() => setEmployeeDef(null))
+    void client
+      .listEmployeeDefinitionVersions(personaId)
+      .then((payload) => setEmployeeVersions(payload.items || []))
+      .catch(() => setEmployeeVersions([]))
   }, [refresh, client, personaId])
 
   async function loadDetail(runId: string) {
@@ -144,6 +149,17 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
             岗位 {employeeDef.role} v{employeeDef.version} · 评测套件 {employeeDef.evaluation_suite} ·{' '}
             {employeeDef.release_status}
             {employeeDef.eval_gate_passed != null ? ` · 门禁 ${employeeDef.eval_gate_passed ? '通过' : '未通过'}` : ''}
+          </p>
+        ) : null}
+        {employeeVersions.length > 0 ? (
+          <p className="muted">
+            版本历史：
+            {employeeVersions.map((v) => (
+              <span key={v.version} style={{ marginRight: '0.75rem' }}>
+                v{v.version} ({v.release_status}
+                {v.eval_gate_passed != null ? ` · gate ${v.eval_gate_passed ? '✓' : '✗'}` : ''})
+              </span>
+            ))}
           </p>
         ) : null}
       </header>

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
@@ -109,6 +110,55 @@ def _multimodal_case_ok(*, case_ids: set[str]) -> tuple[bool, str]:
     return True, f"layer_pass_rate={report.get('layer_pass_rate')}"
 
 
+def _agent_e2e_chain_ok(*, case_id: str = "ticket-with-approval") -> tuple[bool, str]:
+    """Single-stack end-to-end agent flow (retrieve → tool → approval → answer)."""
+    root = repo_root()
+    fixture = root / "eval" / "fixtures" / "agent-v1" / "cases.json"
+    payload = json.loads(fixture.read_text(encoding="utf-8"))
+    case = next((c for c in payload.get("cases") or [] if c.get("id") == case_id), None)
+    if case is None:
+        return False, f"case {case_id} not found"
+    stack = build_agent_eval_stack(use_employee_templates=False)
+    persona = stack["personas"].get(TENANT, LINXIA)
+    if persona is not None:
+        from arbor.domain.persona.authorization import Capability, Grant
+
+        if not any(Capability.ADMIN in g.capabilities for g in persona.grants if g.user_id == USER):
+            persona.grants.append(Grant(user_id=USER, capabilities=[Capability.ADMIN, Capability.CHAT]))
+        allowed = list(persona.tool_policy.allowed_tools or [])
+        for tool in ("ticket", "calendar"):
+            if tool not in allowed:
+                allowed.append(tool)
+        persona.tool_policy.allowed_tools = allowed
+    calls_before = stack["eval_ticket_tool"].create_calls
+    run = stack["start_run"](
+        tenant_id=TENANT,
+        user_id=USER,
+        persona_id=LINXIA,
+        goal=str(case.get("goal") or ""),
+        plan_script=list(case.get("plan_script") or []),
+        enqueue=True,
+    )
+    final = stack["runs"].get(TENANT, run.id)
+    if final is None:
+        return False, "run missing"
+    if final.status.value == "waiting_approval":
+        approval_id = final.metadata.get("pending_approval_id")
+        stack["approve_step"](
+            tenant_id=TENANT,
+            user_id=USER,
+            approval_id=str(approval_id),
+        )
+        final = stack["runs"].get(TENANT, run.id)
+    ok = (
+        final is not None
+        and final.status.value == "completed"
+        and stack["eval_ticket_tool"].create_calls == calls_before + 1
+        and bool(final.final_output)
+    )
+    return ok, f"status={final.status.value if final else None} tickets={stack['eval_ticket_tool'].create_calls}"
+
+
 def _inbox_extract_ok() -> tuple[bool, str]:
     stack = build_agent_eval_stack(use_employee_templates=False)
     personas = stack["personas"]
@@ -152,6 +202,7 @@ def _trace_test_ok(path: str) -> tuple[bool, str]:
 
 
 def run_demo_smoke(*, manifest_path: Path | None = None) -> dict:
+    os.environ["ARBOR_ALLOW_PLAN_SCRIPT"] = "1"
     manifest_path = manifest_path or demo_manifest_path()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     results: list[dict] = []
@@ -169,6 +220,8 @@ def run_demo_smoke(*, manifest_path: Path | None = None) -> dict:
             ok, detail = _multimodal_case_ok(case_ids=case_ids)
         elif kind == "inbox_extract":
             ok, detail = _inbox_extract_ok()
+        elif kind == "agent_e2e_chain":
+            ok, detail = _agent_e2e_chain_ok(case_id=str(verify.get("case_id") or "ticket-with-approval"))
         elif kind == "trace_test":
             ok, detail = _trace_test_ok(str(verify.get("path") or ""))
         results.append(

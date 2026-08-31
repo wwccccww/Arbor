@@ -122,6 +122,18 @@ class InMemoryEmployeeDefinitions:
         definition.release_status = EmployeeReleaseStatus.ARCHIVED
         return definition
 
+    def archive_all_for_persona(
+        self,
+        tenant_id: TenantId,
+        persona_id: PersonaId,
+    ) -> int:
+        archived = 0
+        for item in self.list_versions(tenant_id, persona_id):
+            if item.release_status != EmployeeReleaseStatus.ARCHIVED:
+                item.release_status = EmployeeReleaseStatus.ARCHIVED
+                archived += 1
+        return archived
+
 
 def default_employee_templates() -> InMemoryEmployeeDefinitions:
     store = InMemoryEmployeeDefinitions()

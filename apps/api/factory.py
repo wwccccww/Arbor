@@ -90,11 +90,13 @@ from arbor.application.identity.commands import (
 from arbor.application.memory.bootstrap_from_inbox import BootstrapFromInbox
 from arbor.application.memory.commands import ConfirmInboxItem, DismissInboxItem
 from arbor.application.memory.delete_memory import DeleteMemory
+from arbor.application.memory.procedural_commands import PublishProceduralMemory
 from arbor.application.memory.import_jobs import RunImportJob, SubmitImportJob
 from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
 from arbor.application.memory.queries import ListMemories
 from arbor.application.persona.commands import CreatePersona, PatchPersona, ReplaceGrants
+from arbor.application.persona.delete_persona import DeletePersona
 from arbor.application.persona.queries import ListPersonas
 from arbor.domain.errors import DomainError
 from arbor.domain.identity.tenant import Role
@@ -428,6 +430,13 @@ def create_app(
         vectors=vectors,
         auth=AuthorizationPolicy(),
         storage=storage,
+        observability=observability,
+    )
+    publish_procedural_memory = PublishProceduralMemory(
+        personas=personas,
+        memories=memories,
+        auth=AuthorizationPolicy(),
+        audit=record_audit,
         observability=observability,
     )
     bootstrap_inbox = BootstrapFromInbox(
@@ -1000,6 +1009,12 @@ def create_app(
             list_personas=list_personas,
             create_persona=create_persona,
             patch_persona=patch_persona,
+            delete_persona=DeletePersona(
+                personas=personas,
+                employee_definitions=employee_definitions,
+                auth=AuthorizationPolicy(),
+                audit=record_audit,
+            ),
             replace_grants=replace_grants,
             list_memories=list_memories,
             delete_memory=delete_memory,
@@ -1007,6 +1022,7 @@ def create_app(
             bootstrap_inbox=bootstrap_inbox,
             confirm=confirm,
             dismiss=dismiss,
+            publish_procedural_memory=publish_procedural_memory,
             get_tree=get_tree,
             get_card=get_card,
             max_upload_bytes=max_upload_bytes,

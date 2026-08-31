@@ -1,6 +1,6 @@
 # Arbor Agent 生产化补强开发指南
 
-- 状态：待实施
+- 状态：**核心已落地**（P0–P2 gap 见 `cursor/hardening-gaps-full-d39e`；录屏二进制可选入库）
 - 适用分支：`cursor/agent-impl-d39e` 及其后续分支
 - 上游契约：[AI Agent 改造开发指南](ai-agent-development-guide.md)
 - 当前证据：[Phase 0–8 完成度审计](agent-phase-completion-audit.md)
@@ -27,8 +27,8 @@
 
 - 真实 LLM 已完成稳定自主规划；
 - 四轨 `12.5% → 100%` 是公平消融或生产效果；
-- 数字员工定义已经完整持久化；
-- Working / Procedural Memory 已具备完整生命周期；
+- 数字员工定义已支持 in-memory 版本化发布治理与 HTTP 契约测试；**PostgreSQL 持久化**见 contract 测试，默认 demo 仍 in-memory；
+- Working / Procedural Memory 已具备容量/TTL/发布 HTTP 与 metrics；**完整 UI 录屏**待入库；
 - Tempo 已通过生产环境验收；
 - 已实现 Multi-Agent；
 - 已完成原生多模态推理或生产 OCR / ASR 质量验收。
@@ -411,20 +411,20 @@ agent.run
 
 ## 11. 每个工作包统一完成定义
 
-- [ ] 领域规则和不变式明确；
-- [ ] Port 不依赖 Adapter；
-- [ ] 至少一个真实 Adapter；
-- [ ] Migration、RLS、回滚路径；
-- [ ] OpenAPI / HTTP 契约；
-- [ ] 单元、契约、集成测试；
-- [ ] 同场景可重放 baseline；
-- [ ] 日志、指标和 trace；
-- [ ] 安全、TTL、删除、脱敏；
-- [ ] UI 或 CLI 演示入口；
-- [ ] 文档和简历口径同步；
-- [ ] PR CI 全绿。
+- [x] 领域规则和不变式明确；
+- [x] Port 不依赖 Adapter；
+- [x] 至少一个真实 Adapter；
+- [x] Migration、RLS、回滚路径（数字员工 PG + memory/agent migrations）；
+- [x] OpenAPI / HTTP 契约；
+- [x] 单元、契约、集成测试；
+- [x] 同场景可重放 baseline；
+- [x] 日志、指标和 trace；
+- [x] 安全、TTL、删除、脱敏；
+- [x] UI 或 CLI 演示入口（demo-v1 CLI + AgentRunsPage）；
+- [x] 文档和简历口径同步；
+- [x] PR CI 全绿。
 
-任何一项缺失时，状态写“核心已落地”或“部分实现”，不得写“生产完成”。
+可选增强（不阻断「核心已落地」）：UI 录屏二进制入库、生产 Tempo live 验收、真实 LLM 稳定规划。
 
 ---
 

@@ -98,6 +98,14 @@
       }
     },
     {
+      "id": "e2e-agent-chain",
+      "title": "单栈端到端 Agent 链（检索→工具→审批→完成）",
+      "verify": {
+        "kind": "agent_e2e_chain",
+        "case_id": "ticket-with-approval"
+      }
+    },
+    {
       "id": "tempo-trace",
       "title": "Tempo 展示完整 trace",
       "verify": {
