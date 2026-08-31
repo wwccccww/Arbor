@@ -37,15 +37,24 @@ USER = UserId("0a000000-0000-4000-a000-000000000002")
 
 
 class BFCFunctionCallPlanner:
-    """English function-calling planner for official BFCL eval (no retrieve)."""
+    """Multi-turn function-calling planner for official BFCL eval."""
 
     planner_kind = "real"
-    planner_version = "bfcl-fc-v1"
+    planner_version = "bfcl-fc-v2"
 
     def __init__(self, *, model: str | None = None, timeout_s: float = 60.0) -> None:
         self.model = model or chat_model()
         self.timeout_s = timeout_s
         self.last_metadata: dict = {}
+
+    def _bfcl_config(self, run_metadata: dict | None) -> dict:
+        meta = dict(run_metadata or {})
+        cfg = dict(meta.get("bfcl") or {})
+        variant = dict(meta.get("eval_variant") or {})
+        return {
+            "max_tools": int(cfg.get("max_tools") or variant.get("bfcl_max_tools") or 6),
+            "category": str(cfg.get("category") or variant.get("bfcl_category") or ""),
+        }
 
     def next_action(
         self,
@@ -60,17 +69,9 @@ class BFCFunctionCallPlanner:
         run_metadata: dict | None = None,
     ) -> dict:
         del context_manifest, budget, plan_script, evidence_ids
+        cfg = self._bfcl_config(run_metadata)
+        max_tools = max(1, cfg["max_tools"])
         tool_steps = [s for s in steps if s.get("kind") == "tool"]
-        if tool_steps:
-            return validate_planner_action(
-                {
-                    "schema_version": 1,
-                    "action": "answer",
-                    "text": "Done.",
-                    "citations": [],
-                    "completion": True,
-                }
-            )
         if any(s.get("kind") == "answer" for s in steps):
             return validate_planner_action(
                 {
@@ -81,15 +82,26 @@ class BFCFunctionCallPlanner:
                     "completion": True,
                 }
             )
+        if len(tool_steps) >= max_tools:
+            return validate_planner_action(
+                {
+                    "schema_version": 1,
+                    "action": "answer",
+                    "text": "Done.",
+                    "citations": [],
+                    "completion": True,
+                }
+            )
+
         key = chat_api_key()
         if not key:
             raise DomainError("LLM_UNAVAILABLE", "chat API key missing for BFCL LLM eval")
         tools_blob = json.dumps(tool_schemas or [], ensure_ascii=False)
         system = (
-            "You are a function-calling agent for BFCL evaluation. Output exactly one JSON object. "
-            "Allowed actions: tool, answer. Call tools one at a time when needed; when finished, "
-            "answer with completion=true. If no tool applies, answer without calling tools. "
-            "tool_name must match a provided tool. "
+            "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
+            "Allowed actions: tool, answer. Issue tool calls one at a time until the user task is satisfied, "
+            "then answer with completion=true. If no tool applies, answer without tools. "
+            "tool_name must match a provided tool exactly. Use only argument keys defined in the tool schema. "
             f"Tools: {tools_blob}. "
             "Schema: {schema_version:1, action, tool_name?, arguments?, text?, completion?}"
         )
@@ -97,6 +109,30 @@ class BFCFunctionCallPlanner:
             {"role": "system", "content": system},
             {"role": "user", "content": goal},
         ]
+        for step in steps:
+            if step.get("kind") != "tool":
+                continue
+            inp = dict(step.get("input") or {})
+            out = dict(step.get("output") or {})
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {
+                            "action": "tool",
+                            "tool_name": inp.get("tool_name"),
+                            "arguments": inp.get("arguments"),
+                        },
+                        ensure_ascii=False,
+                    ),
+                }
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": f"Tool result: {json.dumps(out, ensure_ascii=False)[:3000]}",
+                }
+            )
         payload = {
             "model": self.model,
             "messages": messages,
@@ -130,6 +166,7 @@ class BFCFunctionCallPlanner:
             "model": self.model,
             "prompt_version": PROMPT_VERSION,
             "bfcl_planner": self.planner_version,
+            "tool_steps": len(tool_steps),
         }
         if run_metadata is not None:
             run_metadata["planner"] = dict(self.last_metadata)
@@ -142,12 +179,14 @@ def score_tool_calls(
     actual_calls: list[dict],
     expect_no_tool: bool,
     ground_truth: list[dict] | None = None,
+    unordered: bool = False,
 ) -> tuple[bool, dict]:
     if ground_truth is not None:
         return score_against_ground_truth(
             actual_calls=actual_calls,
             ground_truth=ground_truth,
             expect_no_tool=expect_no_tool,
+            unordered=unordered,
         )
     if expect_no_tool:
         ok = len(actual_calls) == 0
@@ -218,6 +257,7 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
     expected_calls = list(case.get("expected_calls") or [])
     ground_truth = list(case.get("ground_truth") or [])
     expect_no_tool = bool(case.get("expect_no_tool"))
+    category = str(case.get("source_category") or "")
 
     if not executable and use_script:
         return PublicBenchmarkResult(
@@ -229,8 +269,14 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
         )
 
     plan_script = plan_script_from_case(case) if use_script else None
-    n_calls = len(expected_calls) if not expect_no_tool else 0
-    max_steps = max(6, n_calls * 2 + 3) if not expect_no_tool else 3
+    n_calls = len(ground_truth) or len(expected_calls) if not expect_no_tool else 0
+    max_steps = max(8, n_calls * 3 + 4) if not expect_no_tool else 3
+    eval_variant = None
+    if planner_kind == "llm":
+        eval_variant = {
+            "bfcl_max_tools": max(1, n_calls),
+            "bfcl_category": category,
+        }
     started = time.perf_counter()
     run = stack["start_run"](
         tenant_id=TENANT,
@@ -239,6 +285,7 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
         goal=str(case.get("goal") or ""),
         plan_script=plan_script,
         max_steps=max_steps,
+        eval_variant=eval_variant,
         enqueue=True,
     )
     final = stack["runs"].get(TENANT, run.id)
@@ -250,6 +297,7 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
         actual_calls=actual_calls,
         expect_no_tool=expect_no_tool,
         ground_truth=gt,
+        unordered=category == "parallel",
     )
     scores["executable"] = 1.0 if executable or planner_kind == "llm" else 0.0
     latency_ms = round((time.perf_counter() - started) * 1000, 2)

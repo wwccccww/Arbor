@@ -167,11 +167,51 @@ def _call_matches_ground_truth_item(actual: dict, gt_item: dict) -> tuple[bool, 
     return True, arg_ok
 
 
+def _score_unordered_ground_truth(
+    *,
+    actual_calls: list[dict],
+    ground_truth: list[dict],
+) -> tuple[bool, dict]:
+    remaining = list(actual_calls)
+    fn_hits = 0
+    arg_hits = 0
+    for gt_item in ground_truth:
+        best_idx = -1
+        best_fn = False
+        best_arg = False
+        for idx, act in enumerate(remaining):
+            fn_ok, arg_ok = _call_matches_ground_truth_item(act, gt_item)
+            if fn_ok and arg_ok:
+                best_idx = idx
+                best_fn, best_arg = True, True
+                break
+            if fn_ok and not best_fn:
+                best_idx = idx
+                best_fn, best_arg = fn_ok, arg_ok
+        if best_idx >= 0:
+            fn_hits += int(best_fn)
+            arg_hits += int(best_arg)
+            remaining.pop(best_idx)
+    n = len(ground_truth) or 1
+    scores = {
+        "function_match": fn_hits / n,
+        "argument_match": arg_hits / n,
+        "executable": 1.0,
+    }
+    ok = (
+        fn_hits == len(ground_truth)
+        and arg_hits == len(ground_truth)
+        and len(actual_calls) == len(ground_truth)
+    )
+    return ok, scores
+
+
 def score_against_ground_truth(
     *,
     actual_calls: list[dict],
     ground_truth: list[dict],
     expect_no_tool: bool,
+    unordered: bool = False,
 ) -> tuple[bool, dict]:
     if expect_no_tool:
         ok = len(actual_calls) == 0
@@ -187,6 +227,8 @@ def score_against_ground_truth(
             "argument_match": 1.0 if ok else 0.0,
             "executable": 1.0,
         }
+    if unordered and len(ground_truth) > 1:
+        return _score_unordered_ground_truth(actual_calls=actual_calls, ground_truth=ground_truth)
     if len(actual_calls) != len(ground_truth):
         fn_hits = 0
         arg_hits = 0

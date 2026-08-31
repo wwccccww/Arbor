@@ -66,9 +66,33 @@ def fetch_bfcl(*, only_smoke: bool) -> int:
     return 0
 
 
+def fetch_agentdojo(*, only_smoke: bool) -> int:
+    manifest = _load_manifest("agentdojo")
+    code = _verify_smoke(manifest)
+    if code != 0:
+        return code
+    dev_path = ROOT / str(manifest["splits"].get("dev", "eval/public/dev/agentdojo-dev.json"))
+    if not dev_path.is_file():
+        print(f"missing dev fixture: {dev_path}; run scripts/build_agentdojo_dev_subset.py", file=sys.stderr)
+        return 1
+    print(f"agentdojo dev ready: {dev_path}")
+    if only_smoke:
+        return 0
+    import subprocess
+
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "build_agentdojo_dev_subset.py")],
+        check=False,
+    )
+    print(f"source: {manifest.get('source_url')}", file=sys.stderr)
+    return 0
+
+
 def fetch_benchmark(name: str, *, only_smoke: bool) -> int:
     if name == "bfcl":
         return fetch_bfcl(only_smoke=only_smoke)
+    if name == "agentdojo":
+        return fetch_agentdojo(only_smoke=only_smoke)
     manifest = _load_manifest(name)
     code = _verify_smoke(manifest)
     if code != 0:

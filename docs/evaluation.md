@@ -197,6 +197,7 @@ eval/
 - 已落地 smoke（Fake Planner）：
   - `public-bfcl-smoke`（12 cases）
   - `public-agentdojo-smoke`（5 cases，attack_success=0）
+  - `public-agentdojo-dev`（13 cases，官方 v1.2 workspace 子集，utility/attack 分栏）
   - `public-multihop-smoke`（5 cases，独立 corpus）
 - 命令：`eval_cli --suite public-<name>-smoke --mode agent`
 - 原则：公开与私有 **分栏报告**；不把公开题写入 RAG 索引；P0 安全仍以确定性副作用检查为准
