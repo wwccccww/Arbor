@@ -45,6 +45,7 @@ jobs:
       - run: pip install -e ".[dev,api]"
       - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_agent_evolution.py tests/eval/test_multimodal_smoke.py tests/eval/test_memory_smoke.py tests/eval/test_retrieval_baseline_gate.py tests/unit/application/test_advance_run_budget.py tests/unit/application/test_context_engine_untrusted.py -q --tb=short
   web:
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/web
