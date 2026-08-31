@@ -1,0 +1,40 @@
+{
+  "suite_version": "memory-classes-v1",
+  "memory_class": "working",
+  "cases": [
+    {
+      "id": "working-memory-run-scoped",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_run_scoped",
+      "run_id": "run-a",
+      "other_run_id": "run-b"
+    },
+    {
+      "id": "working-memory-expired-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_expired_excluded",
+      "run_id": "run-a",
+      "expires_at": "2020-01-01T00:00:00Z"
+    },
+    {
+      "id": "working-memory-cleared-on-complete",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_cleared_on_complete",
+      "run_id": "run-complete"
+    },
+    {
+      "id": "working-delete-completeness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "delete_removes_vector",
+      "memory_id": "mem-working-delete-001",
+      "text": "待删除工作记忆",
+      "query": "待删除工作记忆",
+      "memory_class": "working",
+      "run_id": "run-delete"
+    }
+  ]
+}

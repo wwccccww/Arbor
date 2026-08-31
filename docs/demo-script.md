@@ -47,7 +47,7 @@
 python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 ```
 
-录屏（已入库）：`docs/demo/recordings/agent-production-demo.mp4`（离线 demo-v1 + API 契约 pytest 演示）
+录屏（已入库）：`docs/demo/recordings/agent-production-demo.mp4` — **pytest/API 契约演示片段**（非 §10.1 完整 3–5 分钟 UI 流程；完整 UI 彩排见上表）
 
 ## Agent 故障注入彩排（约 3 分钟）
 

@@ -1,0 +1,10 @@
+{
+  "suite_version": "memory-classes-v1",
+  "description": "Per-class memory lifecycle fixtures (episodic, semantic, working, procedural).",
+  "classes": [
+    {"memory_class": "episodic", "fixture": "episodic.json", "metric": "arbor_memory_transitions_total"},
+    {"memory_class": "semantic", "fixture": "semantic.json", "metric": "arbor_memory_transitions_total"},
+    {"memory_class": "working", "fixture": "working.json", "metric": "arbor_working_memory_cleared_total"},
+    {"memory_class": "procedural", "fixture": "procedural.json", "metric": "arbor_procedural_memory_publish_total"}
+  ]
+}

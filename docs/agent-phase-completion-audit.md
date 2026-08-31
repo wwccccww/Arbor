@@ -135,11 +135,10 @@
 | P0-1 公平四轨消融 | `agent_ablation.py`；`eval/fixtures/agent-ablation-v1/`；`eval/baselines/agent-ablation-v1.json`；`test_agent_ablation.py` |
 | P0-2 PlannerPort | `ports/outbound/planner.py`；`LLMPlanner`/`FallbackPlanner`；`test_planner_port.py` |
 | P0-3 数字员工 PG | `postgres/employee.py`；`employee_commands.py`；`test_pg_employee_definition.py` |
-| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` 11 cases + baseline；`test_agent_security_smoke.py` |
-| P1-2 OpenAPI/契约 | `docs/openapi.yaml` + `docs/api.md` §8；`validate_openapi_fastapi.py`；`tests/api/test_agent_contracts.py`（26+ 用例含 publish/employee/approval/SSE error） |
-| Procedural 发布 | `PublishProceduralMemory` + `POST /v1/personas/{id}/memories/{id}/publish` |
-| Persona 删除归档 | `DeletePersona` + `DELETE /v1/personas/{id}` |
-| P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
-| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py` `procedural_commands.py`；memory-v1 +6 cases（15 total）；`POST .../memories/{id}/publish` |
-| P2 演示证据 | demo-v1 13 步 + `docs/demo/recordings/agent-production-demo.mp4` + `test_agent_contracts.py` |
-| 演示录屏 | `docs/demo/recordings/agent-production-demo.mp4` + `docs/demo-script.md` |
+| P1-1 安全场景 | `agent_security_runner.py`（P0 指标非硬编码）；`agent-security-v1` 11 cases + category 元数据 + baseline |
+| P1-2 OpenAPI/契约 | `docs/openapi.yaml` + `docs/api.md` §8；`test_agent_contracts.py`（含 reject 成功/403） |
+| P1-3 观测强门禁 | `observability-integration` job 等待 Loki/Tempo + `OBSERVABILITY_INTEGRATION_REQUIRED`；`arbor_tool_call_total` |
+| P1-4 四类记忆 | `eval/fixtures/memory-classes-v1/` 四类独立 fixture + `test_memory_classes_smoke.py` |
+| P0-3 PG 持久化 HTTP | `test_postgres_agent_run_survives_app_restart` |
+| P0-2 LLM baseline 结构 | `test_agent_ablation_llm_baseline.py`；nightly 写入 `task_success_rate` |
+| P2 演示证据 | demo-v1 13 步 + `test_agent_contracts.py`；录屏为 CLI/pytest 片段（非 §10.1 完整 UI 流程） |

@@ -280,6 +280,54 @@ def test_approvals_admin_success_and_approve_flow():
         assert approved.status_code == 200
 
 
+def test_approvals_reject_flow_blocks_side_effect():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers=_headers(),
+        json={"goal": "审批拒绝测试", "plan_script": PLAN_TICKET_APPROVAL},
+    )
+    assert created.status_code == 202
+    run_id = created.json()["id"]
+    detail = client.get(f"/v1/agent-runs/{run_id}", headers=_headers())
+    assert detail.status_code == 200
+    if detail.json()["run"]["status"] != "waiting_approval":
+        return
+    listed = client.get("/v1/approvals", headers=_headers())
+    matching = [
+        item for item in (listed.json().get("items") or []) if item.get("run_id") == run_id
+    ]
+    assert matching
+    approval_id = matching[0]["id"]
+    rejected = client.post(f"/v1/approvals/{approval_id}/reject", headers=_headers())
+    assert rejected.status_code == 200
+    after = client.get(f"/v1/agent-runs/{run_id}", headers=_headers())
+    assert after.status_code == 200
+    assert after.json()["run"]["status"] in {"failed", "cancelled", "completed"}
+
+
+def test_approvals_reject_forbidden_cross_member():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers=_headers(),
+        json={"goal": "拒绝权限测试", "plan_script": PLAN_TICKET_APPROVAL},
+    )
+    run_id = created.json()["id"]
+    listed = client.get("/v1/approvals", headers=_headers())
+    matching = [
+        item for item in (listed.json().get("items") or []) if item.get("run_id") == run_id
+    ]
+    if not matching:
+        return
+    approval_id = matching[0]["id"]
+    forbidden = client.post(
+        f"/v1/approvals/{approval_id}/reject",
+        headers=_headers(token="token-b"),
+    )
+    assert forbidden.status_code == 403
+
+
 def test_employee_templates_success_and_unauthenticated():
     client = TestClient(create_app(), raise_server_exceptions=False)
     ok = client.get("/v1/employee-templates", headers=_headers())

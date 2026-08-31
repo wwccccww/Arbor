@@ -1,0 +1,47 @@
+{
+  "suite_version": "memory-classes-v1",
+  "memory_class": "episodic",
+  "cases": [
+    {
+      "id": "episodic-helpfulness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "retrieval_helpfulness",
+      "memory_id": "mem-help-001",
+      "text": "上次空调故障按 SOP 第3页处理",
+      "query": "空调故障 SOP"
+    },
+    {
+      "id": "decayed-episodic-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_decayed_episodic",
+      "memory_id": "mem-decay-001",
+      "text": "古老的情景记忆",
+      "recorded_at": "2019-01-01T00:00:00Z",
+      "decay_after_days": 30,
+      "query": "古老的情景"
+    },
+    {
+      "id": "consolidation-reduces-duplicates",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "consolidate_episodic",
+      "episodes": [
+        {"id": "ep-a", "text": "林夏讨厌香菜"},
+        {"id": "ep-b", "text": "林夏不喜欢香菜"}
+      ]
+    },
+    {
+      "id": "episodic-delete-completeness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "delete_removes_vector",
+      "memory_id": "mem-episodic-delete-001",
+      "text": "待删除情景记忆",
+      "query": "待删除情景记忆",
+      "memory_class": "episodic"
+    }
+  ]
+}

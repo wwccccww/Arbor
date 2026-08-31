@@ -110,13 +110,25 @@ def run_memory_smoke(
                 stale_injections += 1
 
         elif action == "delete_removes_vector" and delete is not None:
+            memory_class_raw = str(case.get("memory_class") or "semantic")
+            memory_class = MemoryClass(memory_class_raw)
+            mem_type = MemoryType.EPISODE_SUMMARY if memory_class == MemoryClass.EPISODIC else MemoryType.FACT
+            source: dict = {}
+            if memory_class == MemoryClass.WORKING:
+                source["run_id"] = str(case.get("run_id") or "run-delete")
+                source["expires_at"] = "2099-01-01T00:00:00Z"
+            if memory_class == MemoryClass.PROCEDURAL:
+                source["published"] = True
+                source["version"] = "v-delete"
             item = MemoryItem(
                 id=MemoryId(str(case["memory_id"])),
                 tenant_id=tenant_id,
                 persona_id=persona_id,
                 text=str(case.get("text") or ""),
-                type=MemoryType.FACT,
+                type=mem_type,
                 status=MemoryStatus.ACTIVE,
+                memory_class=memory_class,
+                source=source,
             )
             memories.save(item)
             vectors.upsert(tenant_id, persona_id, item.id, embed.embed(item.text), item.status)

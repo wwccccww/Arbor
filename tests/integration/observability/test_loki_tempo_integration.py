@@ -18,6 +18,18 @@ def _service_ready(url: str, path: str = "/ready") -> bool:
         return False
 
 
+def _integration_required() -> bool:
+    return os.environ.get("OBSERVABILITY_INTEGRATION_REQUIRED", "").lower() in {"1", "true", "yes"}
+
+
+def _require_service(url: str, path: str = "/ready", name: str = "service") -> None:
+    if _service_ready(url, path):
+        return
+    if _integration_required():
+        pytest.fail(f"{name} not available at {url}")
+    pytest.skip(f"{name} not available at {url}")
+
+
 def _loki_query(loki_url: str, query: str) -> dict:
     response = httpx.get(
         f"{loki_url.rstrip('/')}/loki/api/v1/query_range",
@@ -41,8 +53,7 @@ def _tempo_search(tempo_url: str, request_id: str) -> dict:
 @pytest.mark.integration
 def test_loki_json_logs_contain_request_id():
     loki_url = os.environ.get("LOKI_URL", "http://localhost:3100")
-    if not _service_ready(loki_url, "/ready"):
-        pytest.skip("Loki not available")
+    _require_service(loki_url, "/ready", "Loki")
     client = TestClient(create_app(), raise_server_exceptions=False)
     headers = {
         "Authorization": "Bearer token-a",
@@ -68,8 +79,7 @@ def test_loki_json_logs_contain_request_id():
 def test_tempo_trace_search_by_request_id():
     tempo_url = os.environ.get("TEMPO_URL", "http://localhost:3200")
     otel_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
-    if not _service_ready(tempo_url, "/ready"):
-        pytest.skip("Tempo not available")
+    _require_service(tempo_url, "/ready", "Tempo")
     os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_endpoint
     os.environ["OBSERVABILITY_ENABLED"] = "true"
     client = TestClient(create_app(), raise_server_exceptions=False)
@@ -101,8 +111,7 @@ def test_tempo_trace_search_by_request_id():
 def test_tempo_trace_search_by_agent_run_request_id():
     tempo_url = os.environ.get("TEMPO_URL", "http://localhost:3200")
     otel_endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
-    if not _service_ready(tempo_url, "/ready"):
-        pytest.skip("Tempo not available")
+    _require_service(tempo_url, "/ready", "Tempo")
     os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = otel_endpoint
     os.environ["OBSERVABILITY_ENABLED"] = "true"
     client = TestClient(create_app(), raise_server_exceptions=False)

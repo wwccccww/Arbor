@@ -1,0 +1,36 @@
+{
+  "suite_version": "memory-classes-v1",
+  "memory_class": "procedural",
+  "cases": [
+    {
+      "id": "procedural-draft-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "procedural_draft_excluded"
+    },
+    {
+      "id": "procedural-pinned-version",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "procedural_pinned_version"
+    },
+    {
+      "id": "procedural-agent-write-blocked",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "procedural_agent_write_blocked",
+      "run_id": "run-agent"
+    },
+    {
+      "id": "procedural-delete-completeness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "delete_removes_vector",
+      "memory_id": "mem-procedural-delete-001",
+      "text": "待删除程序性记忆",
+      "query": "待删除程序性记忆",
+      "memory_class": "procedural"
+    }
+  ]
+}

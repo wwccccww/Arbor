@@ -1,0 +1,36 @@
+{
+  "suite_version": "memory-classes-v1",
+  "memory_class": "semantic",
+  "cases": [
+    {
+      "id": "expired-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_expired",
+      "memory_id": "mem-expired-001",
+      "text": "过期政策：不可检索",
+      "valid_until": "2020-01-01T00:00:00Z",
+      "query": "过期政策"
+    },
+    {
+      "id": "superseded-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "search_excludes_superseded",
+      "active_id": "mem-active-001",
+      "superseded_id": "mem-super-001",
+      "active_text": "现行退货政策",
+      "superseded_text": "旧退货政策",
+      "query": "退货政策"
+    },
+    {
+      "id": "semantic-delete-completeness",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "delete_removes_vector",
+      "memory_id": "mem-semantic-delete-001",
+      "text": "待删除语义事实",
+      "query": "待删除语义事实"
+    }
+  ]
+}

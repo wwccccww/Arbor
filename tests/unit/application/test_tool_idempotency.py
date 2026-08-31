@@ -131,3 +131,29 @@ def test_ticket_create_distinct_steps_invoke_twice():
         allowed_tools={"ticket", "ticket.create"},
     )
     assert counter.create_calls == 2
+
+
+def test_tool_executor_emits_arbor_tool_call_total_metric():
+    from arbor.observability.memory import InMemoryObservability
+
+    obs = InMemoryObservability()
+    counter = CountingTicketTool()
+    executor = _executor(counter)
+    executor.observability = obs
+    run, step = _run_and_step()
+    executor.execute(
+        tenant_id=TENANT,
+        user_id=USER,
+        run=run,
+        step=step,
+        tool_name="ticket.create",
+        arguments={"title": "指标测试工单", "priority": "high"},
+        allowed_tools={"ticket", "ticket.create"},
+    )
+    tool_metrics = [
+        (name, labels)
+        for name, _value, labels in obs.counters
+        if name == "arbor_tool_call_total"
+    ]
+    assert tool_metrics
+    assert any(labels.get("result") == "success" for _, labels in tool_metrics)

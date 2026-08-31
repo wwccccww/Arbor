@@ -48,8 +48,8 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(arbor_agent_run_p95_latency_ms_bucket[5m])) by (le))",
-          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum(rate(arbor_agent_run_latency_ms_bucket[5m])) by (le, status))",
+          "legendFormat": "p95 {{status}}",
           "refId": "A"
         }
       ]

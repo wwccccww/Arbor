@@ -415,16 +415,20 @@ agent.run
 - [x] Port 不依赖 Adapter；
 - [x] 至少一个真实 Adapter；
 - [x] Migration、RLS、回滚路径（数字员工 PG + memory/agent migrations）；
-- [x] OpenAPI / HTTP 契约；
-- [x] 单元、契约、集成测试；
-- [x] 同场景可重放 baseline；
-- [x] 日志、指标和 trace；
-- [x] 安全、TTL、删除、脱敏；
-- [x] UI 或 CLI 演示入口（demo-v1 CLI + AgentRunsPage）；
+- [x] OpenAPI / HTTP 契约（含 reject / publish / delete persona）；
+- [x] 单元、契约、集成测试（含 `memory-classes-v1` 四类独立 fixture、`test_postgres_agent_run_survives_app_restart`）；
+- [x] 同场景可重放 baseline（Fake 轨 + security P0 指标计算）；
+- [x] 日志、指标和 trace（`arbor_tool_call_total`、`arbor_agent_run_latency_ms`、Grafana 面板）；
+- [x] 安全、TTL、删除、脱敏（security-v1 11 场景 + P0 rate 非硬编码）；
+- [x] UI 或 CLI 演示入口（demo-v1 CLI 13 步 + AgentRunsPage）；
 - [x] 文档和简历口径同步；
-- [x] PR CI 全绿。
+- [x] PR CI 全绿（含 `observability-integration` 阻断 Loki/Tempo）。
 
-可选增强（不阻断「核心已落地」）：UI 录屏二进制入库、生产 Tempo live 验收、真实 LLM 稳定规划。
+仍属可选增强（不阻断「核心已落地」）：
+
+- [ ] 真实 LLM 稳定自主规划（`agent-ablation-v1-llm` baseline 的 `task_success_rate` 由 nightly + API key 写入）；
+- [ ] 指南 §10.1 完整 3–5 分钟 UI 录屏（当前 `agent-production-demo.mp4` 为 pytest/CLI 证据片段）；
+- [ ] 生产环境 Tempo live 验收（CI compose 已覆盖集成测）。
 
 ---
 
