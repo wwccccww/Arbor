@@ -72,13 +72,12 @@ def _tempo_search_by_service(tempo_url: str, *, service: str = "arbor-api") -> d
 def _flush_otel_spans() -> None:
     try:
         from opentelemetry import trace
-
-        provider = trace.get_tracer_provider()
-        force_flush = getattr(provider, "force_flush", None)
-        if callable(force_flush):
-            force_flush(timeout_millis=10_000)
-    except Exception:
-        pass
+    except ImportError:
+        return
+    provider = trace.get_tracer_provider()
+    force_flush = getattr(provider, "force_flush", None)
+    if callable(force_flush):
+        force_flush(timeout_millis=10_000)
 
 
 @pytest.mark.integration
