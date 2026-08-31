@@ -135,8 +135,10 @@
 | P0-1 公平四轨消融 | `agent_ablation.py`；`eval/fixtures/agent-ablation-v1/`；`eval/baselines/agent-ablation-v1.json`；`test_agent_ablation.py` |
 | P0-2 PlannerPort | `ports/outbound/planner.py`；`LLMPlanner`/`FallbackPlanner`；`test_planner_port.py` |
 | P0-3 数字员工 PG | `postgres/employee.py`；`employee_commands.py`；`test_pg_employee_definition.py` |
-| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` fixture+baseline；`test_agent_security_smoke.py` |
-| P1-2 OpenAPI | `docs/openapi.yaml` Agent/Employee schemas；`scripts/validate_openapi_fastapi.py`；`test_openapi_fastapi_alignment.py` |
+| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` 11 cases + baseline；`test_agent_security_smoke.py` |
+| P1-2 OpenAPI/契约 | `docs/openapi.yaml` Agent/Employee/SSE schema；`validate_openapi_fastapi.py`；`tests/api/test_agent_contracts.py` + `test_agent_runs.py` + `test_chat_stream_inbox.py`；`docs/api.md` Agent 错误码 |
+| Procedural 发布 | `PublishProceduralMemory` + `POST /v1/personas/{id}/memories/{id}/publish` |
+| Persona 删除归档 | `DeletePersona` + `DELETE /v1/personas/{id}` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
-| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py`；memory-v1 +6 cases（15 total） |
-| P2 演示证据 | `adapters/inbound/demo_smoke.py`；`demo-v1` manifest+baseline；`test_demo_v1_smoke.py`；`scripts/demo-agent.sh`；录屏 `docs/demo/recordings/agent-production-demo.mp4` |
+| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py` `procedural_commands.py`；memory-v1 +6 cases（15 total）；`POST .../memories/{id}/publish` |
+| P2 演示证据 | `demo_smoke.py` e2e-agent-chain 步骤；`demo-v1` 13 步 manifest+baseline；录屏 `docs/demo/recordings/agent-production-demo.mp4` |

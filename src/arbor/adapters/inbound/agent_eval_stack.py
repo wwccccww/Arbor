@@ -20,6 +20,12 @@ from arbor.adapters.outbound.inmemory_agent import (
     InMemoryToolExecutionRepository,
     SyncAgentJobQueue,
 )
+from arbor.adapters.outbound.inmemory_artifacts import (
+    InMemoryArtifactLineageRepository,
+    InMemoryArtifactRepository,
+    InMemoryArtifactSegmentRepository,
+    InMemoryArtifactStores,
+)
 from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
 from arbor.adapters.outbound.mcp.stub_adapter import default_mcp_stub
 from arbor.adapters.outbound.tools.eval_ticket import EvalTicketTool
@@ -33,6 +39,8 @@ from arbor.application.agent.tool_executor import (
     build_default_tool_registry,
     register_mcp_stub_tools,
 )
+from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
+from arbor.application.multimodal.record_artifact import RecordArtifactEvidence
 from arbor.domain.persona.authorization import AuthorizationPolicy
 
 
@@ -112,6 +120,24 @@ def build_agent_eval_stack(
         job_queue=queue,
         advance=advance,
     )
+    artifact_stores = InMemoryArtifactStores()
+    artifacts = InMemoryArtifactRepository(artifact_stores)
+    segments = InMemoryArtifactSegmentRepository(artifact_stores)
+    lineage = InMemoryArtifactLineageRepository(artifact_stores)
+    auth = AuthorizationPolicy()
+    record_artifact = RecordArtifactEvidence(
+        personas=personas,
+        artifacts=artifacts,
+        segments=segments,
+        lineage=lineage,
+        ids=SeqIdGenerator(start=id_start + 500),
+        auth=auth,
+    )
+    invalidate_artifacts = InvalidateArtifactsForObjectUri(
+        personas=personas,
+        artifacts=artifacts,
+        auth=auth,
+    )
     return {
         "personas": personas,
         "runs": runs,
@@ -122,6 +148,11 @@ def build_agent_eval_stack(
         "eval_ticket_tool": eval_ticket,
         "flaky_ticket_tool": eval_ticket,
         "counting_ticket_tool": eval_ticket,
+        "artifacts": artifacts,
+        "artifact_segments": segments,
+        "record_artifact": record_artifact,
+        "invalidate_artifacts": invalidate_artifacts,
+        "auth": auth,
     }
 
 

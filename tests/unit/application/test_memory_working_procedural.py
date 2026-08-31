@@ -89,6 +89,17 @@ def test_working_memory_capacity_limit():
     assert exc.value.code == "WORKING_MEMORY_CAPACITY"
 
 
+def test_working_memory_clear_emits_metrics():
+    from arbor.observability.memory import InMemoryObservability
+
+    obs = InMemoryObservability()
+    item = _working(run_id="run-clear-metrics")
+    memories = _Memories([item])
+    cleared = clear_working_memory_for_run(memories, TENANT, PERSONA, "run-clear-metrics", observability=obs)
+    assert cleared == 1
+    assert any(name == "arbor_working_memory_cleared_total" for name, _, _ in obs.counters)
+
+
 def test_agent_cannot_write_procedural_from_run():
     payload = {
         "memory_class": "procedural",

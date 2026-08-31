@@ -81,6 +81,7 @@ class AdvanceAgentRun:
             run.tenant_id,
             run.persona_id,
             run.id,
+            observability=self.observability,
         )
 
     def __call__(

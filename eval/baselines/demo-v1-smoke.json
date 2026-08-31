@@ -2,25 +2,86 @@
   "suite_version": "demo-v1",
   "step_pass_rate": 1.0,
   "steps": [
-    {"id": "upload-multimodal", "ok": true},
-    {"id": "evidence-page-timestamp", "ok": true},
-    {"id": "employee-version-run", "ok": true},
-    {"id": "first-retrieve", "ok": true},
-    {"id": "tool-new-entity", "ok": true},
-    {"id": "second-retrieve", "ok": true},
-    {"id": "high-risk-approval", "ok": true},
-    {"id": "tool-timeout", "ok": true},
-    {"id": "idempotent-recovery", "ok": true},
-    {"id": "run-complete-citations", "ok": true},
-    {"id": "experience-inbox", "ok": true},
-    {"id": "tempo-trace", "ok": true}
+    {
+      "id": "upload-multimodal",
+      "title": "上传图片与语音",
+      "ok": true,
+      "detail": "layer_pass_rate=1.0"
+    },
+    {
+      "id": "evidence-page-timestamp",
+      "title": "展示页码、时间戳或区域证据",
+      "ok": true,
+      "detail": "layer_pass_rate=1.0"
+    },
+    {
+      "id": "employee-version-run",
+      "title": "创建固定岗位版本的 Run",
+      "ok": true,
+      "detail": "cases=['retrieve-only-handoff']"
+    },
+    {
+      "id": "first-retrieve",
+      "title": "首次检索",
+      "ok": true,
+      "detail": "cases=['retrieve-only-handoff']"
+    },
+    {
+      "id": "tool-new-entity",
+      "title": "工具返回新实体",
+      "ok": true,
+      "detail": "cases=['second-retrieve-after-tool']"
+    },
+    {
+      "id": "second-retrieve",
+      "title": "二次检索",
+      "ok": true,
+      "detail": "cases=['second-retrieve-after-tool']"
+    },
+    {
+      "id": "high-risk-approval",
+      "title": "高风险工具进入审批",
+      "ok": true,
+      "detail": "cases=['ticket-with-approval']"
+    },
+    {
+      "id": "tool-timeout",
+      "title": "首次调用超时",
+      "ok": true,
+      "detail": "cases=['ticket-timeout-retry']"
+    },
+    {
+      "id": "idempotent-recovery",
+      "title": "使用同一幂等键恢复",
+      "ok": true,
+      "detail": "cases=['duplicate-delivery-idempotent', 'worker-resume']"
+    },
+    {
+      "id": "run-complete-citations",
+      "title": "Run 完成并返回引用",
+      "ok": true,
+      "detail": "cases=['retrieve-only-handoff', 'ticket-with-approval']"
+    },
+    {
+      "id": "experience-inbox",
+      "title": "经验进入 Inbox",
+      "ok": true,
+      "detail": "inbox_pending=1"
+    },
+    {
+      "id": "e2e-agent-chain",
+      "title": "单栈端到端 Agent 链（检索→工具→审批→完成）",
+      "ok": true,
+      "detail": "status=completed tickets=1"
+    },
+    {
+      "id": "tempo-trace",
+      "title": "Tempo 展示完整 trace",
+      "ok": true,
+      "detail": "tests/integration/observability/test_loki_tempo_integration.py"
+    }
   ],
-  "linked_baselines": [
-    "eval/baselines/agent-v1-smoke.json",
-    "eval/baselines/multimodal-v1-smoke.json",
-    "eval/baselines/agent-ablation-v1.json",
-    "eval/baselines/agent-security-v1-smoke.json",
-    "eval/baselines/memory-v1-smoke.json"
-  ],
+  "start_command": "./scripts/run.sh",
+  "recording": "docs/demo/recordings/agent-production-demo.mp4",
   "updated_at": "2026-08-31"
 }

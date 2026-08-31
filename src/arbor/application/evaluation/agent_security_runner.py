@@ -421,27 +421,10 @@ def _scenario_conflict_policy(stack: dict, case: dict) -> tuple[bool, str]:
 
 
 def _scenario_multimodal_locator(stack: dict, case: dict) -> tuple[bool, str]:
-    from arbor.adapters.outbound.inmemory import SeqIdGenerator
-    from arbor.adapters.outbound.inmemory_artifacts import (
-        InMemoryArtifactLineageRepository,
-        InMemoryArtifactRepository,
-        InMemoryArtifactSegmentRepository,
-        InMemoryArtifactStores,
-    )
-    from arbor.application.multimodal.record_artifact import RecordArtifactEvidence
-
-    artifact_stores = InMemoryArtifactStores()
-    artifacts = InMemoryArtifactRepository(artifact_stores)
-    segments = InMemoryArtifactSegmentRepository(artifact_stores)
-    lineage = InMemoryArtifactLineageRepository(artifact_stores)
-    record = RecordArtifactEvidence(
-        personas=stack["personas"],
-        artifacts=artifacts,
-        segments=segments,
-        lineage=lineage,
-        ids=SeqIdGenerator(),
-        auth=stack["approve_step"].auth,
-    )
+    record = stack.get("record_artifact")
+    segments = stack.get("artifact_segments")
+    if record is None or segments is None:
+        return False, "artifact stack not configured"
     created = record(
         tenant_id=TENANT,
         user_id=USER,
@@ -456,32 +439,16 @@ def _scenario_multimodal_locator(stack: dict, case: dict) -> tuple[bool, str]:
 
 
 def _scenario_object_deletion(stack: dict, case: dict) -> tuple[bool, str]:
-    from arbor.adapters.outbound.inmemory import SeqIdGenerator
-    from arbor.adapters.outbound.inmemory_artifacts import (
-        InMemoryArtifactLineageRepository,
-        InMemoryArtifactRepository,
-        InMemoryArtifactSegmentRepository,
-        InMemoryArtifactStores,
-    )
-    from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
-    from arbor.application.multimodal.record_artifact import RecordArtifactEvidence
     from arbor.domain.persona.authorization import Capability
 
+    record = stack.get("record_artifact")
+    invalidate = stack.get("invalidate_artifacts")
+    artifacts = stack.get("artifacts")
+    if record is None or invalidate is None or artifacts is None:
+        return False, "artifact stack not configured"
     persona = stack["personas"].get(TENANT, LINXIA)
     if persona is not None:
         persona.grants.append(Grant(user_id=USER, capabilities=list(Capability)))
-    artifact_stores = InMemoryArtifactStores()
-    artifacts = InMemoryArtifactRepository(artifact_stores)
-    segments = InMemoryArtifactSegmentRepository(artifact_stores)
-    lineage = InMemoryArtifactLineageRepository(artifact_stores)
-    record = RecordArtifactEvidence(
-        personas=stack["personas"],
-        artifacts=artifacts,
-        segments=segments,
-        lineage=lineage,
-        ids=SeqIdGenerator(),
-        auth=stack["approve_step"].auth,
-    )
     uri = "s3://bucket/security-delete.pdf"
     created = record(
         tenant_id=TENANT,
@@ -490,11 +457,6 @@ def _scenario_object_deletion(stack: dict, case: dict) -> tuple[bool, str]:
         object_uri=uri,
         mime_type="application/pdf",
         segment_payloads=[{"modality": "text", "text": "待删除", "page_number": 1}],
-    )
-    invalidate = InvalidateArtifactsForObjectUri(
-        personas=stack["personas"],
-        artifacts=artifacts,
-        auth=stack["approve_step"].auth,
     )
     result = invalidate(
         tenant_id=TENANT,

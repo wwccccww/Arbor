@@ -1166,6 +1166,29 @@ paths:
           description: 已更新
         "403":
           $ref: "#/components/responses/Error"
+    delete:
+      tags: [Personas]
+      summary: 删除 Persona 并归档岗位定义
+      description: 需要 workspace admin；删除前将 employee_definitions 全部归档。
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: 已删除
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  employee_definitions_archived:
+                    type: integer
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
 
   /personas/{persona_id}/grants:
     put:
@@ -1475,6 +1498,40 @@ paths:
       responses:
         "204":
           description: 已删除
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/memories/{memory_id}/publish:
+    post:
+      tags: [Memory]
+      summary: 发布程序性记忆（draft → published）
+      description: 需要 workspace admin；supersede 同版本已发布项。
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: memory_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 已发布
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  memory_id:
+                    type: string
+                    format: uuid
+                  version:
+                    type: string
+                  published:
+                    type: boolean
         "403":
           $ref: "#/components/responses/Error"
         "404":

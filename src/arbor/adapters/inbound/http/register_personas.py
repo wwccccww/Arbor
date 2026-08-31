@@ -26,7 +26,6 @@ class PersonaHttpDeps:
     list_personas: Callable
     create_persona: Callable
     patch_persona: Callable
-    delete_persona: Callable | None = None
     replace_grants: Callable
     list_memories: Callable
     delete_memory: Callable
@@ -40,7 +39,9 @@ class PersonaHttpDeps:
     current_user: Callable
     workspace_admin_for: Callable
     resolve_tenant: Callable
+    delete_persona: Callable | None = None
     threads: object | None = None
+    publish_procedural_memory: Callable | None = None
 
 
 def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
@@ -231,6 +232,26 @@ def register_persona_routes(app, deps: PersonaHttpDeps) -> None:
             capabilities=caps_for(persona, user),
         )
         return Response(status_code=204)
+
+    if deps.publish_procedural_memory is not None:
+
+        @app.post("/v1/personas/{persona_id}/memories/{memory_id}/publish", status_code=200)
+        def publish_procedural_memory_route(
+            persona_id: str,
+            memory_id: str,
+            authorization: str | None = Header(default=None),
+            x_tenant_id: str | None = Header(default=None),
+        ):
+            user = deps.current_user(authorization)
+            if not x_tenant_id:
+                raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+            return deps.publish_procedural_memory(
+                tenant_id=TenantId(x_tenant_id),
+                user_id=UserId(user["user_id"]),
+                persona_id=PersonaId(persona_id),
+                memory_id=MemoryId(memory_id),
+                workspace_admin=deps.workspace_admin_for(user, x_tenant_id),
+            )
 
     @app.post("/v1/personas/{persona_id}/imports", status_code=202)
     async def post_import(

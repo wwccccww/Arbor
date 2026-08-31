@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus
 from arbor.env import working_memory_max_items
+from arbor.observability.helpers import obs_or_noop
 
 
 def _parse_iso(value: str) -> datetime | None:
@@ -108,7 +109,7 @@ def working_memory_may_enter_inbox(item: MemoryItem) -> bool:
     return bool(source.get("inbox_candidate"))
 
 
-def clear_working_memory_for_run(memories, tenant_id, persona_id, run_id: str) -> int:
+def clear_working_memory_for_run(memories, tenant_id, persona_id, run_id: str, *, observability=None) -> int:
     cleared = 0
     for item in memories.list_active(tenant_id, persona_id):
         if item.memory_class != MemoryClass.WORKING:
@@ -118,4 +119,10 @@ def clear_working_memory_for_run(memories, tenant_id, persona_id, run_id: str) -
         item.status = MemoryStatus.DELETED
         memories.save(item)
         cleared += 1
+    if cleared:
+        obs_or_noop(observability).increment(
+            "arbor_working_memory_cleared_total",
+            count=str(cleared),
+        )
+        obs_or_noop(observability).observe("arbor_working_memory_cleared_items", float(cleared))
     return cleared

@@ -10,6 +10,7 @@ from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryClass, MemoryStatus
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId, UserId
+from arbor.observability.helpers import obs_or_noop
 
 
 def _now_iso() -> str:
@@ -17,11 +18,20 @@ def _now_iso() -> str:
 
 
 class PublishProceduralMemory:
-    def __init__(self, *, personas, memories, auth: AuthorizationPolicy, audit: RecordAudit | None = None):
+    def __init__(
+        self,
+        *,
+        personas,
+        memories,
+        auth: AuthorizationPolicy,
+        audit: RecordAudit | None = None,
+        observability=None,
+    ):
         self.personas = personas
         self.memories = memories
         self.auth = auth
         self.audit = audit
+        self.observability = observability
 
     def __call__(
         self,
@@ -64,6 +74,10 @@ class PublishProceduralMemory:
         item.source = source
         item.status = MemoryStatus.ACTIVE
         self.memories.save(item)
+        obs_or_noop(self.observability).increment(
+            "arbor_procedural_memory_publish_total",
+            memory_class="procedural",
+        )
         if self.audit is not None:
             self.audit(
                 tenant_id=tenant_id,
