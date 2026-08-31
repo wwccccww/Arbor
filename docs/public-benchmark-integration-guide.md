@@ -1,6 +1,6 @@
 # 公开基准评测接入开发指南
 
-- 状态：**规划稿**（架构可落地；代码与数据尚未接入）
+- 状态：**P0 BFCL smoke 已落地**；AgentDojo / MultiHop-RAG 仍为规划
 - 适用分支：`main` 及后续 `cursor/*` 分支
 - 上游契约：[评测怎么办](evaluation.md)、[Agent 生产化补强指南](agent-production-hardening-guide.md)、[AI Agent 改造指南](ai-agent-development-guide.md)
 - 当前私有评测证据：[Phase 0–8 完成度审计](agent-phase-completion-audit.md)
@@ -397,13 +397,13 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 
 ### Phase P0 — BFCL smoke（建议 1 个 PR）
 
-- [ ] `eval/public/manifests/bfcl.json`
-- [ ] `scripts/fetch_public_benchmarks.py`
-- [ ] `bfcl_loader` + `bfcl_runner`
-- [ ] `eval/public/baselines/bfcl-smoke.json`
-- [ ] `tests/eval/public/test_bfcl_smoke.py`
-- [ ] PR CI job `public-benchmark-smoke`
-- [ ] 更新 [evaluation.md](evaluation.md) 公开基准一节
+- [x] `eval/public/manifests/bfcl.json`
+- [x] `scripts/fetch_public_benchmarks.py`
+- [x] `bfcl_loader` + `bfcl_runner`
+- [x] `eval/public/baselines/bfcl-smoke.json`
+- [x] `tests/eval/public/test_bfcl_smoke.py`
+- [x] PR CI job `agent-smoke` + `eval_cli --suite public-bfcl-smoke`
+- [x] 更新 [evaluation.md](evaluation.md) 公开基准一节
 
 ### Phase P1 — AgentDojo
 

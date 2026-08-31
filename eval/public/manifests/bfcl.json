@@ -1,0 +1,29 @@
+{
+  "benchmark_id": "bfcl",
+  "dataset_version": "smoke-v1",
+  "license": "Apache-2.0",
+  "source_url": "https://github.com/ShishirPatil/gorilla/tree/main/berkeley-function-call-leaderboard",
+  "git_ref": "gorilla/main",
+  "content_hash": null,
+  "eval_protocol": "smoke_subset",
+  "splits": {
+    "smoke": "eval/public/smoke/bfcl-smoke.json",
+    "full": "external"
+  },
+  "smoke_case_ids": [
+    "weather-single",
+    "calc-add",
+    "calc-multiply",
+    "send-email",
+    "list-files",
+    "multi-turn-book-flight",
+    "multi-tool-order",
+    "optional-param-default",
+    "enum-unit",
+    "nested-location",
+    "reject-harmful",
+    "reject-offtopic"
+  ],
+  "frozen_at": "2026-08-31",
+  "notes": "Smoke subset is curated in-repo for CI. Full BFCL fetched via scripts/fetch_public_benchmarks.py."
+}

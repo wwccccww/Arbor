@@ -35,7 +35,9 @@ BASELINE_FILES = {
     "ragas-v1": ROOT / "eval" / "baselines" / "suite-ragas-v1.json",
     "agent-v1": ROOT / "eval" / "baselines" / "agent-v1-smoke.json",
     "agent-ablation-v1": ROOT / "eval" / "baselines" / "agent-ablation-v1.json",
+    "public-bfcl-smoke": ROOT / "eval" / "public" / "baselines" / "bfcl-smoke.json",
 }
+PUBLIC_SUITES = frozenset({"public-bfcl-smoke"})
 
 
 def _baseline_dest(suite: str, embed: str) -> Path:
@@ -79,7 +81,7 @@ def _export_metrics(*, suite: str, strategy: str, metrics: dict, p0_ok: bool) ->
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="arbor-eval")
-    parser.add_argument("--suite", default="v1", choices=list(SUITE_DIRS))
+    parser.add_argument("--suite", default="v1", choices=[*SUITE_DIRS, *PUBLIC_SUITES])
     parser.add_argument("--mode", default="retrieval", choices=["retrieval", "generation", "agent"])
     parser.add_argument("--strategy", default="all", choices=["all", *STRATEGIES])
     parser.add_argument(
@@ -105,8 +107,48 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
         os.environ.setdefault("ARBOR_ALLOW_PLAN_SCRIPT", "1")
+        if args.suite in PUBLIC_SUITES:
+            if args.suite == "public-bfcl-smoke":
+                from arbor.application.evaluation.public_benchmarks.bfcl_runner import (
+                    run_bfcl_smoke,
+                )
+
+                report = run_bfcl_smoke(planner_kind="fake")
+                baseline_path = BASELINE_FILES["public-bfcl-smoke"]
+                baseline = {}
+                if baseline_path.is_file():
+                    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+                _export_metrics(
+                    suite="public-bfcl-smoke",
+                    strategy="bfcl-smoke",
+                    metrics={
+                        "function_match_rate": report.get("function_match_rate", 0.0),
+                        "argument_match_rate": report.get("argument_match_rate", 0.0),
+                        "task_success_rate": report.get("task_success_rate", 0.0),
+                    },
+                    p0_ok=(
+                        report.get("unauthorized_action_rate", 0.0) == 0.0
+                        and report.get("approval_bypass_rate", 0.0) == 0.0
+                    ),
+                )
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+                if report.get("function_match_rate", 0.0) < float(
+                    baseline.get("function_match_rate", 1.0)
+                ):
+                    return 1
+                if report.get("argument_match_rate", 0.0) < float(
+                    baseline.get("argument_match_rate", 1.0)
+                ):
+                    return 1
+                if report.get("unauthorized_action_rate", 0.0) > 0:
+                    return 1
+                if report.get("approval_bypass_rate", 0.0) > 0:
+                    return 1
+                return 0
+            print(f"unknown public suite {args.suite}", file=sys.stderr)
+            return 1
         if args.suite not in ("agent-v1", "agent-ablation-v1"):
-            print("agent mode requires --suite agent-v1 or agent-ablation-v1", file=sys.stderr)
+            print("agent mode requires --suite agent-v1, agent-ablation-v1, or public-bfcl-smoke", file=sys.stderr)
             return 1
         from arbor.adapters.inbound.agent_eval_stack import (
             agent_fixture_path,

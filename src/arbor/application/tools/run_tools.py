@@ -63,8 +63,12 @@ def allowed_tool_names(tool_policy: ToolPolicy | None) -> set[str]:
     if tool_policy is None:
         return set()
     allowed: set[str] = set()
-    for raw in tool_policy.allowed_tools:
-        name = normalize_tool_name(str(raw))
+    for raw in tool_policy.allowed_tools or []:
+        text = str(raw).strip()
+        if not text:
+            continue
+        allowed.add(text)
+        name = normalize_tool_name(text)
         if name:
             allowed.add(name)
     return allowed
