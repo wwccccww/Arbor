@@ -29,6 +29,7 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     secondary_retrieve_query,
     seed_corpus_to_memory,
     supporting_fact_recall,
+    uses_two_stage_reasoning,
 )
 from arbor.adapters.outbound.embedding import embedding_client_from_env
 from arbor.application.agent.planner import (
@@ -105,11 +106,117 @@ def _parse_multihop_answer_json(content: str) -> dict:
     return _parse_planner_json(blob)
 
 
+def _parse_json_object(content: str) -> dict:
+    blob = (content or "").strip()
+    if not blob:
+        raise DomainError("LLM_INVALID_JSON", "empty JSON output")
+    try:
+        data = json.loads(blob)
+        if isinstance(data, dict):
+            return data
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{.*\}", blob, flags=re.DOTALL)
+    if match:
+        try:
+            data = json.loads(match.group(0))
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            pass
+    raise DomainError("LLM_INVALID_JSON", "JSON object parse failed")
+
+
+def _llm_chat_json(
+    *,
+    model: str,
+    system: str,
+    user: str,
+    timeout_s: float,
+    max_tokens: int = 500,
+    require_action: bool = False,
+) -> dict:
+    key = chat_api_key()
+    if not key:
+        raise DomainError("LLM_UNAVAILABLE", "chat API key missing for multihop LLM eval")
+    response = httpx.post(
+        f"{chat_base_url()}/chat/completions",
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json={
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "max_tokens": max_tokens,
+            "temperature": 0.0,
+        },
+        timeout=timeout_s,
+    )
+    if response.status_code >= 400:
+        raise DomainError("LLM_UPSTREAM", f"multihop planner HTTP {response.status_code}")
+    content = response.json()["choices"][0]["message"]["content"]
+    if require_action:
+        return _parse_multihop_answer_json(content)
+    return _parse_json_object(content)
+
+
+def _two_stage_yes_no_answer(
+    *,
+    goal: str,
+    question_type: str,
+    evidence_ids: list[str],
+    context_manifest: dict | None,
+    model: str,
+    timeout_s: float,
+) -> dict:
+    snippets = list((context_manifest or {}).get("evidence_snippets") or [])[:6]
+    evidence_block = json.dumps(snippets, ensure_ascii=False)
+    extract_system = (
+        "You verify multi-hop questions against evidence. Return JSON only:\n"
+        '{"parts":[{"aspect":"short label for one clause/source","supported":true/false,"evidence_id":"..."}]}\n'
+        "Create one part per distinct source or sub-claim in the question. "
+        "Use supported=true only when evidence clearly supports that sub-claim."
+    )
+    extract_user = f"Question: {goal}\n\nEvidence snippets: {evidence_block}"
+    parts_payload = _llm_chat_json(
+        model=model,
+        system=extract_system,
+        user=extract_user,
+        timeout_s=timeout_s,
+        max_tokens=600,
+    )
+    parts = parts_payload.get("parts") or parts_payload.get("claims") or []
+    verdict_system = (
+        "Given extracted part support for a multi-hop question, decide the final answer.\n"
+        "Rules: Answer Yes ONLY if EVERY part has supported=true. Otherwise answer No.\n"
+        "If the question asks Agree/Disagree, use Agree/Disagree instead of Yes/No.\n"
+        'Output JSON: {"schema_version":1,"action":"answer","text":"Yes|No|Agree|Disagree","citations":[],"completion":true}'
+    )
+    verdict_user = (
+        f"Question type: {question_type}\n"
+        f"Question: {goal}\n\n"
+        f"Extracted parts: {json.dumps(parts, ensure_ascii=False)}\n\n"
+        f"Available evidence_ids: {json.dumps(evidence_ids, ensure_ascii=False)}"
+    )
+    raw = _llm_chat_json(
+        model=model,
+        system=verdict_system,
+        user=verdict_user,
+        timeout_s=timeout_s,
+        max_tokens=200,
+        require_action=True,
+    )
+    if not raw.get("citations"):
+        raw["citations"] = list(evidence_ids[:3])
+    return raw
+
+
 class MultihopLLMPlanner:
     """RAG planner tuned for short benchmark answers with mandatory citations."""
 
     planner_kind = "real"
-    planner_version = "multihop-rag-v5"
+    planner_version = "multihop-rag-v6"
 
     _MAX_RETRIEVE_HOPS = 2
 
@@ -186,6 +293,29 @@ class MultihopLLMPlanner:
 
         question_type = cfg["question_type"]
         type_hint = answer_instruction_for_type(question_type)
+
+        if uses_two_stage_reasoning(question_type):
+            raw = _two_stage_yes_no_answer(
+                goal=goal,
+                question_type=question_type,
+                evidence_ids=list(evidence_ids or []),
+                context_manifest=context_manifest,
+                model=self.model,
+                timeout_s=self.timeout_s,
+            )
+            action = validate_planner_action(self._normalize_action(raw))
+            action = filter_evidence_ids(action, list(evidence_ids or []))
+            self.last_metadata = {
+                "provider": self.provider,
+                "model": self.model,
+                "prompt_version": self.planner_version,
+                "schema_version": SCHEMA_VERSION,
+                "two_stage": True,
+            }
+            if run_metadata is not None:
+                run_metadata["planner"] = dict(self.last_metadata)
+            return action
+
         key = chat_api_key()
         if not key:
             raise DomainError("LLM_UNAVAILABLE", "chat API key missing for multihop LLM eval")

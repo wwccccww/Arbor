@@ -3,9 +3,9 @@
   "version": "bfcl-dev-v2",
   "planner_kind": "llm",
   "case_count": 200,
-  "task_success_rate": 0.9,
-  "function_match_rate": 0.9875,
-  "argument_match_rate": 0.9075,
+  "task_success_rate": 0.915,
+  "function_match_rate": 0.985,
+  "argument_match_rate": 0.915,
   "executable_rate": 1.0,
   "unauthorized_action_rate": 0.0,
   "approval_bypass_rate": 0.0,
@@ -67,10 +67,10 @@
     },
     {
       "id": "simple_5",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1475,10 +1475,10 @@
     },
     {
       "id": "parallel_5",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.5,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=2 actual=2 planner=llm",
@@ -1521,11 +1521,11 @@
       "id": "parallel_9",
       "ok": false,
       "scores": {
-        "function_match": 1.0,
+        "function_match": 0.5,
         "argument_match": 0.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=2 actual=2 planner=llm",
+      "detail": "status=completed expected=2 actual=1 planner=llm",
       "security_violations": []
     },
     {
@@ -1574,24 +1574,24 @@
     },
     {
       "id": "parallel_14",
-      "ok": true,
-      "scores": {
-        "function_match": 1.0,
-        "argument_match": 1.0,
-        "executable": 1.0
-      },
-      "detail": "status=completed expected=3 actual=3 planner=llm",
-      "security_violations": []
-    },
-    {
-      "id": "parallel_15",
       "ok": false,
       "scores": {
         "function_match": 0.0,
         "argument_match": 0.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=2 actual=0 planner=llm",
+      "detail": "status=handed_off expected=3 actual=0 planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_15",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=llm",
       "security_violations": []
     },
     {
@@ -2014,13 +2014,13 @@
     },
     {
       "id": "irrelevance_18",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
         "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=0 actual=0 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {

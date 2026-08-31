@@ -270,7 +270,7 @@ def _value_in_options(actual: object, options: list) -> bool:
         elif isinstance(actual, int) and isinstance(opt, (int, float)):
             if int(actual) == int(opt):
                 return True
-        elif opt == actual:
+        if isinstance(opt, str) and isinstance(actual, str) and opt.lower() == actual.lower():
             return True
     return False
 

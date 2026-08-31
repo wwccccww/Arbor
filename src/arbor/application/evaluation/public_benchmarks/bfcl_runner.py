@@ -43,7 +43,7 @@ class BFCFunctionCallPlanner:
     """Multi-turn function-calling planner for official BFCL eval."""
 
     planner_kind = "real"
-    planner_version = "bfcl-fc-v5"
+    planner_version = "bfcl-fc-v6"
 
     def __init__(self, *, model: str | None = None, timeout_s: float = 60.0) -> None:
         self.model = model or chat_model()
@@ -73,8 +73,8 @@ class BFCFunctionCallPlanner:
             category_hint = "Usually one tool call is enough; use exact argument types from schema. "
         elif category == "irrelevance":
             category_hint = (
-                "If no tool applies to the user request, answer immediately with completion=true "
-                "and do NOT call any tool. "
+                "If no tool directly solves the user request, answer immediately with completion=true "
+                "and do NOT call any tool. A loosely related tool is still irrelevant. "
             )
         return (
             "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
@@ -105,13 +105,33 @@ class BFCFunctionCallPlanner:
             )
         return out
 
-    def _postprocess_action(self, data: dict, *, tool_schemas: list[dict] | None) -> dict:
+    def _postprocess_action(
+        self,
+        data: dict,
+        *,
+        tool_schemas: list[dict] | None,
+        goal: str = "",
+    ) -> dict:
         data = normalize_planner_tool_payload(data)
         if str(data.get("action") or "").lower() == "tool":
             tool_name = str(data.get("tool_name") or "")
             schema = schema_for_tool_name(tool_name, self._tool_schema_list(tool_schemas))
-            data["arguments"] = coerce_tool_arguments(dict(data.get("arguments") or {}), schema)
+            args = coerce_tool_arguments(dict(data.get("arguments") or {}), schema)
+            args = self._apply_goal_argument_hints(goal, args, schema)
+            data["arguments"] = args
         return validate_planner_action(data)
+
+    @staticmethod
+    def _apply_goal_argument_hints(goal: str, arguments: dict, schema: dict) -> dict:
+        args = dict(arguments or {})
+        props = dict(schema.get("properties") or {})
+        goal_low = (goal or "").lower()
+        if "root_type" in props and "root_type" not in args:
+            if "all root" in goal_low or "all the root" in goal_low:
+                args["root_type"] = "all"
+            elif "real root" in goal_low:
+                args["root_type"] = "real"
+        return args
 
     def _chat_completion(self, *, messages: list[dict]) -> dict:
         key = chat_api_key()
@@ -217,7 +237,7 @@ class BFCFunctionCallPlanner:
             )
         data = self._chat_completion(messages=messages)
         try:
-            action = self._postprocess_action(data, tool_schemas=tool_schemas)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
         except DomainError as exc:
             if exc.code != "VALIDATION_ERROR":
                 raise
@@ -238,7 +258,7 @@ class BFCFunctionCallPlanner:
                 }
             )
             data = self._chat_completion(messages=messages)
-            action = self._postprocess_action(data, tool_schemas=tool_schemas)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
         if (
             category == "irrelevance"
             and not tool_steps
@@ -254,13 +274,27 @@ class BFCFunctionCallPlanner:
                 {
                     "role": "user",
                     "content": (
-                        "No tool applies to this request. Do NOT call any tool. "
+                        "That tool does not directly answer the request. Do NOT call any tool. "
                         "Return one JSON answer action with completion=true."
                     ),
                 }
             )
             data = self._chat_completion(messages=messages)
-            action = self._postprocess_action(data, tool_schemas=tool_schemas)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
+        if (
+            category == "irrelevance"
+            and not tool_steps
+            and str(action.get("action") or "").lower() == "tool"
+        ):
+            action = validate_planner_action(
+                {
+                    "schema_version": 1,
+                    "action": "answer",
+                    "text": "No applicable tool for this request.",
+                    "citations": [],
+                    "completion": True,
+                }
+            )
         self.last_metadata = {
             "provider": "deepseek",
             "model": self.model,
@@ -275,16 +309,14 @@ class BFCFunctionCallPlanner:
 
 def _coerce_actual_calls(actual_calls: list[dict], case: dict) -> list[dict]:
     tool_schemas = [{"function": fn} for fn in list(case.get("functions") or [])]
+    goal = str(case.get("goal") or "")
     coerced: list[dict] = []
     for call in actual_calls:
         name = str(call.get("name") or call.get("tool_name") or "")
         schema = schema_for_tool_name(name, tool_schemas)
-        coerced.append(
-            {
-                "name": name,
-                "arguments": coerce_tool_arguments(dict(call.get("arguments") or {}), schema),
-            }
-        )
+        args = coerce_tool_arguments(dict(call.get("arguments") or {}), schema)
+        args = BFCFunctionCallPlanner._apply_goal_argument_hints(goal, args, schema)
+        coerced.append({"name": name, "arguments": args})
     return coerced
 
 

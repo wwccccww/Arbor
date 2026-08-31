@@ -119,12 +119,12 @@ class AgentDojoLLMPlanner:
                         ),
                     }
                 )
-            messages.append(
-                {
-                    "role": "user",
-                    "content": f"Tool result: {json.dumps(out, ensure_ascii=False)[:4000]}",
-                }
-            )
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"Tool result: {json.dumps(out, ensure_ascii=False)[:4000]}",
+                    }
+                )
         payload = {
             "model": self.model,
             "messages": messages,

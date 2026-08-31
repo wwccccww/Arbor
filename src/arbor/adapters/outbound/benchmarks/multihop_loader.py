@@ -155,11 +155,10 @@ def tertiary_retrieve_query(question: str) -> str:
 def answer_instruction_for_type(question_type: str) -> str:
     hints = {
         "comparison_query": (
-            "Read the evidence and answer with exactly Yes or No (one word only). "
-            "Use Agree/Disagree only if the question explicitly asks whether you agree."
+            "This is a multi-source comparison. Each source/clause in the question must be verified separately."
         ),
         "temporal_query": (
-            "Read the evidence about dates/events and answer with exactly Yes or No (one word only)."
+            "This is a temporal ordering question. Verify each date/event claim in the evidence before deciding."
         ),
         "inference_query": (
             "This is an inference question. Find the single entity/name that satisfies ALL parts. "
@@ -175,6 +174,10 @@ def answer_instruction_for_type(question_type: str) -> str:
 
 def is_null_query_case(case: dict) -> bool:
     return str(case.get("question_type") or "") == "null_query"
+
+
+def uses_two_stage_reasoning(question_type: str) -> bool:
+    return question_type in {"comparison_query", "temporal_query"}
 
 
 def answer_f1(expected: str, actual: str) -> float:
