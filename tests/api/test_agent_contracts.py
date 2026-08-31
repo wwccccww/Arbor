@@ -100,3 +100,63 @@ def test_delete_persona_forbidden_without_admin():
         headers=_headers(token="token-b"),
     )
     assert response.status_code == 403
+
+
+def test_agent_run_steps_success_and_forbidden():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers=_headers(),
+        json={"goal": "步骤列表测试"},
+    )
+    assert created.status_code == 202
+    run_id = created.json()["id"]
+    ok = client.get(f"/v1/agent-runs/{run_id}/steps", headers=_headers())
+    assert ok.status_code == 200
+    assert isinstance(ok.json().get("steps"), list)
+    forbidden = client.get(f"/v1/agent-runs/{run_id}/steps", headers=_headers(token="token-b"))
+    assert forbidden.status_code == 403
+
+
+def test_cancel_and_resume_unauthenticated():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    created = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers=_headers(),
+        json={"goal": "未认证测试"},
+    )
+    run_id = created.json()["id"]
+    cancel = client.post(f"/v1/agent-runs/{run_id}/cancel", headers={"X-Tenant-Id": TENANT})
+    assert cancel.status_code == 401
+    resume = client.post(f"/v1/agent-runs/{run_id}/resume", headers={"X-Tenant-Id": TENANT})
+    assert resume.status_code == 401
+
+
+def test_agent_eval_runs_admin_success_and_member_forbidden():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    ok = client.post("/v1/agent-eval/runs", headers=_headers())
+    assert ok.status_code == 200
+    assert ok.json().get("suite_version") == "agent-v1"
+    denied = client.post("/v1/agent-eval/runs", headers=_headers(token="token-b"))
+    assert denied.status_code == 403
+
+
+def test_agent_eval_runs_unauthenticated():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.post("/v1/agent-eval/runs", headers={"X-Tenant-Id": TENANT})
+    assert response.status_code == 401
+
+
+def test_employee_definition_unauthenticated():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.get(
+        f"/v1/personas/{LINXIA}/employee-definition",
+        headers={"X-Tenant-Id": TENANT},
+    )
+    assert response.status_code == 401
+
+
+def test_approvals_unauthenticated():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.get("/v1/approvals", headers={"X-Tenant-Id": TENANT})
+    assert response.status_code == 401

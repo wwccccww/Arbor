@@ -75,7 +75,7 @@
 | 步骤树 UI | `step_tree.py`；`AgentStepTree.tsx` |
 | 延迟/成本 + eval_runs 入库 | `advance_run.py` metadata；`StartAgentEvalRun` → `eval_runs`；`test_start_agent_eval.py` |
 | Run → Tempo trace | `start_run`/`advance_run` `request_id`/`trace_id`；`cancel_run._run_dict`；`AgentRunsPage` Tempo/Loki 链接 |
-| 演示录屏 | `docs/demo-script.md` + `docs/demo/recordings/agent-production-demo.mp4` |
+| 演示录屏 | `docs/demo-script.md` + 离线 demo-v1（13 步）；录屏二进制待入库 |
 
 ## Phase 7：数字员工治理
 
@@ -141,4 +141,4 @@
 | Persona 删除归档 | `DeletePersona` + `DELETE /v1/personas/{id}` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
 | P1-4 四类记忆 | `working_memory.py` `procedural_memory.py` `procedural_commands.py`；memory-v1 +6 cases（15 total）；`POST .../memories/{id}/publish` |
-| P2 演示证据 | `demo_smoke.py` e2e-agent-chain 步骤；`demo-v1` 13 步 manifest+baseline；录屏 `docs/demo/recordings/agent-production-demo.mp4` |
+| P2 演示证据 | `demo_smoke.py` e2e-agent-chain 步骤；`demo-v1` 13 步 manifest+baseline；`docs/demo-script.md` + `004-production-hardening-evidence.md`（录屏待入库） |

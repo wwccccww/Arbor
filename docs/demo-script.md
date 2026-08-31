@@ -41,13 +41,13 @@
 | 3:00 | 返回 **记忆体检** → demo-v1 链接 baselines | 见 `eval/fixtures/demo-v1/expected-output.md` |
 | 3:30 | （可选）Grafana/Tempo 链接或 Debug 页 | request_id 可搜到 agent.run trace |
 
-离线十二步证据链（无需 UI）：
+离线十三步证据链（含 e2e-agent-chain，无需 UI）：
 
 ```bash
 python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
 ```
 
-录屏文件（验证后入库）：`docs/demo/recordings/agent-production-demo.mp4`
+录屏：按指南 §10.2 验证后入库至 `docs/demo/recordings/agent-production-demo.mp4`（当前仓库未包含二进制录屏；离线 manifest+baseline 已可复现）
 
 ## Agent 故障注入彩排（约 3 分钟）
 

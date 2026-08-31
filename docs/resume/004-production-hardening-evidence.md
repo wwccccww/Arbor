@@ -8,7 +8,7 @@
 |------|------|
 | 本地工作台 | `./scripts/run.sh` |
 | Agent 演示 + 证据链 | `./scripts/demo-agent.sh` |
-| 十二步离线验证 | `python3 -m pytest tests/eval/test_demo_v1_smoke.py -q` |
+| 十三步离线验证 | `python3 -m pytest tests/eval/test_demo_v1_smoke.py -q` |
 
 ## 评测与 baseline（离线、Fake Planner）
 
@@ -19,7 +19,7 @@
 | 安全场景 | `agent-security-v1/` | `agent-security-v1-smoke.json` | `test_agent_security_smoke.py` |
 | 记忆生命周期 | `memory-v1/`（15 cases） | `memory-v1-smoke.json` | `test_memory_smoke.py` |
 | 多模态证据 | `multimodal-v1/` | `multimodal-v1-smoke.json` | `test_multimodal_smoke.py` |
-| **演示证据链** | `demo-v1/manifest.json` | `demo-v1-smoke.json` | `test_demo_v1_smoke.py` |
+| **演示证据链** | `demo-v1/manifest.json`（13 步含 e2e-agent-chain） | `demo-v1-smoke.json` | `test_demo_v1_smoke.py` |
 
 ## P0 指标口径（均为 0 才过 gate）
 
