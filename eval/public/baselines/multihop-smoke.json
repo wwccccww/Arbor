@@ -1,0 +1,101 @@
+{
+  "benchmark_id": "multihop",
+  "version": "multihop-smoke-v1",
+  "planner_kind": "fake",
+  "case_count": 5,
+  "task_success_rate": 1.0,
+  "supporting_fact_recall": 1.0,
+  "answer_em": 1.0,
+  "answer_f1": 1.0,
+  "citation_precision": 1.0,
+  "citation_recall": 1.0,
+  "faithfulness": 1.0,
+  "avg_retrieve_rounds": 1.2,
+  "tenant_leak_rate": 0.0,
+  "cases": [
+    {
+      "id": "hop-2-ceo-acquirer",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-doc-acquire', 'mh-doc-ceo'] citations=['mh-doc-acquire', 'mh-doc-ceo']",
+      "security_violations": []
+    },
+    {
+      "id": "hop-2-hq-acquirer",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-doc-acquire', 'mh-doc-hq'] citations=['mh-doc-acquire', 'mh-doc-hq']",
+      "security_violations": []
+    },
+    {
+      "id": "hop-3-labs-city",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 2.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-doc-bridge-2', 'mh-doc-bridge-3', 'mh-doc-bridge-4'] citations=['mh-doc-bridge-2', 'mh-doc-bridge-3', 'mh-doc-bridge-4']",
+      "security_violations": []
+    },
+    {
+      "id": "hop-tenant-isolation",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-doc-ceo'] citations=['mh-doc-ceo']",
+      "security_violations": []
+    },
+    {
+      "id": "hop-founder-bridge",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-doc-acquire', 'mh-doc-founder'] citations=['mh-doc-acquire', 'mh-doc-founder']",
+      "security_violations": []
+    }
+  ],
+  "suite_version": "multihop-smoke-v1",
+  "description": "Curated MultiHop-RAG-style smoke with in-memory benchmark corpus (not suite-v1).",
+  "eval_protocol": "smoke_subset",
+  "corpus_doc_count": 10
+}

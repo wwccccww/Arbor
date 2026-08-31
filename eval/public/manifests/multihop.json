@@ -1,0 +1,30 @@
+{
+  "benchmark_id": "multihop",
+  "dataset_version": "dev-v1",
+  "license": "MIT",
+  "source_url": "https://huggingface.co/datasets/yixuantt/MultiHopRAG",
+  "git_ref": "main",
+  "content_hash": null,
+  "eval_protocol": "official_dev_subset",
+  "splits": {
+    "smoke": "eval/public/smoke/multihop-smoke.json",
+    "dev": "eval/public/dev/multihop-dev.json",
+    "full": "external",
+    "corpus": "eval/public/corpora/multihop"
+  },
+  "dev_stratified_limits": {
+    "inference_query": 30,
+    "comparison_query": 30,
+    "temporal_query": 25,
+    "null_query": 15
+  },
+  "smoke_case_ids": [
+    "hop-2-ceo-acquirer",
+    "hop-2-hq-acquirer",
+    "hop-3-labs-city",
+    "hop-tenant-isolation",
+    "hop-founder-bridge"
+  ],
+  "frozen_at": "2026-08-31",
+  "notes": "Smoke + official 100-query dev subset in-repo. Rebuild via scripts/build_multihop_dev_subset.py."
+}

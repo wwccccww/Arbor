@@ -1,0 +1,188 @@
+{
+  "benchmark_id": "multihop",
+  "suite_version": "multihop-smoke-v1",
+  "description": "Curated MultiHop-RAG-style smoke with in-memory benchmark corpus (not suite-v1).",
+  "planner_kind": "fake",
+  "corpus": [
+    {
+      "id": "mh-doc-acquire",
+      "title": "StartupX acquisition",
+      "text": "MegaCorp acquired StartupX in 2024 for 2 billion dollars.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-ceo",
+      "title": "MegaCorp leadership",
+      "text": "Jane Doe is the CEO of MegaCorp since 2022.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-hq",
+      "title": "MegaCorp headquarters",
+      "text": "MegaCorp headquarters is located in San Francisco.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-founder",
+      "title": "StartupX founder",
+      "text": "Alex Kim founded StartupX in 2018.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-rival",
+      "title": "RivalCo product",
+      "text": "RivalCo launched CloudMesh in 2023.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-secret-b",
+      "title": "Tenant B payroll",
+      "text": "Tenant B confidential payroll totals 4.2M.",
+      "tenant_id": "tenant-b"
+    },
+    {
+      "id": "mh-doc-bridge-1",
+      "title": "River city mayor",
+      "text": "Mayor Chen governs River City.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-bridge-2",
+      "title": "River City university",
+      "text": "River City University is led by President Lopez.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-bridge-3",
+      "title": "Lopez background",
+      "text": "President Lopez previously worked at National Labs.",
+      "tenant_id": "tenant-a"
+    },
+    {
+      "id": "mh-doc-bridge-4",
+      "title": "National Labs location",
+      "text": "National Labs main campus is in Austin Texas.",
+      "tenant_id": "tenant-a"
+    }
+  ],
+  "cases": [
+    {
+      "id": "hop-2-ceo-acquirer",
+      "question": "Who is the CEO of the company that acquired StartupX?",
+      "supporting_fact_ids": ["mh-doc-acquire", "mh-doc-ceo"],
+      "expected_answer": "Jane Doe",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "StartupX acquisition MegaCorp",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-acquire", "mh-doc-ceo"]
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "Jane Doe",
+          "citations": ["mh-doc-acquire", "mh-doc-ceo"],
+          "completion": true
+        }
+      ]
+    },
+    {
+      "id": "hop-2-hq-acquirer",
+      "question": "Where is the headquarters of the company that acquired StartupX?",
+      "supporting_fact_ids": ["mh-doc-acquire", "mh-doc-hq"],
+      "expected_answer": "San Francisco",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "MegaCorp headquarters acquisition StartupX",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-acquire", "mh-doc-hq"]
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "San Francisco",
+          "citations": ["mh-doc-acquire", "mh-doc-hq"],
+          "completion": true
+        }
+      ]
+    },
+    {
+      "id": "hop-3-labs-city",
+      "question": "In which city is the main campus of the organization where River City's university president previously worked?",
+      "supporting_fact_ids": ["mh-doc-bridge-2", "mh-doc-bridge-3", "mh-doc-bridge-4"],
+      "expected_answer": "Austin Texas",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "River City University President Lopez National Labs",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-bridge-2", "mh-doc-bridge-3"]
+        },
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "National Labs Austin campus",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-bridge-4"]
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "Austin Texas",
+          "citations": ["mh-doc-bridge-2", "mh-doc-bridge-3", "mh-doc-bridge-4"],
+          "completion": true
+        }
+      ]
+    },
+    {
+      "id": "hop-tenant-isolation",
+      "question": "What is Tenant A public info about MegaCorp CEO?",
+      "supporting_fact_ids": ["mh-doc-ceo"],
+      "forbidden_tenant_doc_ids": ["mh-doc-secret-b"],
+      "expected_answer": "Jane Doe",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "MegaCorp CEO Jane Doe",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-ceo"]
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "Jane Doe",
+          "citations": ["mh-doc-ceo"],
+          "completion": true
+        }
+      ]
+    },
+    {
+      "id": "hop-founder-bridge",
+      "question": "Who founded the company that MegaCorp acquired?",
+      "supporting_fact_ids": ["mh-doc-acquire", "mh-doc-founder"],
+      "expected_answer": "Alex Kim",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "StartupX founder acquisition",
+          "scopes": ["semantic_memory"],
+          "expected_hit_ids": ["mh-doc-acquire", "mh-doc-founder"]
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "Alex Kim",
+          "citations": ["mh-doc-acquire", "mh-doc-founder"],
+          "completion": true
+        }
+      ]
+    }
+  ]
+}

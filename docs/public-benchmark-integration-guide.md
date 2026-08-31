@@ -1,6 +1,6 @@
 # 公开基准评测接入开发指南
 
-- 状态：**规划稿**（架构可落地；代码与数据尚未接入）
+- 状态：**P0–P3 + 档位 A dev 已全部落地**（BFCL 200 / AgentDojo 46 / MultiHop 100 + smoke + CI + 简历包）
 - 适用分支：`main` 及后续 `cursor/*` 分支
 - 上游契约：[评测怎么办](evaluation.md)、[Agent 生产化补强指南](agent-production-hardening-guide.md)、[AI Agent 改造指南](ai-agent-development-guide.md)
 - 当前私有评测证据：[Phase 0–8 完成度审计](agent-phase-completion-audit.md)
@@ -63,6 +63,7 @@
 ```text
 eval/public/manifests/          # 数据集版本、许可、下载 URL、hash
 eval/public/smoke/                # PR 用小样本（10～50 cases）
+eval/public/dev/                  # 官方 dev 冻结子集（档位 A：200/46/100）
 eval/public/baselines/            # 公开基准 baseline（与私有 baseline 分目录）
 
 src/arbor/application/evaluation/public_benchmarks/
@@ -79,8 +80,12 @@ src/arbor/adapters/outbound/benchmarks/
 
 tests/eval/public/
 ├── test_bfcl_smoke.py
+├── test_bfcl_dev.py
+├── test_bfcl_llm_dev.py
 ├── test_agentdojo_smoke.py
-└── test_multihop_smoke.py
+├── test_agentdojo_dev.py
+├── test_multihop_smoke.py
+└── test_multihop_dev.py
 ```
 
 ### 3.2 与现有组件的对接
@@ -397,43 +402,46 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 
 ### Phase P0 — BFCL smoke（建议 1 个 PR）
 
-- [ ] `eval/public/manifests/bfcl.json`
-- [ ] `scripts/fetch_public_benchmarks.py`
-- [ ] `bfcl_loader` + `bfcl_runner`
-- [ ] `eval/public/baselines/bfcl-smoke.json`
-- [ ] `tests/eval/public/test_bfcl_smoke.py`
-- [ ] PR CI job `public-benchmark-smoke`
-- [ ] 更新 [evaluation.md](evaluation.md) 公开基准一节
+- [x] `eval/public/manifests/bfcl.json`
+- [x] `scripts/fetch_public_benchmarks.py`
+- [x] `bfcl_loader` + `bfcl_runner`
+- [x] `eval/public/baselines/bfcl-smoke.json`
+- [x] `tests/eval/public/test_bfcl_smoke.py`
+- [x] PR CI job `agent-smoke` + `eval_cli --suite public-bfcl-smoke`
+- [x] 更新 [evaluation.md](evaluation.md) 公开基准一节
+- [x] **档位 A**：官方 dev **200 题**（`build_bfcl_dev_subset.py`）；`public-bfcl-dev` + LLM nightly
 
 ### Phase P1 — AgentDojo
 
-- [ ] workspace adapter + security 副作用检查
-- [ ] utility / attack_success 分栏报告
-- [ ] smoke：至少 1 个正常任务 + 1 个注入任务
+- [x] workspace adapter + security 副作用检查
+- [x] utility / attack_success 分栏报告
+- [x] smoke：至少 1 个正常任务 + 1 个注入任务
+- [x] **档位 A**：workspace 满集 **46 题**（40 utility + 6 injection）；`public-agentdojo-dev`
 
 ### Phase P2 — MultiHop-RAG
 
-- [ ] 独立 corpus 索引
-- [ ] supporting fact + citation 指标
-- [ ] 与 `suite-ragas-v1` 文档分栏
+- [x] 独立 corpus 索引
+- [x] supporting fact + citation 指标
+- [x] 与 `suite-ragas-v1` 文档分栏
+- [x] **档位 A**：官方 HF 分层 dev **100 题**；`public-multihop-dev`
 
 ### Phase P3 — 报告与简历包
 
-- [ ] `docs/resume/` 增加公开基准结果表
-- [ ] Checkup 或静态页展示「私有 vs 公开」对比
-- [ ] 原始输出归档路径（artifact 或 `eval/public/runs/`）
+- [x] `docs/resume/` 增加公开基准结果表
+- [x] Checkup 或静态页展示「私有 vs 公开」对比
+- [x] 原始输出归档路径（artifact 或 `eval/public/runs/`）
 
 ---
 
 ## 11. 每个工作包完成定义
 
-- [ ] Manifest + 许可 + hash 校验
-- [ ] Runner 不依赖 adapters 反向污染 domain
-- [ ] Smoke baseline + 对齐测试
-- [ ] P0 安全指标确定性验证
-- [ ] Fake 与 Real 分轨 baseline
-- [ ] CI 或 nightly 可复现命令写入文档
-- [ ] 简历表述与 [agent-production-hardening-guide.md §1](agent-production-hardening-guide.md) 边界一致
+- [x] Manifest + 许可 + hash 校验（`scripts/fetch_public_benchmarks.py` smoke 校验）
+- [x] Runner 不依赖 adapters 反向污染 domain
+- [x] Smoke baseline + 对齐测试
+- [x] P0 安全指标确定性验证
+- [x] Fake 与 Real 分轨 baseline（Fake：`eval/public/baselines/*-smoke.json`；Real：nightly → `eval/public/runs/`）
+- [x] CI 或 nightly 可复现命令写入文档
+- [x] 简历表述与 [agent-production-hardening-guide.md §1](agent-production-hardening-guide.md) 边界一致
 
 ---
 
@@ -506,7 +514,7 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 
 ---
 
-## 14. 与当前基线数字的关系（2026-08-31）
+## 14. 与当前基线数字的关系（2026-08-31 · 档位 A）
 
 私有评测当前可参考：
 
@@ -518,16 +526,25 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 | `suite-v1` layered_tree | Recall@5 100%，泄漏 0 | RAG 烟雾 |
 | `demo-v1` | 13 步 100% | 演示证据 |
 
-公开基准接入后，简历与对外材料应使用 **双栏表**：
+公开基准 dev（Fake Planner CI + Nightly LLM 分轨）：
+
+| 套件 | Cases | 关键指标（2026-08-31） |
+|---|---:|---|
+| `public-bfcl-dev` | 200 | fake task 1.0 |
+| `public-bfcl-dev-llm` | 200 | LLM task **0.64** / function **0.94** / argument **0.66** |
+| `public-agentdojo-dev` | 46 | utility 1.0 / attack 0.0 |
+| `public-multihop-dev` | 100 | supporting_recall 1.0（fake plan_script） |
+
+公开基准接入后，简历与对外材料应使用 **双栏表**（详见 [public-benchmark-results.md](resume/public-benchmark-results.md)）：
 
 ```text
-维度          | 私有冻结评测     | 公开基准（BFCL / Dojo / MultiHop）
-任务质量      | agent-v1 100%   | BFCL argument_match xx%
-安全          | security P0=0   | AgentDojo attack_success 0%
-多跳检索      | suite-v1 100%   | MultiHop supporting_recall xx%
+维度          | 私有冻结评测     | 公开基准 dev（档位 A）
+任务质量      | agent-v1 100%   | BFCL LLM function_match 94%（200 题 dev 子集）
+安全          | security P0=0   | AgentDojo attack_success 0%（46 题 workspace）
+多跳检索      | suite-v1 100%   | MultiHop supporting_recall 100%（100 题 dev）
 ```
 
-不得用私有 100% 暗示公开 SOTA。
+不得用私有 100% 暗示公开 SOTA；dev 子集不得写成完整榜单成绩。
 
 ---
 

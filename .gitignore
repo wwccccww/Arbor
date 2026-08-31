@@ -33,3 +33,6 @@ data/
 
 # Eval artifacts
 eval/output/
+eval/public/corpora/
+eval/public/external/
+eval/public/runs/*.json

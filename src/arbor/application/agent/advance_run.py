@@ -133,7 +133,12 @@ class AdvanceAgentRun:
         prior_steps = self.steps.list_for_run(tenant_id, run_id)
         evidence_ids = list(run.metadata.get("evidence_ids") or [])
         step_summaries = [
-            {"kind": step.kind.value, "status": step.status.value, "output": step.output}
+            {
+                "kind": step.kind.value,
+                "status": step.status.value,
+                "input": dict(step.input or {}),
+                "output": step.output,
+            }
             for step in prior_steps
         ]
 

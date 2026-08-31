@@ -1,0 +1,36 @@
+{
+  "benchmark_id": "bfcl",
+  "dataset_version": "v3-dev-200",
+  "license": "Apache-2.0",
+  "source_url": "https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+  "git_ref": "main",
+  "content_hash": null,
+  "eval_protocol": "official_dev_subset",
+  "splits": {
+    "smoke": "eval/public/smoke/bfcl-smoke.json",
+    "dev": "eval/public/dev/bfcl-dev.json",
+    "full": "eval/public/external/bfcl"
+  },
+  "dev_categories": [
+    {"file": "BFCL_v3_simple.json", "limit": 73},
+    {"file": "BFCL_v3_multiple.json", "limit": 55},
+    {"file": "BFCL_v3_parallel.json", "limit": 36},
+    {"file": "BFCL_v3_irrelevance.json", "limit": 36}
+  ],
+  "smoke_case_ids": [
+    "weather-single",
+    "calc-add",
+    "calc-multiply",
+    "send-email",
+    "list-files",
+    "multi-turn-book-flight",
+    "multi-tool-order",
+    "optional-param-default",
+    "enum-unit",
+    "nested-location",
+    "reject-harmful",
+    "reject-offtopic"
+  ],
+  "frozen_at": "2026-08-31",
+  "notes": "Dev 200-case split frozen from official HF JSONL via scripts/build_bfcl_dev_subset.py."
+}
