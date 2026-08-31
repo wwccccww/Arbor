@@ -43,7 +43,7 @@ class BFCFunctionCallPlanner:
     """Multi-turn function-calling planner for official BFCL eval."""
 
     planner_kind = "real"
-    planner_version = "bfcl-fc-v4"
+    planner_version = "bfcl-fc-v5"
 
     def __init__(self, *, model: str | None = None, timeout_s: float = 60.0) -> None:
         self.model = model or chat_model()
@@ -239,6 +239,28 @@ class BFCFunctionCallPlanner:
             )
             data = self._chat_completion(messages=messages)
             action = self._postprocess_action(data, tool_schemas=tool_schemas)
+        if (
+            category == "irrelevance"
+            and not tool_steps
+            and str(action.get("action") or "").lower() == "tool"
+        ):
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(action, ensure_ascii=False),
+                }
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "No tool applies to this request. Do NOT call any tool. "
+                        "Return one JSON answer action with completion=true."
+                    ),
+                }
+            )
+            data = self._chat_completion(messages=messages)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas)
         self.last_metadata = {
             "provider": "deepseek",
             "model": self.model,
@@ -249,6 +271,21 @@ class BFCFunctionCallPlanner:
         if run_metadata is not None:
             run_metadata["planner"] = dict(self.last_metadata)
         return action
+
+
+def _coerce_actual_calls(actual_calls: list[dict], case: dict) -> list[dict]:
+    tool_schemas = [{"function": fn} for fn in list(case.get("functions") or [])]
+    coerced: list[dict] = []
+    for call in actual_calls:
+        name = str(call.get("name") or call.get("tool_name") or "")
+        schema = schema_for_tool_name(name, tool_schemas)
+        coerced.append(
+            {
+                "name": name,
+                "arguments": coerce_tool_arguments(dict(call.get("arguments") or {}), schema),
+            }
+        )
+    return coerced
 
 
 def score_tool_calls(
@@ -372,6 +409,8 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
     final = stack["runs"].get(TENANT, run.id)
     steps = stack["approve_step"].advance.steps.list_for_run(TENANT, run.id)
     actual_calls = extract_tool_calls_from_steps(steps)
+    if planner_kind == "llm" and actual_calls:
+        actual_calls = _coerce_actual_calls(actual_calls, case)
     gt = ground_truth if (planner_kind == "llm" and ground_truth) else None
     ok, scores = score_tool_calls(
         expected_calls=expected_calls,

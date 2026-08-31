@@ -15,6 +15,7 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     answer_f1,
     citation_precision,
     citation_recall,
+    compact_retrieve_query,
     expected_from_plan_script,
     extract_answer_from_steps,
     faithfulness,
@@ -50,7 +51,7 @@ class MultihopLLMPlanner:
     """RAG planner tuned for short benchmark answers with mandatory citations."""
 
     planner_kind = "real"
-    planner_version = "multihop-rag-v2"
+    planner_version = "multihop-rag-v3"
 
     def __init__(
         self,
@@ -94,13 +95,14 @@ class MultihopLLMPlanner:
     ) -> dict:
         del plan_script
         if not any(s.get("kind") == "retrieve" for s in steps):
+            query = compact_retrieve_query(goal)
             return validate_planner_action(
                 {
                     "schema_version": SCHEMA_VERSION,
                     "action": "retrieve",
-                    "query": goal,
+                    "query": query or goal,
                     "scopes": ["semantic_memory", "procedural_memory", "episodic_memory"],
-                    "reason": "gather evidence for multihop question",
+                    "reason": "entity-focused first hop for multihop question",
                 }
             )
         enriched_goal = (

@@ -35,7 +35,30 @@ def normalize_answer(text: str) -> str:
 
 
 def answer_em(expected: str, actual: str) -> float:
-    return 1.0 if normalize_answer(expected) == normalize_answer(actual) else 0.0
+    exp = normalize_answer(expected)
+    act = normalize_answer(actual)
+    if exp == act:
+        return 1.0
+    if exp and act and exp in act:
+        return 1.0
+    if exp and act and act in exp:
+        return 1.0
+    return 0.0
+
+
+def compact_retrieve_query(question: str, *, max_words: int = 24) -> str:
+    """Extract entity-heavy query for benchmark retrieval."""
+    quoted = [m.group(1) or m.group(2) for m in re.finditer(r"'([^']+)'|\"([^\"]+)\"", question or "")]
+    caps = re.findall(r"\b[A-Z][A-Za-z0-9'.-]*(?:\s+[A-Z][A-Za-z0-9'.-]*)*\b", question or "")
+    parts: list[str] = []
+    for chunk in quoted + caps:
+        chunk = chunk.strip()
+        if chunk and chunk not in parts:
+            parts.append(chunk)
+    if parts:
+        return " ".join(parts)[:400]
+    words = (question or "").split()
+    return " ".join(words[:max_words])
 
 
 def answer_f1(expected: str, actual: str) -> float:

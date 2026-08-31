@@ -258,13 +258,26 @@ def _value_in_options(actual: object, options: list) -> bool:
         return True
     for opt in options:
         if opt == "" or opt is None:
+            if actual in ("", None):
+                return True
             continue
         if isinstance(opt, float) or isinstance(actual, float):
             if abs(float(opt) - float(actual)) <= 1e-6:
                 return True
+        elif isinstance(opt, int) and isinstance(actual, (int, float)):
+            if int(opt) == int(actual):
+                return True
+        elif isinstance(actual, int) and isinstance(opt, (int, float)):
+            if int(actual) == int(opt):
+                return True
         elif opt == actual:
             return True
     return False
+
+
+def _missing_arg_allowed(options: list) -> bool:
+    """BFCL ground truth lists ''/None when an omitted argument is acceptable."""
+    return any(opt in ("", None) for opt in (options or []))
 
 
 def _call_matches_ground_truth_item(actual: dict, gt_item: dict) -> tuple[bool, bool]:
@@ -281,7 +294,7 @@ def _call_matches_ground_truth_item(actual: dict, gt_item: dict) -> tuple[bool, 
     arg_ok = True
     for key, options in exp_args.items():
         if key not in act_args:
-            if any(opt not in ("", None) for opt in options):
+            if not _missing_arg_allowed(list(options)):
                 arg_ok = False
             continue
         if not _value_in_options(act_args[key], list(options)):

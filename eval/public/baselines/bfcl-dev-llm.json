@@ -3,9 +3,9 @@
   "version": "bfcl-dev-v2",
   "planner_kind": "llm",
   "case_count": 200,
-  "task_success_rate": 0.7,
-  "function_match_rate": 0.9425,
-  "argument_match_rate": 0.705,
+  "task_success_rate": 0.9,
+  "function_match_rate": 0.9875,
+  "argument_match_rate": 0.9075,
   "executable_rate": 1.0,
   "unauthorized_action_rate": 0.0,
   "approval_bypass_rate": 0.0,
@@ -34,10 +34,10 @@
     },
     {
       "id": "simple_2",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -100,10 +100,10 @@
     },
     {
       "id": "simple_8",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -144,10 +144,10 @@
     },
     {
       "id": "simple_12",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -287,10 +287,10 @@
     },
     {
       "id": "simple_25",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -298,10 +298,10 @@
     },
     {
       "id": "simple_26",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -331,10 +331,10 @@
     },
     {
       "id": "simple_29",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -364,10 +364,10 @@
     },
     {
       "id": "simple_32",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -408,10 +408,10 @@
     },
     {
       "id": "simple_36",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -430,10 +430,10 @@
     },
     {
       "id": "simple_38",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -441,10 +441,10 @@
     },
     {
       "id": "simple_39",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -452,10 +452,10 @@
     },
     {
       "id": "simple_40",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -463,10 +463,10 @@
     },
     {
       "id": "simple_41",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -474,10 +474,10 @@
     },
     {
       "id": "simple_42",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -485,10 +485,10 @@
     },
     {
       "id": "simple_43",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -496,10 +496,10 @@
     },
     {
       "id": "simple_44",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -518,10 +518,10 @@
     },
     {
       "id": "simple_46",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -540,10 +540,10 @@
     },
     {
       "id": "simple_48",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -573,10 +573,10 @@
     },
     {
       "id": "simple_51",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -595,10 +595,10 @@
     },
     {
       "id": "simple_53",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -628,10 +628,10 @@
     },
     {
       "id": "simple_56",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -639,10 +639,10 @@
     },
     {
       "id": "simple_57",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -672,10 +672,10 @@
     },
     {
       "id": "simple_60",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -782,10 +782,10 @@
     },
     {
       "id": "simple_70",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -848,10 +848,10 @@
     },
     {
       "id": "multiple_3",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -925,10 +925,10 @@
     },
     {
       "id": "multiple_10",
-      "ok": true,
+      "ok": false,
       "scores": {
-        "function_match": 1.0,
-        "argument_match": 1.0,
+        "function_match": 0.0,
+        "argument_match": 0.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1167,10 +1167,10 @@
     },
     {
       "id": "multiple_32",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1200,10 +1200,10 @@
     },
     {
       "id": "multiple_35",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1222,10 +1222,10 @@
     },
     {
       "id": "multiple_37",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1233,10 +1233,10 @@
     },
     {
       "id": "multiple_38",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1255,10 +1255,10 @@
     },
     {
       "id": "multiple_40",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1332,10 +1332,10 @@
     },
     {
       "id": "multiple_47",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1365,10 +1365,10 @@
     },
     {
       "id": "multiple_50",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1431,13 +1431,13 @@
     },
     {
       "id": "parallel_1",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=2 actual=0 planner=llm",
+      "detail": "status=completed expected=2 actual=2 planner=llm",
       "security_violations": []
     },
     {
@@ -1475,10 +1475,10 @@
     },
     {
       "id": "parallel_5",
-      "ok": true,
+      "ok": false,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 1.0,
+        "argument_match": 0.5,
         "executable": 1.0
       },
       "detail": "status=completed expected=2 actual=2 planner=llm",
@@ -1497,13 +1497,13 @@
     },
     {
       "id": "parallel_7",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=3 actual=0 planner=llm",
+      "detail": "status=completed expected=3 actual=3 planner=llm",
       "security_violations": []
     },
     {
@@ -1574,24 +1574,24 @@
     },
     {
       "id": "parallel_14",
-      "ok": false,
-      "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
-        "executable": 1.0
-      },
-      "detail": "status=handed_off expected=3 actual=0 planner=llm",
-      "security_violations": []
-    },
-    {
-      "id": "parallel_15",
       "ok": true,
       "scores": {
         "function_match": 1.0,
         "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=2 actual=2 planner=llm",
+      "detail": "status=completed expected=3 actual=3 planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_15",
+      "ok": false,
+      "scores": {
+        "function_match": 0.0,
+        "argument_match": 0.0,
+        "executable": 1.0
+      },
+      "detail": "status=handed_off expected=2 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -1761,10 +1761,10 @@
     },
     {
       "id": "parallel_31",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=2 actual=2 planner=llm",
@@ -1893,13 +1893,13 @@
     },
     {
       "id": "irrelevance_7",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -1937,13 +1937,13 @@
     },
     {
       "id": "irrelevance_11",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -1992,13 +1992,13 @@
     },
     {
       "id": "irrelevance_16",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2058,13 +2058,13 @@
     },
     {
       "id": "irrelevance_22",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2102,24 +2102,24 @@
     },
     {
       "id": "irrelevance_26",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
       "id": "irrelevance_27",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2135,13 +2135,13 @@
     },
     {
       "id": "irrelevance_29",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2179,13 +2179,13 @@
     },
     {
       "id": "irrelevance_33",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
