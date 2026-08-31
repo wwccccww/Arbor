@@ -1,0 +1,23 @@
+{
+  "benchmark_id": "multihop",
+  "dataset_version": "smoke-v1",
+  "license": "MIT",
+  "source_url": "https://github.com/yixuantt/MultiHop-RAG",
+  "git_ref": "main",
+  "content_hash": null,
+  "eval_protocol": "smoke_subset",
+  "splits": {
+    "smoke": "eval/public/smoke/multihop-smoke.json",
+    "full": "external",
+    "corpus": "eval/public/corpora/multihop"
+  },
+  "smoke_case_ids": [
+    "hop-2-ceo-acquirer",
+    "hop-2-hq-acquirer",
+    "hop-3-labs-city",
+    "hop-tenant-isolation",
+    "hop-founder-bridge"
+  ],
+  "frozen_at": "2026-08-31",
+  "notes": "Smoke corpus embedded in smoke JSON for CI. Full corpus via scripts/fetch_public_benchmarks.py into eval/public/corpora/multihop (gitignored)."
+}

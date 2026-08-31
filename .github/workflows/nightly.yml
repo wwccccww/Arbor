@@ -115,3 +115,22 @@ jobs:
         working-directory: apps/web
       - run: npm audit --audit-level=high
         working-directory: apps/web
+  public-benchmark-llm:
+    runs-on: ubuntu-latest
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api]"
+      - name: Fetch public benchmark smoke fixtures
+        run: python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
+      - name: Public benchmark smoke (Fake Planner gate)
+        run: python3 -m pytest tests/eval/public -q --tb=short
+      - name: BFCL smoke via eval_cli (Fake; nightly LLM full set when upstream cloned)
+        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        run: |
+          python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-smoke --mode agent --strategy all \
+            | tee eval/public/runs/nightly-bfcl-smoke-$(date -u +%Y%m%d).json

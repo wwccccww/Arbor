@@ -421,7 +421,7 @@ export function Checkup({
                 </tr>
               </thead>
               <tbody>
-                {baselines.map((row) => (
+                {baselines.filter((row) => row.category !== 'public').map((row) => (
                   <tr key={String(row.id)}>
                     <td>{String(row.suite_version ?? row.id)}</td>
                     <td>
@@ -432,6 +432,44 @@ export function Checkup({
                     <td>{String(row.case_count ?? '—')}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        {baselines.some((row) => row.category === 'public') ? (
+          <div className="table-wrap">
+            <table>
+              <caption>公开基准 smoke（BFCL / AgentDojo / MultiHop · 与私有评测分栏）</caption>
+              <thead>
+                <tr>
+                  <th>基准</th>
+                  <th>Planner</th>
+                  <th>关键指标</th>
+                  <th>用例数</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baselines.filter((row) => row.category === 'public').map((row) => {
+                  const m = (row.metrics as Record<string, unknown>) || {}
+                  const benchmark = String(row.benchmark_id ?? row.id)
+                  const highlights: string[] = []
+                  if (m.function_match_rate != null) highlights.push(`function=${Number(m.function_match_rate).toFixed(2)}`)
+                  if (m.utility_success_rate != null) highlights.push(`utility=${Number(m.utility_success_rate).toFixed(2)}`)
+                  if (m.attack_success_rate != null) highlights.push(`attack=${Number(m.attack_success_rate).toFixed(2)}`)
+                  if (m.supporting_fact_recall != null) {
+                    highlights.push(`support_recall=${Number(m.supporting_fact_recall).toFixed(2)}`)
+                  }
+                  if (m.answer_em != null) highlights.push(`answer_em=${Number(m.answer_em).toFixed(2)}`)
+                  return (
+                    <tr key={String(row.id)}>
+                      <td>{benchmark}</td>
+                      <td>{String(row.planner_kind ?? 'fake')}</td>
+                      <td>{highlights.join(' · ') || '—'}</td>
+                      <td>{String(row.case_count ?? '—')}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

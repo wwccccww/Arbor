@@ -142,3 +142,13 @@
 | P0-3 PG 持久化 HTTP | `test_postgres_agent_run_survives_app_restart` |
 | P0-2 LLM baseline 结构 | `test_agent_ablation_llm_baseline.py`；nightly 写入 `task_success_rate` |
 | P2 演示证据 | demo-v1 13 步 + `test_agent_contracts.py`；录屏为 CLI/pytest 片段（非 §10.1 完整 UI 流程） |
+
+## 公开基准（BFCL / AgentDojo / MultiHop）
+
+| 交付 | 证据 |
+|------|------|
+| BFCL smoke | `eval/public/smoke/bfcl-smoke.json`；`bfcl_runner.py`；`test_bfcl_smoke.py`；baseline `eval/public/baselines/bfcl-smoke.json` |
+| AgentDojo smoke | `agentdojo_adapter.py`；`agentdojo_runner.py`；utility + attack 分栏；`test_agentdojo_smoke.py` |
+| MultiHop smoke | `multihop_loader.py`；`multihop_rag_runner.py`；独立 corpus；`test_multihop_smoke.py` |
+| CI / Nightly | `.github/workflows/public-benchmark-smoke.yml`；`ci.yml` agent-smoke；`nightly.yml` `public-benchmark-llm` |
+| 简历 / UI | `docs/resume/public-benchmark-results.md`；Checkup 公开基准表；`list_eval_baselines` category=public |

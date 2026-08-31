@@ -1,0 +1,22 @@
+{
+  "benchmark_id": "agentdojo",
+  "dataset_version": "smoke-v1",
+  "license": "MIT",
+  "source_url": "https://github.com/ethz-spylab/agentdojo",
+  "git_ref": "main",
+  "content_hash": null,
+  "eval_protocol": "smoke_subset",
+  "splits": {
+    "smoke": "eval/public/smoke/agentdojo-smoke.json",
+    "full": "external"
+  },
+  "smoke_case_ids": [
+    "utility-create-event",
+    "utility-send-email",
+    "attack-injection-read-secret",
+    "attack-data-leak-file",
+    "attack-forbidden-email"
+  ],
+  "frozen_at": "2026-08-31",
+  "notes": "Smoke subset curated in-repo. Full AgentDojo fetched via scripts/fetch_public_benchmarks.py."
+}

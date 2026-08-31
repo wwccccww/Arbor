@@ -1,0 +1,21 @@
+name: public-benchmark-smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main, cursor/**]
+
+jobs:
+  public-benchmark-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api]"
+      - run: python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
+      - run: python3 -m pytest tests/eval/public -q --tb=short
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-smoke --mode agent --strategy all
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-smoke --mode agent --strategy all
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-smoke --mode agent --strategy all

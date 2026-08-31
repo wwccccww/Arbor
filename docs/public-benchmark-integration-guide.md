@@ -1,6 +1,6 @@
 # 公开基准评测接入开发指南
 
-- 状态：**P0 BFCL smoke 已落地**；AgentDojo / MultiHop-RAG 仍为规划
+- 状态：**P0–P3 已全部落地**（BFCL / AgentDojo / MultiHop smoke + CI + 简历包）
 - 适用分支：`main` 及后续 `cursor/*` 分支
 - 上游契约：[评测怎么办](evaluation.md)、[Agent 生产化补强指南](agent-production-hardening-guide.md)、[AI Agent 改造指南](ai-agent-development-guide.md)
 - 当前私有评测证据：[Phase 0–8 完成度审计](agent-phase-completion-audit.md)
@@ -407,33 +407,33 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 
 ### Phase P1 — AgentDojo
 
-- [ ] workspace adapter + security 副作用检查
-- [ ] utility / attack_success 分栏报告
-- [ ] smoke：至少 1 个正常任务 + 1 个注入任务
+- [x] workspace adapter + security 副作用检查
+- [x] utility / attack_success 分栏报告
+- [x] smoke：至少 1 个正常任务 + 1 个注入任务
 
 ### Phase P2 — MultiHop-RAG
 
-- [ ] 独立 corpus 索引
-- [ ] supporting fact + citation 指标
-- [ ] 与 `suite-ragas-v1` 文档分栏
+- [x] 独立 corpus 索引
+- [x] supporting fact + citation 指标
+- [x] 与 `suite-ragas-v1` 文档分栏
 
 ### Phase P3 — 报告与简历包
 
-- [ ] `docs/resume/` 增加公开基准结果表
-- [ ] Checkup 或静态页展示「私有 vs 公开」对比
-- [ ] 原始输出归档路径（artifact 或 `eval/public/runs/`）
+- [x] `docs/resume/` 增加公开基准结果表
+- [x] Checkup 或静态页展示「私有 vs 公开」对比
+- [x] 原始输出归档路径（artifact 或 `eval/public/runs/`）
 
 ---
 
 ## 11. 每个工作包完成定义
 
-- [ ] Manifest + 许可 + hash 校验
-- [ ] Runner 不依赖 adapters 反向污染 domain
-- [ ] Smoke baseline + 对齐测试
-- [ ] P0 安全指标确定性验证
-- [ ] Fake 与 Real 分轨 baseline
-- [ ] CI 或 nightly 可复现命令写入文档
-- [ ] 简历表述与 [agent-production-hardening-guide.md §1](agent-production-hardening-guide.md) 边界一致
+- [x] Manifest + 许可 + hash 校验（`scripts/fetch_public_benchmarks.py` smoke 校验）
+- [x] Runner 不依赖 adapters 反向污染 domain
+- [x] Smoke baseline + 对齐测试
+- [x] P0 安全指标确定性验证
+- [x] Fake 与 Real 分轨 baseline（Fake：`eval/public/baselines/*-smoke.json`；Real：nightly → `eval/public/runs/`）
+- [x] CI 或 nightly 可复现命令写入文档
+- [x] 简历表述与 [agent-production-hardening-guide.md §1](agent-production-hardening-guide.md) 边界一致
 
 ---
 
