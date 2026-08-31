@@ -22,6 +22,8 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     load_dev_cases,
     load_smoke_cases,
     plan_script_from_case,
+    primary_retrieve_query,
+    secondary_retrieve_query,
     seed_corpus_to_memory,
     supporting_fact_recall,
 )
@@ -51,7 +53,9 @@ class MultihopLLMPlanner:
     """RAG planner tuned for short benchmark answers with mandatory citations."""
 
     planner_kind = "real"
-    planner_version = "multihop-rag-v3"
+    planner_version = "multihop-rag-v4"
+
+    _MAX_RETRIEVE_HOPS = 2
 
     def __init__(
         self,
@@ -94,21 +98,28 @@ class MultihopLLMPlanner:
         run_metadata: dict | None = None,
     ) -> dict:
         del plan_script
-        if not any(s.get("kind") == "retrieve" for s in steps):
-            query = compact_retrieve_query(goal)
+        retrieve_steps = [s for s in steps if s.get("kind") == "retrieve"]
+        if len(retrieve_steps) < self._MAX_RETRIEVE_HOPS:
+            if not retrieve_steps:
+                query = primary_retrieve_query(goal)
+                reason = "entity + question first hop"
+            else:
+                query = secondary_retrieve_query(goal)
+                reason = "full-question second hop"
             return validate_planner_action(
                 {
                     "schema_version": SCHEMA_VERSION,
                     "action": "retrieve",
                     "query": query or goal,
                     "scopes": ["semantic_memory", "procedural_memory", "episodic_memory"],
-                    "reason": "entity-focused first hop for multihop question",
+                    "reason": reason,
                 }
             )
         enriched_goal = (
             f"{goal}\n\n"
-            "Answer with a short factual phrase (entity name, date, or number). "
-            "If evidence_ids are insufficient you may retrieve once more, otherwise answer. "
+            "Answer with the shortest factual phrase only (entity, date, number, or exactly Yes/No). "
+            "For yes/no questions respond with exactly Yes or No — no explanation. "
+            "Cite evidence_ids used. "
             'Use JSON: {"schema_version":1,"action":"answer","text":"...","citations":[...],"completion":true}'
         )
         key = chat_api_key()
@@ -198,6 +209,8 @@ def _prepare_stack(*, corpus: list[dict], planner_kind: str = "fake", seed_corpu
             title = str(doc.get("title") or "").strip()
             body = str(doc.get("text") or "").strip()
             text = f"{title}\n{body}".strip() if title else body
+            if len(text) > 1200:
+                text = text[:1200].rsplit(" ", 1)[0]
             if not text:
                 continue
             from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
@@ -238,6 +251,13 @@ def run_multihop_case(
     stack = stack or _prepare_stack(corpus=corpus, planner_kind=planner_kind)
     plan_script = plan_script_from_case(case) if use_script else None
     started = time.perf_counter()
+    eval_variant = None
+    if planner_kind == "llm":
+        eval_variant = {
+            "multihop_eval": True,
+            "retrieve_k": 8,
+            "context_token_budget": 12000,
+        }
 
     run = stack["start_run"](
         tenant_id=TENANT,
@@ -246,6 +266,7 @@ def run_multihop_case(
         goal=str(case.get("question") or case.get("goal") or ""),
         plan_script=plan_script,
         max_steps=12 if planner_kind == "llm" else 8,
+        eval_variant=eval_variant,
         enqueue=True,
     )
     final = stack["runs"].get(TENANT, run.id)

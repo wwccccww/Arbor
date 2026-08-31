@@ -324,7 +324,7 @@ class AdvanceAgentRun:
                 purpose="agent_step",
                 scopes=scopes,
                 filters=filters or None,
-                k=5,
+                k=int(dict(run.metadata.get("eval_variant") or {}).get("retrieve_k") or 5),
                 run_id=run.id,
                 step_id=step.id,
             )
@@ -346,6 +346,10 @@ class AdvanceAgentRun:
             run.metadata.pop("pending_retrieve_query", None)
             active = self.memories.list_active(tenant_id, run.persona_id)
             by_id = {m.id.value: m for m in active}
+            eval_variant = dict(run.metadata.get("eval_variant") or {})
+            context_budget = int(
+                eval_variant.get("context_token_budget") or run.token_budget or 4000
+            )
             with obs_or_noop(self.observability).span("rag.compile_context"):
                 _, manifest = build_step_context_items(
                     goal=run.goal,
@@ -353,6 +357,7 @@ class AdvanceAgentRun:
                     evidence_ids=evidence_ids,
                     memories_by_id=by_id,
                     tool_results=list(run.metadata.get("tool_results") or []),
+                    token_budget=context_budget,
                 )
             run.metadata["context_manifest"] = manifest
             obs_or_noop(self.observability).observe(

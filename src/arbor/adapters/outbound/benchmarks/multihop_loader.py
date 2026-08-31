@@ -34,11 +34,33 @@ def normalize_answer(text: str) -> str:
     return " ".join(text.split())
 
 
+def _extract_yes_no(text: str) -> str | None:
+    """Pull a leading Yes/No from verbose LLM answers."""
+    norm = normalize_answer(text)
+    if not norm:
+        return None
+    first = norm.split()[0]
+    if first in {"yes", "no"}:
+        return first
+    for prefix in ("the answer is yes", "the answer is no", "answer yes", "answer no"):
+        if norm.startswith(prefix):
+            return "yes" if "yes" in prefix else "no"
+    if re.search(r"\byes\b", norm) and not re.search(r"\bno\b", norm):
+        return "yes"
+    if re.search(r"\bno\b", norm) and not re.search(r"\byes\b", norm):
+        return "no"
+    return None
+
+
 def answer_em(expected: str, actual: str) -> float:
     exp = normalize_answer(expected)
     act = normalize_answer(actual)
     if exp == act:
         return 1.0
+    if exp in {"yes", "no"}:
+        extracted = _extract_yes_no(actual)
+        if extracted == exp:
+            return 1.0
     if exp and act and exp in act:
         return 1.0
     if exp and act and act in exp:
@@ -46,19 +68,47 @@ def answer_em(expected: str, actual: str) -> float:
     return 0.0
 
 
+_ENTITY_STOPWORDS = frozenset(
+    {"Does", "Do", "Did", "The", "A", "An", "What", "When", "Where", "Who", "How", "Which", "Are", "Is", "Was", "Were"}
+)
+
+
 def compact_retrieve_query(question: str, *, max_words: int = 24) -> str:
     """Extract entity-heavy query for benchmark retrieval."""
-    quoted = [m.group(1) or m.group(2) for m in re.finditer(r"'([^']+)'|\"([^\"]+)\"", question or "")]
-    caps = re.findall(r"\b[A-Z][A-Za-z0-9'.-]*(?:\s+[A-Z][A-Za-z0-9'.-]*)*\b", question or "")
+    quoted = [
+        m.group(1)
+        for m in re.finditer(r'"([^"]+)"', question or "")
+    ]
+    caps = re.findall(
+        r"\b[A-Z][A-Za-z0-9'.-]*(?:\s+(?:[A-Z][A-Za-z0-9'.-]*|(?:'s)))*\b",
+        question or "",
+    )
     parts: list[str] = []
     for chunk in quoted + caps:
-        chunk = chunk.strip()
-        if chunk and chunk not in parts:
+        chunk = chunk.strip().strip("'").strip()
+        if not chunk or chunk in _ENTITY_STOPWORDS:
+            continue
+        if chunk not in parts:
             parts.append(chunk)
     if parts:
         return " ".join(parts)[:400]
     words = (question or "").split()
     return " ".join(words[:max_words])
+
+
+def primary_retrieve_query(question: str) -> str:
+    """First-hop query: entities plus a short question prefix."""
+    entities = compact_retrieve_query(question, max_words=12)
+    words = (question or "").split()[:16]
+    prefix = " ".join(words)
+    if entities and entities not in prefix:
+        return f"{entities} {prefix}"[:400]
+    return prefix[:400]
+
+
+def secondary_retrieve_query(question: str) -> str:
+    """Second-hop query: full question for recall on comparison/temporal hops."""
+    return (question or "").strip()[:500]
 
 
 def answer_f1(expected: str, actual: str) -> float:
@@ -116,6 +166,7 @@ def seed_corpus_to_memory(
     corpus: list[dict],
     tenant_id,
     persona_id,
+    truncate_chars: int | None = 1200,
 ) -> int:
     """Index benchmark corpus docs as semantic memories for real RAG eval."""
     from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
@@ -129,6 +180,8 @@ def seed_corpus_to_memory(
         title = str(doc.get("title") or "").strip()
         body = str(doc.get("text") or "").strip()
         text = f"{title}\n{body}".strip() if title else body
+        if truncate_chars and len(text) > truncate_chars:
+            text = text[:truncate_chars].rsplit(" ", 1)[0]
         if not text:
             continue
         item = MemoryItem(
