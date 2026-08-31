@@ -12,6 +12,7 @@ from arbor.application.agent.retrieval_dto import (
     RetrievalRequest,
     RetrievalResult,
 )
+from arbor.application.memory.validity import is_memory_searchable
 from arbor.application.retrieval import retrieve
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.domain.persona.authorization import Capability
@@ -51,6 +52,18 @@ class StepRetrieval:
             if Capability.READ_MEMORY in capabilities
             else []
         )
+        pinned_proc = None
+        if request.filters and request.filters.get("procedural_version"):
+            pinned_proc = str(request.filters["procedural_version"])
+        memories = [
+            m
+            for m in memories
+            if is_memory_searchable(
+                m,
+                run_id=request.run_id,
+                pinned_procedural_version=pinned_proc,
+            )
+        ]
         if request.filters and request.filters.get("memory_classes"):
             allowed = {str(v) for v in request.filters["memory_classes"]}
             memories = [
@@ -146,13 +159,23 @@ def build_step_context_items(
         item = memories_by_id.get(memory_id)
         if item is None:
             continue
+        from arbor.application.memory.validity import is_memory_searchable
+
+        if not is_memory_searchable(item):
+            continue
+        memory_text = item.text or ""
+        trust = (
+            "untrusted"
+            if detect_untrusted_instructions(memory_text) > 0
+            else "evidence"
+        )
         items.append(
             context_item_from_memory(
                 memory_id,
-                item.text or "",
+                memory_text,
                 source="memory",
                 score=None,
-                trust_level="evidence",
+                trust_level=trust,
             )
         )
     for index, result in enumerate(tool_results or []):

@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from arbor.application.memory.decay import is_episodic_decayed
+from arbor.application.memory.procedural_memory import is_procedural_memory_searchable
+from arbor.application.memory.working_memory import is_working_memory_searchable
 from arbor.domain.memory.memory import MemoryItem
 
 
@@ -34,9 +36,17 @@ def is_memory_expired(item: MemoryItem, *, now: datetime | None = None) -> bool:
     return current > end
 
 
-def is_memory_searchable(item: MemoryItem, *, now: datetime | None = None) -> bool:
-    return (
-        item.is_searchable()
-        and not is_memory_expired(item, now=now)
-        and not is_episodic_decayed(item, now=now)
-    )
+def is_memory_searchable(
+    item: MemoryItem,
+    *,
+    now: datetime | None = None,
+    run_id: str | None = None,
+    pinned_procedural_version: str | None = None,
+) -> bool:
+    if not item.is_searchable():
+        return False
+    if not is_working_memory_searchable(item, run_id=run_id, now=now):
+        return False
+    if not is_procedural_memory_searchable(item, pinned_version=pinned_procedural_version):
+        return False
+    return not is_memory_expired(item, now=now) and not is_episodic_decayed(item, now=now)

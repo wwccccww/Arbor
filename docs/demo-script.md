@@ -24,6 +24,31 @@
 | 4:45 | 记忆体检 → **Agent Eval（agent-v1）** | 任务成功率 1.0；越权/审批绕过/重复副作用均为 0 |
 | 5:00 | 工作台 → **Agent 任务** | 可查看 Run 步骤与审批队列 |
 
+## Agent 生产化演示（约 4 分钟）
+
+一键启动：`./scripts/demo-agent.sh`（先跑离线 demo-v1 证据链，再启动工作台）
+
+登录：`demo-a@arbor.eval` / `arbor-owner` → 打开 **林夏** → **Agent 任务**
+
+| 分钟 | 动作 | 预期 |
+|------|------|------|
+| 0:00 | **记忆体检** → Agent Eval（agent-v1） | 任务成功率 1.0；越权/审批绕过/重复副作用 = 0 |
+| 0:30 | **Agent 任务** → 创建 Run（目标：登记空调故障工单） | 202 接受；Run 列表出现新条目 |
+| 1:00 | 展开 Run → **步骤树** | retrieve → tool → approval → answer 层级可见 |
+| 1:30 | **待审批** → 批准高风险 ticket.create | 工具步骤完成；无重复副作用 |
+| 2:00 | Run 完成后查看 **上下文 manifest** | selected_item_ids、untrusted 计数可见 |
+| 2:30 | **多模态证据链**（如有 artifact） | 页码 / 时间戳可回溯 |
+| 3:00 | 返回 **记忆体检** → demo-v1 链接 baselines | 见 `eval/fixtures/demo-v1/expected-output.md` |
+| 3:30 | （可选）Grafana/Tempo 链接或 Debug 页 | request_id 可搜到 agent.run trace |
+
+离线十二步证据链（无需 UI）：
+
+```bash
+python3 -m pytest tests/eval/test_demo_v1_smoke.py -q
+```
+
+录屏文件（验证后入库）：`docs/demo/recordings/agent-production-demo.mp4`
+
 ## Agent 故障注入彩排（约 3 分钟）
 
 本地无需 Redis，smoke 使用 Fake Planner / Fake Tool：

@@ -143,6 +143,7 @@ export function AgentRunsPage({ client, personaId, workspaceAdmin, onBack }: Pro
           <p className="muted">
             岗位 {employeeDef.role} v{employeeDef.version} · 评测套件 {employeeDef.evaluation_suite} ·{' '}
             {employeeDef.release_status}
+            {employeeDef.eval_gate_passed != null ? ` · 门禁 ${employeeDef.eval_gate_passed ? '通过' : '未通过'}` : ''}
           </p>
         ) : null}
       </header>

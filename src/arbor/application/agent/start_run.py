@@ -47,6 +47,7 @@ class StartAgentRun:
         employee_definition_version: str | None = None,
         plan_script: list[dict] | None = None,
         enqueue: bool = True,
+        eval_variant: dict | None = None,
     ) -> AgentRun:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
@@ -59,24 +60,34 @@ class StartAgentRun:
 
         definition_version = employee_definition_version
         budget_policy: dict = {}
-        if self.employee_definitions is not None:
-            definition = self.employee_definitions.get(
-                persona_id, version=employee_definition_version
-            )
-            if definition is not None:
-                definition_version = definition.version
-                budget_policy = dict(definition.run_budget_policy or {})
-
         now = _now_iso()
         request_id = self.ids.new_id()
         ctx = current_request_context()
         if ctx is not None and ctx.request_id:
             request_id = ctx.request_id
         metadata: dict = {"plan_script": plan_script or [], "request_id": request_id}
+        if eval_variant:
+            metadata["eval_variant"] = dict(eval_variant)
         if self.employee_definitions is not None:
-            definition = self.employee_definitions.get(persona_id, version=employee_definition_version)
-            if definition is not None and definition.evaluation_suite:
-                metadata["evaluation_suite"] = definition.evaluation_suite
+            definition = self.employee_definitions.get(
+                tenant_id, persona_id, version=employee_definition_version
+            )
+            if definition is not None:
+                definition_version = definition.version
+                budget_policy = dict(definition.run_budget_policy or {})
+                if definition.evaluation_suite:
+                    metadata["evaluation_suite"] = definition.evaluation_suite
+                metadata["employee_policy_snapshot"] = {
+                    "version": definition.version,
+                    "role": definition.role,
+                    "tool_policy": dict(definition.tool_policy),
+                    "approval_policy": dict(definition.approval_policy),
+                    "memory_policy": dict(definition.memory_policy),
+                    "escalation_policy": dict(definition.escalation_policy),
+                    "run_budget_policy": dict(definition.run_budget_policy),
+                    "evaluation_suite": definition.evaluation_suite,
+                }
+
         run = AgentRun(
             id=self.ids.new_id(),
             tenant_id=tenant_id,

@@ -314,6 +314,413 @@ components:
           type: string
           format: date-time
 
+    AgentRunCreateRequest:
+      type: object
+      required: [goal]
+      properties:
+        goal:
+          type: string
+        max_steps:
+          type: integer
+          minimum: 1
+          default: 8
+        token_budget:
+          type: integer
+          minimum: 1
+          default: 16000
+        plan_script:
+          type: array
+          description: 仅测试/管理员环境；生产公共调用方不得依赖。
+          items:
+            type: object
+            additionalProperties: true
+
+    AgentRunAccepted:
+      type: object
+      required: [id, status, version]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, waiting_approval, retrying, completed, failed, cancelled, handed_off]
+        version:
+          type: integer
+
+    AgentRunSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+          format: uuid
+        persona_id:
+          type: string
+          format: uuid
+        request_id:
+          type: string
+          nullable: true
+        thread_id:
+          type: string
+          format: uuid
+          nullable: true
+        goal:
+          type: string
+        status:
+          type: string
+        current_step:
+          type: integer
+        max_steps:
+          type: integer
+        token_budget:
+          type: integer
+        consumed_tokens:
+          type: integer
+        cost_budget_micros:
+          type: integer
+        consumed_cost_micros:
+          type: integer
+        version:
+          type: integer
+        employee_definition_version:
+          type: string
+          nullable: true
+        final_output:
+          type: object
+          nullable: true
+          additionalProperties: true
+        failure:
+          type: object
+          nullable: true
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AgentStep:
+      type: object
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        sequence:
+          type: integer
+        kind:
+          type: string
+          enum: [retrieve, tool, answer, reflect, handoff]
+        status:
+          type: string
+        input:
+          type: object
+          additionalProperties: true
+        output:
+          type: object
+          additionalProperties: true
+        observation:
+          type: object
+          additionalProperties: true
+        retry_count:
+          type: integer
+        error_kind:
+          type: string
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+        trace_id:
+          type: string
+          nullable: true
+
+    AgentStepTreeNode:
+      type: object
+      properties:
+        type:
+          type: string
+        label:
+          type: string
+        id:
+          type: string
+        sequence:
+          type: integer
+        kind:
+          type: string
+        status:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentStepTreeNode"
+
+    AgentRunDetail:
+      type: object
+      properties:
+        run:
+          $ref: "#/components/schemas/AgentRunSummary"
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentStep"
+        step_tree:
+          $ref: "#/components/schemas/AgentStepTreeNode"
+        lineage:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    ApprovalRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        run_id:
+          type: string
+        tool_name:
+          type: string
+        status:
+          type: string
+        reason:
+          type: string
+          nullable: true
+
+    ApprovalDecision:
+      type: object
+      properties:
+        modified_arguments:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    EmployeeDefinitionDraft:
+      type: object
+      required: [version, role]
+      properties:
+        version:
+          type: string
+        role:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+        skills:
+          type: array
+          items:
+            type: string
+        knowledge_scopes:
+          type: array
+          items:
+            type: string
+        tool_policy:
+          type: object
+          additionalProperties: true
+        approval_policy:
+          type: object
+          additionalProperties: true
+        memory_policy:
+          type: object
+          additionalProperties: true
+        escalation_policy:
+          type: object
+          additionalProperties: true
+        run_budget_policy:
+          type: object
+          additionalProperties: true
+        evaluation_suite:
+          type: string
+          default: agent-v1
+
+    EmployeeDefinitionVersion:
+      type: object
+      properties:
+        persona_id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        role:
+          type: string
+        goals:
+          type: array
+          items:
+            type: string
+        skills:
+          type: array
+          items:
+            type: string
+        knowledge_scopes:
+          type: array
+          items:
+            type: string
+        tool_policy:
+          type: object
+          additionalProperties: true
+        approval_policy:
+          type: object
+          additionalProperties: true
+        memory_policy:
+          type: object
+          additionalProperties: true
+        escalation_policy:
+          type: object
+          additionalProperties: true
+        run_budget_policy:
+          type: object
+          additionalProperties: true
+        evaluation_suite:
+          type: string
+        release_status:
+          type: string
+          enum: [draft, published, archived]
+        eval_gate_passed:
+          type: boolean
+
+    EmployeeEvalReport:
+      type: object
+      properties:
+        persona_id:
+          type: string
+          format: uuid
+        employee_definition_version:
+          type: string
+        evaluation_suite:
+          type: string
+        release_status:
+          type: string
+        gate_passed:
+          type: boolean
+        task_success_rate:
+          type: number
+        baseline_task_success_rate:
+          type: number
+        p0_security:
+          type: object
+          additionalProperties: true
+        eval_run_id:
+          type: string
+          nullable: true
+
+    AgentEvalRun:
+      type: object
+      properties:
+        suite_version:
+          type: string
+        task_success_rate:
+          type: number
+        unauthorized_action_rate:
+          type: number
+        approval_bypass_rate:
+          type: number
+        duplicate_side_effect_rate:
+          type: number
+        avg_latency_ms:
+          type: number
+        avg_cost_micros:
+          type: number
+        baseline_task_success_rate:
+          type: number
+        eval_run_id:
+          type: string
+          nullable: true
+        cases:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    ChatSseEvent:
+      oneOf:
+        - $ref: "#/components/schemas/ChatSseDelta"
+        - $ref: "#/components/schemas/ChatSseDone"
+        - $ref: "#/components/schemas/ChatSseError"
+
+    ChatSseDelta:
+      type: object
+      required: [type, text]
+      properties:
+        type:
+          type: string
+          enum: [delta]
+        text:
+          type: string
+
+    ChatSseDone:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [done]
+        message_id:
+          type: string
+          nullable: true
+        text:
+          type: string
+        citations:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        injected_memory_ids:
+          type: array
+          items:
+            type: string
+        inbox_created:
+          type: integer
+        attachments:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        retrieval_meta:
+          type: object
+          additionalProperties: true
+        decision_trace:
+          type: object
+          additionalProperties: true
+        context_truncation_notes:
+          type: array
+          items:
+            type: string
+        request_id:
+          type: string
+          nullable: true
+        tool_results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    ChatSseError:
+      type: object
+      required: [type, error]
+      properties:
+        type:
+          type: string
+          enum: [error]
+        error:
+          $ref: "#/components/schemas/Error"
+
   responses:
     Error:
       description: 错误
@@ -1556,11 +1963,46 @@ paths:
       parameters:
         - $ref: "#/components/parameters/TenantHeader"
         - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgentRunCreateRequest"
       responses:
         "202":
           description: 已接受
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunAccepted"
         "403":
           $ref: "#/components/responses/Error"
+    get:
+      tags: [Agent]
+      summary: 列出 Persona 的 Agent Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: Run 列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentRunSummary"
 
   /agent-runs/{run_id}:
     get:
@@ -1576,6 +2018,10 @@ paths:
       responses:
         "200":
           description: Run 详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentRunDetail"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -1593,6 +2039,15 @@ paths:
       responses:
         "200":
           description: 已取消
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
         "404":
           $ref: "#/components/responses/Error"
 
@@ -1605,6 +2060,15 @@ paths:
       responses:
         "200":
           description: 审批项
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ApprovalRequest"
         "403":
           $ref: "#/components/responses/Error"
 
@@ -1619,6 +2083,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecision"
       responses:
         "200":
           description: 已批准
@@ -1664,6 +2134,87 @@ paths:
       responses:
         "200":
           description: 岗位定义
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeDefinitionVersion"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/employee-definitions:
+    get:
+      tags: [Employee]
+      summary: 列出岗位定义版本
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: 版本列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmployeeDefinitionVersion"
+        "403":
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Employee]
+      summary: 创建岗位定义草稿
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeDefinitionDraft"
+      responses:
+        "201":
+          description: 草稿已创建
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeDefinitionVersion"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/employee-definitions/{version}/publish:
+    post:
+      tags: [Employee]
+      summary: 发布岗位定义（需评测门禁通过）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已发布
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  persona_id:
+                    type: string
+                    format: uuid
+                  version:
+                    type: string
+                  release_status:
+                    type: string
+                  eval_gate_passed:
+                    type: boolean
+        "403":
+          $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
 
@@ -1681,21 +2232,14 @@ paths:
       responses:
         "200":
           description: 评测报告（含 gate_passed）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeEvalReport"
         "403":
           $ref: "#/components/responses/Error"
         "404":
           $ref: "#/components/responses/Error"
-
-  /personas/{persona_id}/agent-runs:
-    get:
-      tags: [Agent]
-      summary: 列出 Persona 的 Agent Run
-      parameters:
-        - $ref: "#/components/parameters/TenantHeader"
-        - $ref: "#/components/parameters/PersonaId"
-      responses:
-        "200":
-          description: Run 列表
 
   /agent-runs/{run_id}/steps:
     get:
@@ -1711,6 +2255,17 @@ paths:
       responses:
         "200":
           description: 步骤列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  run_id:
+                    type: string
+                  steps:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentStep"
 
   /agent-runs/{run_id}/resume:
     post:
@@ -1726,6 +2281,11 @@ paths:
       responses:
         "200":
           description: 已恢复
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
 
   /agent-eval/runs:
     post:
@@ -1736,3 +2296,7 @@ paths:
       responses:
         "200":
           description: 评测报告
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentEvalRun"

@@ -18,3 +18,4 @@
 | 001 | [001-digital-employee-java-ai.md](001-digital-employee-java-ai.md) | Java 后端、AI 应用开发 | 首版成稿（内部名偏多，对外改用 003） |
 | 002 | [002-tech-points-inventory.md](002-tech-points-inventory.md) | Java 后端、AI 应用开发 | 内部技术点盘点，勿直接粘进简历 |
 | 003 | [003-polished-external-copy.md](003-polished-external-copy.md) | Java 后端、AI 应用 / Agent | 对外成稿：去字段名、补问题→做法→结果 |
+| 004 | [004-production-hardening-evidence.md](004-production-hardening-evidence.md) | Java 后端、AI 应用 / Agent | 生产化补强证据索引：demo-v1、baseline、CI |

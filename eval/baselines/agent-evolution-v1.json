@@ -1,6 +1,8 @@
 {
   "suite_version": "agent-evolution-v1",
-  "description": "Four-track agent comparison per guide §11.3 (Fake Planner / agent-v1 cases)",
+  "description": "Historical unfair four-track comparison (different case sets per track). Do not use for resume metrics.",
+  "historical": true,
+  "planner_kind": "fake",
   "updated_at": "2026-08-30",
   "metrics": {
     "single_round_task_success_rate": 0.125,

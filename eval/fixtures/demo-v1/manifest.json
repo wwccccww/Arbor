@@ -1,0 +1,109 @@
+{
+  "suite_version": "demo-v1",
+  "description": "Agent 生产化演示证据链：映射指南 §10.1 十二步到可重放评测与 baseline。",
+  "start_command": "./scripts/run.sh",
+  "ui_url": "http://127.0.0.1:8000",
+  "login": {
+    "email": "demo-a@arbor.eval",
+    "password": "arbor-owner"
+  },
+  "persona_id": "0a000000-0000-4000-a000-000000000010",
+  "recording": "docs/demo/recordings/agent-production-demo.mp4",
+  "steps": [
+    {
+      "id": "upload-multimodal",
+      "title": "上传图片与语音",
+      "verify": {
+        "kind": "multimodal",
+        "case_ids": ["pdf-perception-page", "audio-perception-timestamp"]
+      }
+    },
+    {
+      "id": "evidence-page-timestamp",
+      "title": "展示页码、时间戳或区域证据",
+      "verify": {
+        "kind": "multimodal",
+        "case_ids": ["pdf-perception-page", "audio-perception-timestamp", "segment-retrieval-hit"]
+      }
+    },
+    {
+      "id": "employee-version-run",
+      "title": "创建固定岗位版本的 Run",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["retrieve-only-handoff"]
+      }
+    },
+    {
+      "id": "first-retrieve",
+      "title": "首次检索",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["retrieve-only-handoff"]
+      }
+    },
+    {
+      "id": "tool-new-entity",
+      "title": "工具返回新实体",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["second-retrieve-after-tool"]
+      }
+    },
+    {
+      "id": "second-retrieve",
+      "title": "二次检索",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["second-retrieve-after-tool"]
+      }
+    },
+    {
+      "id": "high-risk-approval",
+      "title": "高风险工具进入审批",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["ticket-with-approval"]
+      }
+    },
+    {
+      "id": "tool-timeout",
+      "title": "首次调用超时",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["ticket-timeout-retry"]
+      }
+    },
+    {
+      "id": "idempotent-recovery",
+      "title": "使用同一幂等键恢复",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["duplicate-delivery-idempotent", "worker-resume"]
+      }
+    },
+    {
+      "id": "run-complete-citations",
+      "title": "Run 完成并返回引用",
+      "verify": {
+        "kind": "agent",
+        "case_ids": ["ticket-with-approval", "retrieve-only-handoff"]
+      }
+    },
+    {
+      "id": "experience-inbox",
+      "title": "经验进入 Inbox",
+      "verify": {
+        "kind": "inbox_extract"
+      }
+    },
+    {
+      "id": "tempo-trace",
+      "title": "Tempo 展示完整 trace",
+      "verify": {
+        "kind": "trace_test",
+        "path": "tests/integration/observability/test_loki_tempo_integration.py::test_tempo_trace_search_by_agent_run_request_id"
+      }
+    }
+  ]
+}

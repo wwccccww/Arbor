@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from arbor.application.agent.advance_run import AdvanceAgentRun
+from arbor.domain.agent.approval import ApprovalStatus
 from arbor.domain.agent.run import AgentRunStatus
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
@@ -11,6 +12,18 @@ from arbor.domain.shared.ids import TenantId, UserId
 
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _parse_iso(value: str) -> datetime | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 class ApproveAgentStep:
@@ -52,6 +65,17 @@ class ApproveAgentStep:
             raise DomainError("NOT_FOUND", "agent run not found")
         if run.status != AgentRunStatus.WAITING_APPROVAL:
             raise DomainError("AGENT_RUN_NOT_WAITING", "run is not waiting for approval")
+
+        if approval.expires_at:
+            expires = _parse_iso(approval.expires_at)
+            if expires is not None and datetime.now(UTC) >= expires:
+                approval.status = ApprovalStatus.EXPIRED
+                approval.resolved_at = _now_iso()
+                self.approvals.save(approval)
+                run.mark_failed({"kind": "approval_expired", "approval_id": approval.id})
+                run.updated_at = _now_iso()
+                self.runs.save(run)
+                raise DomainError("APPROVAL_EXPIRED", "approval request expired")
 
         approval.approve(user_id, modified_arguments)
         approval.resolved_at = _now_iso()

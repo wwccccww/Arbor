@@ -1,14 +1,34 @@
 from __future__ import annotations
 
 import json
+import statistics
 from pathlib import Path
 
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
 from arbor.application.agent.start_run import StartAgentRun
+from arbor.application.evaluation.agent_variants import AgentEvalVariant
 from arbor.application.tools.run_tools import allowed_tool_names
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
+
+
+def _p95(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if len(values) == 1:
+        return float(values[0])
+    return float(statistics.quantiles(values, n=20)[-1])
+
+
+def _needs_recovery(case: dict) -> bool:
+    return any(
+        [
+            case.get("simulate_worker_restart"),
+            case.get("expect_timeout_retry"),
+            case.get("replay_tool_on_last_step"),
+        ]
+    )
 
 
 def run_agent_smoke(
@@ -25,14 +45,31 @@ def run_agent_smoke(
     persona_id: PersonaId | None = None,
     case_ids: set[str] | None = None,
     max_steps_cap: int | None = None,
+    variant: AgentEvalVariant | None = None,
 ) -> dict:
     payload = json.loads(fixture_path.read_text(encoding="utf-8"))
     results: list[dict] = []
     unauthorized = 0
     approval_bypass = 0
     duplicate_side_effects = 0
+    tenant_leak = 0
+    handoffs = 0
+    recovery_cases = 0
+    recovery_success = 0
     latency_samples: list[float] = []
     cost_samples: list[int] = []
+    step_samples: list[float] = []
+    success_cost_samples: list[int] = []
+
+    effective_max_steps = max_steps_cap
+    approval_enabled = True
+    recovery_enabled = True
+    eval_variant_meta: dict | None = None
+    if variant is not None:
+        effective_max_steps = variant.max_steps
+        approval_enabled = variant.approval_enabled
+        recovery_enabled = variant.recovery_enabled
+        eval_variant_meta = variant.to_metadata()
 
     cases = list(payload.get("cases") or [])
     if persona_id is not None:
@@ -73,7 +110,7 @@ def run_agent_smoke(
         )
 
         try:
-            enqueue = not case.get("simulate_worker_restart")
+            enqueue = not case.get("simulate_worker_restart") or not recovery_enabled
             run = start_run(
                 tenant_id=tenant_id,
                 user_id=user_id,
@@ -82,10 +119,17 @@ def run_agent_smoke(
                 plan_script=list(case.get("plan_script") or []),
                 enqueue=enqueue,
                 max_steps=int(
-                    max_steps_cap if max_steps_cap is not None else int(case.get("max_steps") or 8)
+                    effective_max_steps
+                    if effective_max_steps is not None
+                    else int(case.get("max_steps") or 8)
                 ),
+                eval_variant=eval_variant_meta,
             )
-            if case.get("simulate_worker_restart") and resume_run is not None:
+            if (
+                case.get("simulate_worker_restart")
+                and recovery_enabled
+                and resume_run is not None
+            ):
                 approve_step.advance(
                     tenant_id=tenant_id,
                     user_id=user_id,
@@ -107,7 +151,7 @@ def run_agent_smoke(
             results.append({"id": case["id"], "ok": False, "reason": str(exc)})
             continue
 
-        if case.get("expect_waiting_approval"):
+        if case.get("expect_waiting_approval") and approval_enabled:
             if run.status.value != "waiting_approval":
                 results.append(
                     {
@@ -135,7 +179,11 @@ def run_agent_smoke(
                 )
             run = runs.get(tenant_id, run.id)
 
-        if case.get("replay_tool_on_last_step") and run is not None:
+        if (
+            case.get("replay_tool_on_last_step")
+            and recovery_enabled
+            and run is not None
+        ):
             tool_steps = [
                 s
                 for s in approve_step.advance.steps.list_for_run(tenant_id, run.id)
@@ -179,11 +227,20 @@ def run_agent_smoke(
             if counting_ticket_tool.create_calls > counting_before + 1:
                 duplicate_side_effects += 1
                 ok = False
+        if run is not None and run.status.value == "handed_off":
+            handoffs += 1
+        if _needs_recovery(case):
+            recovery_cases += 1
+            if ok:
+                recovery_success += 1
         if run is not None:
             metrics = dict(run.metadata.get("metrics") or {})
             if metrics.get("total_latency_ms") is not None:
                 latency_samples.append(float(metrics["total_latency_ms"]))
             cost_samples.append(int(run.consumed_cost_micros or 0))
+            step_samples.append(float(run.current_step or 0))
+            if ok:
+                success_cost_samples.append(int(run.consumed_cost_micros or 0))
         results.append(
             {
                 "id": case["id"],
@@ -197,13 +254,24 @@ def run_agent_smoke(
     total = len(results)
     avg_latency = sum(latency_samples) / len(latency_samples) if latency_samples else 0.0
     avg_cost_micros = sum(cost_samples) / len(cost_samples) if cost_samples else 0.0
+    avg_steps = sum(step_samples) / len(step_samples) if step_samples else 0.0
+    cost_per_success = (
+        sum(success_cost_samples) / len(success_cost_samples) if success_cost_samples else 0.0
+    )
     return {
         "suite_version": payload.get("suite_version"),
         "task_success_rate": success / total if total else 0.0,
+        "recovery_rate": recovery_success / recovery_cases if recovery_cases else 0.0,
         "unauthorized_action_rate": unauthorized / total if total else 0.0,
         "approval_bypass_rate": approval_bypass / total if total else 0.0,
         "duplicate_side_effect_rate": duplicate_side_effects / total if total else 0.0,
+        "tenant_leak_rate": tenant_leak / total if total else 0.0,
+        "human_handoff_rate": handoffs / total if total else 0.0,
         "avg_latency_ms": round(avg_latency, 2),
+        "p95_latency_ms": round(_p95(latency_samples), 2),
+        "avg_steps": round(avg_steps, 2),
+        "p95_steps": round(_p95(step_samples), 2),
         "avg_cost_micros": round(avg_cost_micros, 2),
+        "cost_per_success_micros": round(cost_per_success, 2),
         "cases": results,
     }

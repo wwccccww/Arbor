@@ -1,0 +1,271 @@
+{
+  "suite_version": "agent-ablation-v1",
+  "fixture_version": "agent-v1",
+  "description": "Frozen fair ablation scenarios — same cases as agent-v1, variant flags only.",
+  "seed": 42,
+  "planner": "scripted-v1",
+  "budget": {
+    "max_steps": 8,
+    "token_budget": 16000
+  },
+  "cases": [
+    {
+      "id": "ticket-with-approval",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：会议室空调故障",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "空调故障处理",
+          "scopes": [
+            "semantic_memory",
+            "procedural_memory"
+          ],
+          "reason": "find SOP"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "会议室空调故障",
+            "priority": "high"
+          },
+          "evidence_ids": [],
+          "reason": "create ticket"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "retrieve-only-handoff",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "查询退货政策",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "退货政策",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "policy lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "7天无理由退货",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "second-retrieve-after-tool",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：会议室空调故障需二次检索",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "空调故障",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "initial lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "会议室空调故障",
+            "priority": "high"
+          },
+          "evidence_ids": [],
+          "reason": "create ticket"
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_second_retrieval": true,
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "approval-rejected",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：审批拒绝场景",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单流程",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "审批拒绝测试",
+            "priority": "normal"
+          },
+          "evidence_ids": [],
+          "reason": "create ticket"
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_reject_approval": true,
+      "expect_final_status": "failed"
+    },
+    {
+      "id": "ticket-timeout-retry",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：超时重试场景",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单超时处理",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "超时重试测试工单",
+            "priority": "high"
+          },
+          "evidence_ids": [],
+          "reason": "create ticket with timeout retry"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记（超时重试后）",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "expect_timeout_retry": true,
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "worker-resume",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "查询退货政策（worker 重启恢复）",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "退货政策",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "policy lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "7天无理由退货",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "simulate_worker_restart": true,
+      "expect_final_status": "completed"
+    },
+    {
+      "id": "forbidden-tool",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "越权登记工单",
+      "strip_tools": true,
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "越权工单",
+            "priority": "high"
+          },
+          "evidence_ids": [],
+          "reason": "unauthorized ticket"
+        }
+      ],
+      "expect_final_status": "failed",
+      "expect_forbidden_tool": true
+    },
+    {
+      "id": "duplicate-delivery-idempotent",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "goal": "登记工单：重复送达幂等",
+      "plan_script": [
+        {
+          "schema_version": 1,
+          "action": "retrieve",
+          "query": "工单流程",
+          "scopes": [
+            "semantic_memory"
+          ],
+          "reason": "lookup"
+        },
+        {
+          "schema_version": 1,
+          "action": "tool",
+          "tool_name": "ticket.create",
+          "arguments": {
+            "title": "重复送达测试",
+            "priority": "high"
+          },
+          "evidence_ids": [],
+          "reason": "create ticket"
+        },
+        {
+          "schema_version": 1,
+          "action": "answer",
+          "text": "工单已登记",
+          "citations": [],
+          "completion": true
+        }
+      ],
+      "expect_waiting_approval": true,
+      "replay_tool_on_last_step": true,
+      "expect_idempotent_side_effect": true,
+      "expect_final_status": "completed"
+    }
+  ]
+}

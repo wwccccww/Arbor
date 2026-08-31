@@ -50,6 +50,35 @@ def test_agent_run_create_and_get():
     assert request_id
 
 
+def test_agent_run_missing_tenant_header():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers={"Authorization": "Bearer token-a"},
+        json={"goal": "test"},
+    )
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert response.json()["error"]["request_id"]
+
+
+def test_agent_run_unauthenticated():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.post(
+        f"/v1/personas/{LINXIA}/agent-runs",
+        headers={"X-Tenant-Id": TENANT},
+        json={"goal": "test"},
+    )
+    assert response.status_code == 401
+
+
+def test_approvals_forbidden_without_admin():
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    response = client.get("/v1/approvals", headers=_headers(token="token-b"))
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "FORBIDDEN_WORKSPACE"
+
+
 def test_employee_definition_and_eval_gate():
     client = TestClient(create_app(), raise_server_exceptions=False)
     definition = client.get(

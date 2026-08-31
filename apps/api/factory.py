@@ -117,7 +117,11 @@ from arbor.env import (
 from arbor.env import redis_url as env_redis_url
 from arbor.observability.cleanup import cleanup_expired_traces
 from arbor.observability.dependency import ObservedObjectStorage
-from arbor.observability.instrumentation import instrument_fastapi, instrument_httpx, instrument_psycopg
+from arbor.observability.instrumentation import (
+    instrument_fastapi,
+    instrument_httpx,
+    instrument_psycopg,
+)
 from arbor.observability.runtime import build_observability
 from arbor.paths import repo_root
 
@@ -589,13 +593,11 @@ def create_app(
     )
 
     from arbor.adapters.inbound.http.register_agent import AgentHttpDeps, register_agent_routes
-    from arbor.adapters.inbound.http.register_employee import EmployeeHttpDeps, register_employee_routes
-    from arbor.adapters.outbound.agent_job_queue import AgentJobQueueHolder
-    from arbor.adapters.outbound.inmemory_artifacts import (
-        InMemoryArtifactLineageRepository,
-        InMemoryArtifactRepository,
-        InMemoryArtifactStores,
+    from arbor.adapters.inbound.http.register_employee import (
+        EmployeeHttpDeps,
+        register_employee_routes,
     )
+    from arbor.adapters.outbound.agent_job_queue import AgentJobQueueHolder
     from arbor.adapters.outbound.inmemory_agent import (
         InMemoryAgentRunRepository,
         InMemoryAgentStepRepository,
@@ -604,22 +606,27 @@ def create_app(
         InMemoryToolExecutionRepository,
         SyncAgentJobQueue,
     )
+    from arbor.adapters.outbound.inmemory_artifacts import (
+        InMemoryArtifactLineageRepository,
+        InMemoryArtifactRepository,
+        InMemoryArtifactStores,
+    )
     from arbor.adapters.outbound.mcp.stub_adapter import default_mcp_stub
     from arbor.application.agent.advance_run import AdvanceAgentRun
     from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
     from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
-    from arbor.application.agent.start_run import StartAgentRun
     from arbor.application.agent.employee_templates import default_employee_templates
     from arbor.application.agent.extract_memory import ExtractRunMemory
     from arbor.application.agent.list_runs import GetAgentRunSteps, ListAgentRuns
-    from arbor.application.agent.resume_run import ResumeAgentRun
     from arbor.application.agent.queries import GetEmployeeDefinition, ListEmployeeTemplates
-    from arbor.application.evaluation.start_agent_eval import StartAgentEvalRun
+    from arbor.application.agent.resume_run import ResumeAgentRun
+    from arbor.application.agent.start_run import StartAgentRun
     from arbor.application.agent.tool_executor import (
+        ToolExecutor,
         build_default_tool_registry,
         register_mcp_stub_tools,
-        ToolExecutor,
     )
+    from arbor.application.evaluation.start_agent_eval import StartAgentEvalRun
 
     if session is not None:
         agent_runs = session.agent_runs
@@ -692,6 +699,13 @@ def create_app(
     )
     agent_job_queue = AgentJobQueueHolder(SyncAgentJobQueue(advance_agent_run))
     employee_definitions = default_employee_templates()
+    if session is not None:
+        employee_definitions = session.employee_definitions
+        from arbor.application.agent.employee_templates import DEMO_TENANT, LINXIA_PERSONA_ID
+
+        demo = default_employee_templates().get(DEMO_TENANT, LINXIA_PERSONA_ID)
+        if demo is not None and hasattr(employee_definitions, "ensure_published"):
+            employee_definitions.ensure_published(DEMO_TENANT, demo)
     start_agent_run = StartAgentRun(
         personas=personas,
         runs=agent_runs,
@@ -1060,11 +1074,36 @@ def create_app(
             workspace_admin_for=workspace_admin_for,
         ),
     )
+    from arbor.application.agent.employee_commands import (
+        CreateEmployeeDefinitionDraft,
+        ListEmployeeDefinitionVersions,
+        PublishEmployeeDefinition,
+    )
+
+    create_employee_draft = CreateEmployeeDefinitionDraft(
+        personas=personas,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+    )
+    publish_employee_definition = PublishEmployeeDefinition(
+        personas=personas,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+        audit=record_audit,
+    )
+    list_employee_definition_versions = ListEmployeeDefinitionVersions(
+        personas=personas,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+    )
     register_employee_routes(
         app,
         EmployeeHttpDeps(
             get_definition=get_employee_definition,
             list_templates=list_employee_templates,
+            list_versions=list_employee_definition_versions,
+            create_draft=create_employee_draft,
+            publish_definition=publish_employee_definition,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
             start_employee_eval=start_employee_eval,
@@ -1097,7 +1136,7 @@ def create_app(
 def create_app_from_env() -> FastAPI:
     import logging
 
-    import arbor.env as env
+    from arbor import env
     from arbor.env import database_url as env_database_url
     from arbor.env import job_queue_backend
     from arbor.env import redis_url as env_redis_url

@@ -54,7 +54,7 @@ class StartEmployeeEvalRun:
         if Capability.CHAT not in self.auth.capabilities_for(persona, user_id):
             raise DomainError("FORBIDDEN_CHAT", "chat required")
 
-        definition = self.employee_definitions.get(persona_id, version=version)
+        definition = self.employee_definitions.get(tenant_id, persona_id, version=version)
         if definition is None:
             raise DomainError("NOT_FOUND", "employee definition not found")
 
@@ -134,5 +134,17 @@ class StartEmployeeEvalRun:
                 }
             )
             report["eval_run_id"] = run_id
+
+        if hasattr(self.employee_definitions, "record_eval_gate"):
+            self.employee_definitions.record_eval_gate(
+                tenant_id,
+                persona_id,
+                definition.version,
+                gate_passed=gate_passed,
+                report={
+                    "task_success_rate": task_success_rate,
+                    "baseline_task_success_rate": baseline_success,
+                },
+            )
 
         return report

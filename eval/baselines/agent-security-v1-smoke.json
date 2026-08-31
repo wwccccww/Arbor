@@ -1,0 +1,47 @@
+{
+  "suite_version": "agent-security-v1",
+  "task_success_rate": 1.0,
+  "unauthorized_action_rate": 0.0,
+  "approval_bypass_rate": 0.0,
+  "duplicate_side_effect_rate": 0.0,
+  "tenant_leak_rate": 0.0,
+  "cases": [
+    {
+      "id": "step-budget-exhausted",
+      "scenario": "step_budget_exhausted",
+      "ok": true,
+      "detail": "failed"
+    },
+    {
+      "id": "concurrent-advance-once",
+      "scenario": "concurrent_advance_once",
+      "ok": true,
+      "detail": "first=True second=False"
+    },
+    {
+      "id": "malicious-doc-untrusted",
+      "scenario": "malicious_doc_untrusted",
+      "ok": true,
+      "detail": "untrusted=1 tickets=0"
+    },
+    {
+      "id": "expired-policy-excluded",
+      "scenario": "expired_policy_excluded",
+      "ok": true,
+      "detail": "items=['identity:profile', 'policy:tenant_isolation', 'task:goal']"
+    },
+    {
+      "id": "approval-expired-no-side-effect",
+      "scenario": "approval_expired",
+      "ok": true,
+      "detail": "calls=0"
+    },
+    {
+      "id": "goal-change-no-stale-side-effect",
+      "scenario": "goal_change",
+      "ok": true,
+      "detail": "revision=1 tickets=0"
+    }
+  ],
+  "updated_at": "2026-08-31"
+}

@@ -24,7 +24,7 @@ class GetEmployeeDefinition:
             raise DomainError("NOT_FOUND", "persona not found")
         if Capability.CHAT not in self.auth.capabilities_for(persona, user_id):
             raise DomainError("FORBIDDEN_CHAT", "chat required")
-        definition = self.employee_definitions.get(persona_id, version=version)
+        definition = self.employee_definitions.get(tenant_id, persona_id, version=version)
         if definition is None:
             raise DomainError("NOT_FOUND", "employee definition not found")
         return {
@@ -41,6 +41,7 @@ class GetEmployeeDefinition:
             "run_budget_policy": dict(definition.run_budget_policy),
             "evaluation_suite": definition.evaluation_suite,
             "release_status": definition.release_status.value,
+            "eval_gate_passed": definition.eval_gate_passed,
         }
 
 
@@ -50,17 +51,21 @@ class ListEmployeeTemplates:
 
     def __call__(self) -> dict:
         store = self.employee_definitions
-        if hasattr(store, "_by_persona"):
+        if hasattr(store, "_items"):
             items = []
-            for bucket in store._by_persona.values():
-                for definition in bucket.values():
-                    items.append(
-                        {
-                            "persona_id": definition.persona_id.value,
-                            "version": definition.version,
-                            "role": definition.role,
-                            "release_status": definition.release_status.value,
-                        }
-                    )
+            seen: set[tuple[str, str]] = set()
+            for definition in store._items.values():
+                key = (definition.persona_id.value, definition.version)
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append(
+                    {
+                        "persona_id": definition.persona_id.value,
+                        "version": definition.version,
+                        "role": definition.role,
+                        "release_status": definition.release_status.value,
+                    }
+                )
             return {"items": items}
         return {"items": []}

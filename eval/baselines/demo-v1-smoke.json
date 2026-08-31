@@ -1,0 +1,26 @@
+{
+  "suite_version": "demo-v1",
+  "step_pass_rate": 1.0,
+  "steps": [
+    {"id": "upload-multimodal", "ok": true},
+    {"id": "evidence-page-timestamp", "ok": true},
+    {"id": "employee-version-run", "ok": true},
+    {"id": "first-retrieve", "ok": true},
+    {"id": "tool-new-entity", "ok": true},
+    {"id": "second-retrieve", "ok": true},
+    {"id": "high-risk-approval", "ok": true},
+    {"id": "tool-timeout", "ok": true},
+    {"id": "idempotent-recovery", "ok": true},
+    {"id": "run-complete-citations", "ok": true},
+    {"id": "experience-inbox", "ok": true},
+    {"id": "tempo-trace", "ok": true}
+  ],
+  "linked_baselines": [
+    "eval/baselines/agent-v1-smoke.json",
+    "eval/baselines/multimodal-v1-smoke.json",
+    "eval/baselines/agent-ablation-v1.json",
+    "eval/baselines/agent-security-v1-smoke.json",
+    "eval/baselines/memory-v1-smoke.json"
+  ],
+  "updated_at": "2026-08-31"
+}
