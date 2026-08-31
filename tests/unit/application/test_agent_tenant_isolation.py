@@ -15,9 +15,9 @@ from arbor.adapters.outbound.inmemory_agent import (
     SyncAgentJobQueue,
 )
 from arbor.application.agent.advance_run import AdvanceAgentRun
+from arbor.application.agent.employee_templates import default_employee_templates
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
-from arbor.application.agent.employee_templates import default_employee_templates
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 

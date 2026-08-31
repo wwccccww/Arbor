@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.inmemory import InMemoryPersonaRepository, InMemoryStores, SeqIdGenerator
+from arbor.adapters.outbound.inmemory import (
+    InMemoryPersonaRepository,
+    InMemoryStores,
+    SeqIdGenerator,
+)
 from arbor.adapters.outbound.inmemory_agent import (
-    InMemoryAgentStepRepository,
-    InMemoryApprovalRepository,
     InMemoryAgentRunRepository,
+    InMemoryAgentStepRepository,
     InMemoryAgentStores,
+    InMemoryApprovalRepository,
     InMemoryToolExecutionRepository,
     SyncAgentJobQueue,
 )
@@ -32,10 +36,10 @@ def _minimal_stack(employee_definitions):
     agent_stores = InMemoryAgentStores()
     runs = InMemoryAgentRunRepository(agent_stores)
     from arbor.adapters.outbound.inmemory import (
+        FixtureEmbeddingClient,
         InMemoryEventGraphRepository,
         InMemoryMemoryRepository,
         InMemoryVectorIndex,
-        FixtureEmbeddingClient,
     )
 
     memories = InMemoryMemoryRepository(stores)

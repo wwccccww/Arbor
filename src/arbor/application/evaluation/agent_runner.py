@@ -5,8 +5,8 @@ from pathlib import Path
 
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
 from arbor.application.agent.start_run import StartAgentRun
-from arbor.domain.errors import DomainError
 from arbor.application.tools.run_tools import allowed_tool_names
+from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 

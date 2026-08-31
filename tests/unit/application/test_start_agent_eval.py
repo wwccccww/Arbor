@@ -8,19 +8,19 @@ from arbor.adapters.outbound.inmemory import (
 )
 from arbor.adapters.outbound.inmemory_agent import (
     InMemoryAgentRunRepository,
+    InMemoryAgentStepRepository,
     InMemoryAgentStores,
     InMemoryApprovalRepository,
-    InMemoryAgentStepRepository,
     InMemoryToolExecutionRepository,
     SyncAgentJobQueue,
 )
 from arbor.adapters.outbound.postgres.eval_runs import InMemoryEvalRunRepository
 from arbor.application.agent.advance_run import AdvanceAgentRun
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
-from arbor.application.agent.start_run import StartAgentRun
-from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
 from arbor.application.agent.employee_templates import default_employee_templates
 from arbor.application.agent.resume_run import ResumeAgentRun
+from arbor.application.agent.start_run import StartAgentRun
+from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
 from arbor.application.evaluation.start_agent_eval import StartAgentEvalRun
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
@@ -35,10 +35,10 @@ def _stack():
     load_world(ROOT / "eval/fixtures/suite-v1/world.json", stores)
     personas = InMemoryPersonaRepository(stores)
     from arbor.adapters.outbound.inmemory import (
+        FixtureEmbeddingClient,
         InMemoryEventGraphRepository,
         InMemoryMemoryRepository,
         InMemoryVectorIndex,
-        FixtureEmbeddingClient,
     )
 
     memories = InMemoryMemoryRepository(stores)

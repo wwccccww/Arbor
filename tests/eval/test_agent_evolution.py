@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
-from arbor.application.evaluation.agent_evolution import evolution_baseline_path, run_agent_evolution_tracks
+from arbor.application.evaluation.agent_evolution import (
+    evolution_baseline_path,
+    run_agent_evolution_tracks,
+)
 
 
 def test_agent_evolution_tracks_match_frozen_baseline():

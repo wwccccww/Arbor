@@ -8,8 +8,8 @@ from arbor.adapters.outbound.inmemory_artifacts import (
 from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
 from arbor.application.multimodal.record_artifact import RecordArtifactEvidence
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import PersonaId, TenantId, UserId
-from tests.unit.application.test_send_message import load_mini, USER
+from arbor.domain.shared.ids import PersonaId, TenantId
+from tests.unit.application.test_send_message import USER, load_mini
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 LINXIA = PersonaId("0a000000-0000-4000-a000-000000000010")

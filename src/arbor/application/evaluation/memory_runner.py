@@ -5,7 +5,7 @@ from pathlib import Path
 
 from arbor.application.memory.conflict_detection import enrich_inbox_extract
 from arbor.application.memory.consolidate_episodes import ConsolidateEpisodicMemories
-from arbor.application.memory.consolidation import is_consolidation, derived_from_ids
+from arbor.application.memory.consolidation import derived_from_ids, is_consolidation
 from arbor.application.memory.delete_memory import DeleteMemory
 from arbor.application.memory.validity import is_memory_searchable
 from arbor.domain.memory.memory import InboxItem, MemoryClass, MemoryItem, MemoryStatus, MemoryType

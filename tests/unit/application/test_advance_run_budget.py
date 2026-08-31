@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
-from arbor.domain.shared.ids import TenantId, UserId
 from arbor.application.agent.employee_templates import LINXIA_PERSONA_ID
+from arbor.domain.shared.ids import TenantId, UserId
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 USER = UserId("0a000000-0000-4000-a000-000000000002")

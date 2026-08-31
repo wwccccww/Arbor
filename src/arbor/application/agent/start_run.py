@@ -6,7 +6,7 @@ from arbor.domain.agent.run import AgentRun, AgentRunStatus
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
-from arbor.observability.context import current_request_context, merge_request_context
+from arbor.observability.context import current_request_context
 
 
 def _now_iso() -> str:

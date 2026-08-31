@@ -2,26 +2,26 @@ from __future__ import annotations
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
 from arbor.adapters.outbound.inmemory import (
+    FixtureEmbeddingClient,
     InMemoryEventGraphRepository,
     InMemoryMemoryRepository,
     InMemoryPersonaRepository,
     InMemoryStores,
     InMemoryVectorIndex,
-    FixtureEmbeddingClient,
     SeqIdGenerator,
 )
 from arbor.adapters.outbound.inmemory_agent import (
     InMemoryAgentRunRepository,
+    InMemoryAgentStepRepository,
     InMemoryAgentStores,
     InMemoryApprovalRepository,
-    InMemoryAgentStepRepository,
     InMemoryToolExecutionRepository,
     SyncAgentJobQueue,
 )
 from arbor.adapters.outbound.postgres.eval_runs import InMemoryEvalRunRepository
 from arbor.application.agent.advance_run import AdvanceAgentRun
 from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
-from arbor.application.agent.employee_templates import default_employee_templates, LINXIA_PERSONA_ID
+from arbor.application.agent.employee_templates import LINXIA_PERSONA_ID, default_employee_templates
 from arbor.application.agent.resume_run import ResumeAgentRun
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry

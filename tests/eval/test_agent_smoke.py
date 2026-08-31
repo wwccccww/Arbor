@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack, agent_fixture_path
+from arbor.adapters.inbound.agent_eval_stack import agent_fixture_path, build_agent_eval_stack
 from arbor.application.evaluation.agent_runner import run_agent_smoke
 
 
