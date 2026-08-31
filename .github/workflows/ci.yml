@@ -91,4 +91,5 @@ jobs:
           TEMPO_URL: http://localhost:3200
           OTEL_EXPORTER_OTLP_ENDPOINT: http://localhost:4318
           OBSERVABILITY_ENABLED: "true"
+          OTEL_SERVICE_NAME: arbor-api
           OBSERVABILITY_INTEGRATION_REQUIRED: "1"
