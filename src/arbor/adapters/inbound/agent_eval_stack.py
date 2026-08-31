@@ -49,6 +49,7 @@ def build_agent_eval_stack(
     id_start: int = 100,
     with_mcp: bool = True,
     use_employee_templates: bool = True,
+    embed_client=None,
 ) -> dict:
     stores = InMemoryStores()
     load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json", stores)
@@ -56,7 +57,7 @@ def build_agent_eval_stack(
     memories = InMemoryMemoryRepository(stores)
     events = InMemoryEventGraphRepository(stores)
     vectors = InMemoryVectorIndex(stores, memories)
-    embed = FixtureEmbeddingClient()
+    embed = embed_client or FixtureEmbeddingClient()
 
     agent_stores = InMemoryAgentStores()
     runs = InMemoryAgentRunRepository(agent_stores)
@@ -140,6 +141,9 @@ def build_agent_eval_stack(
     )
     return {
         "personas": personas,
+        "memories": memories,
+        "vectors": vectors,
+        "embed": embed,
         "runs": runs,
         "start_run": start,
         "approve_step": approve,

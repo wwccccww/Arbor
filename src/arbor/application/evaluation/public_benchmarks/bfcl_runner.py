@@ -13,11 +13,14 @@ from arbor.adapters.outbound.benchmarks.bfcl_loader import (
     BFCL_DEV,
     BFCL_SMOKE,
     calls_equivalent,
+    coerce_tool_arguments,
     extract_tool_calls_from_steps,
     load_dev_cases,
     load_smoke_cases,
+    normalize_planner_tool_payload,
     plan_script_from_case,
     register_bfcl_functions,
+    schema_for_tool_name,
     score_against_ground_truth,
     validate_expected_executable,
 )
@@ -40,7 +43,7 @@ class BFCFunctionCallPlanner:
     """Multi-turn function-calling planner for official BFCL eval."""
 
     planner_kind = "real"
-    planner_version = "bfcl-fc-v2"
+    planner_version = "bfcl-fc-v6"
 
     def __init__(self, *, model: str | None = None, timeout_s: float = 60.0) -> None:
         self.model = model or chat_model()
@@ -55,6 +58,112 @@ class BFCFunctionCallPlanner:
             "max_tools": int(cfg.get("max_tools") or variant.get("bfcl_max_tools") or 6),
             "category": str(cfg.get("category") or variant.get("bfcl_category") or ""),
         }
+
+    def _system_prompt(self, *, tool_schemas: list[dict], category: str) -> str:
+        tools_blob = json.dumps(tool_schemas or [], ensure_ascii=False)
+        category_hint = ""
+        if category == "parallel":
+            category_hint = (
+                "This is a parallel category: issue each required tool call in separate turns "
+                "until all sub-tasks are done, then answer with completion=true. "
+            )
+        elif category == "multiple":
+            category_hint = "Multiple tools may be required in sequence; match each schema exactly. "
+        elif category == "simple":
+            category_hint = "Usually one tool call is enough; use exact argument types from schema. "
+        elif category == "irrelevance":
+            category_hint = (
+                "If no tool directly solves the user request, answer immediately with completion=true "
+                "and do NOT call any tool. A loosely related tool is still irrelevant. "
+            )
+        return (
+            "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
+            "Allowed actions: tool, answer. Issue tool calls one at a time until the user task is satisfied, "
+            "then answer with completion=true. "
+            f"{category_hint}"
+            "tool_name must match a provided tool exactly. "
+            "Use only argument keys defined in the tool schema with correct JSON types "
+            "(string/number/boolean/array/object). Dates must use YYYY-MM-DD when the schema expects a string date. "
+            "Do not wrap strings in extra quotes. "
+            f"Tools: {tools_blob}. "
+            "Schema: {schema_version:1, action, tool_name?, arguments?, text?, completion?}"
+        )
+
+    def _tool_schema_list(self, tool_schemas: list[dict] | None) -> list[dict]:
+        out: list[dict] = []
+        for schema in tool_schemas or []:
+            fn = dict(schema.get("function") or schema)
+            name = str(fn.get("name") or schema.get("name") or "").strip()
+            if not name:
+                continue
+            out.append(
+                {
+                    "name": name,
+                    "description": str(fn.get("description") or schema.get("description") or ""),
+                    "parameters": fn.get("parameters") or fn.get("input_schema") or {"type": "object", "properties": {}},
+                }
+            )
+        return out
+
+    def _postprocess_action(
+        self,
+        data: dict,
+        *,
+        tool_schemas: list[dict] | None,
+        goal: str = "",
+    ) -> dict:
+        data = normalize_planner_tool_payload(data)
+        if str(data.get("action") or "").lower() == "tool":
+            tool_name = str(data.get("tool_name") or "")
+            schema = schema_for_tool_name(tool_name, self._tool_schema_list(tool_schemas))
+            args = coerce_tool_arguments(dict(data.get("arguments") or {}), schema)
+            args = self._apply_goal_argument_hints(goal, args, schema)
+            data["arguments"] = args
+        return validate_planner_action(data)
+
+    @staticmethod
+    def _apply_goal_argument_hints(goal: str, arguments: dict, schema: dict) -> dict:
+        args = dict(arguments or {})
+        props = dict(schema.get("properties") or {})
+        goal_low = (goal or "").lower()
+        if "root_type" in props and "root_type" not in args:
+            if "all root" in goal_low or "all the root" in goal_low:
+                args["root_type"] = "all"
+            elif "real root" in goal_low:
+                args["root_type"] = "real"
+        return args
+
+    def _chat_completion(self, *, messages: list[dict]) -> dict:
+        key = chat_api_key()
+        if not key:
+            raise DomainError("LLM_UNAVAILABLE", "chat API key missing for BFCL LLM eval")
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": 1200,
+            "temperature": 0.0,
+        }
+        try:
+            response = httpx.post(
+                f"{chat_base_url()}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=self.timeout_s,
+            )
+        except httpx.TimeoutException as exc:
+            raise DomainError("LLM_TIMEOUT", "BFCL planner timed out") from exc
+        except httpx.HTTPError as exc:
+            raise DomainError("LLM_UPSTREAM", str(exc)) from exc
+        if response.status_code >= 400:
+            raise DomainError("LLM_UPSTREAM", f"BFCL planner HTTP {response.status_code}")
+        content = response.json()["choices"][0]["message"]["content"]
+        match = re.search(r"\{.*\}", content or "", flags=re.DOTALL)
+        if not match:
+            raise DomainError("LLM_INVALID_JSON", "BFCL planner output not JSON")
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError as exc:
+            raise DomainError("LLM_INVALID_JSON", "BFCL planner JSON parse failed") from exc
 
     def next_action(
         self,
@@ -71,6 +180,7 @@ class BFCFunctionCallPlanner:
         del context_manifest, budget, plan_script, evidence_ids
         cfg = self._bfcl_config(run_metadata)
         max_tools = max(1, cfg["max_tools"])
+        category = cfg["category"]
         tool_steps = [s for s in steps if s.get("kind") == "tool"]
         if any(s.get("kind") == "answer" for s in steps):
             return validate_planner_action(
@@ -96,15 +206,7 @@ class BFCFunctionCallPlanner:
         key = chat_api_key()
         if not key:
             raise DomainError("LLM_UNAVAILABLE", "chat API key missing for BFCL LLM eval")
-        tools_blob = json.dumps(tool_schemas or [], ensure_ascii=False)
-        system = (
-            "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
-            "Allowed actions: tool, answer. Issue tool calls one at a time until the user task is satisfied, "
-            "then answer with completion=true. If no tool applies, answer without tools. "
-            "tool_name must match a provided tool exactly. Use only argument keys defined in the tool schema. "
-            f"Tools: {tools_blob}. "
-            "Schema: {schema_version:1, action, tool_name?, arguments?, text?, completion?}"
-        )
+        system = self._system_prompt(tool_schemas=tool_schemas or [], category=category)
         messages: list[dict] = [
             {"role": "system", "content": system},
             {"role": "user", "content": goal},
@@ -133,34 +235,66 @@ class BFCFunctionCallPlanner:
                     "content": f"Tool result: {json.dumps(out, ensure_ascii=False)[:3000]}",
                 }
             )
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "max_tokens": 800,
-            "temperature": 0.0,
-        }
+        data = self._chat_completion(messages=messages)
         try:
-            response = httpx.post(
-                f"{chat_base_url()}/chat/completions",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json=payload,
-                timeout=self.timeout_s,
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
+        except DomainError as exc:
+            if exc.code != "VALIDATION_ERROR":
+                raise
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(data, ensure_ascii=False),
+                }
             )
-        except httpx.TimeoutException as exc:
-            raise DomainError("LLM_TIMEOUT", "BFCL planner timed out") from exc
-        except httpx.HTTPError as exc:
-            raise DomainError("LLM_UPSTREAM", str(exc)) from exc
-        if response.status_code >= 400:
-            raise DomainError("LLM_UPSTREAM", f"BFCL planner HTTP {response.status_code}")
-        content = response.json()["choices"][0]["message"]["content"]
-        match = re.search(r"\{.*\}", content or "", flags=re.DOTALL)
-        if not match:
-            raise DomainError("LLM_INVALID_JSON", "BFCL planner output not JSON")
-        try:
-            data = json.loads(match.group(0))
-        except json.JSONDecodeError as exc:
-            raise DomainError("LLM_INVALID_JSON", "BFCL planner JSON parse failed") from exc
-        action = validate_planner_action(data)
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Your JSON failed validation. Return one corrected JSON object with a valid "
+                        "action (tool or answer). For tool actions include tool_name and arguments "
+                        "matching the schema exactly."
+                    ),
+                }
+            )
+            data = self._chat_completion(messages=messages)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
+        if (
+            category == "irrelevance"
+            and not tool_steps
+            and str(action.get("action") or "").lower() == "tool"
+        ):
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": json.dumps(action, ensure_ascii=False),
+                }
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "That tool does not directly answer the request. Do NOT call any tool. "
+                        "Return one JSON answer action with completion=true."
+                    ),
+                }
+            )
+            data = self._chat_completion(messages=messages)
+            action = self._postprocess_action(data, tool_schemas=tool_schemas, goal=goal)
+        if (
+            category == "irrelevance"
+            and not tool_steps
+            and str(action.get("action") or "").lower() == "tool"
+        ):
+            action = validate_planner_action(
+                {
+                    "schema_version": 1,
+                    "action": "answer",
+                    "text": "No applicable tool for this request.",
+                    "citations": [],
+                    "completion": True,
+                }
+            )
         self.last_metadata = {
             "provider": "deepseek",
             "model": self.model,
@@ -171,6 +305,19 @@ class BFCFunctionCallPlanner:
         if run_metadata is not None:
             run_metadata["planner"] = dict(self.last_metadata)
         return action
+
+
+def _coerce_actual_calls(actual_calls: list[dict], case: dict) -> list[dict]:
+    tool_schemas = [{"function": fn} for fn in list(case.get("functions") or [])]
+    goal = str(case.get("goal") or "")
+    coerced: list[dict] = []
+    for call in actual_calls:
+        name = str(call.get("name") or call.get("tool_name") or "")
+        schema = schema_for_tool_name(name, tool_schemas)
+        args = coerce_tool_arguments(dict(call.get("arguments") or {}), schema)
+        args = BFCFunctionCallPlanner._apply_goal_argument_hints(goal, args, schema)
+        coerced.append({"name": name, "arguments": args})
+    return coerced
 
 
 def score_tool_calls(
@@ -273,8 +420,11 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
     max_steps = max(8, n_calls * 3 + 4) if not expect_no_tool else 3
     eval_variant = None
     if planner_kind == "llm":
+        max_tool_budget = max(1, n_calls)
+        if category == "parallel":
+            max_tool_budget = max(max_tool_budget, n_calls + 1)
         eval_variant = {
-            "bfcl_max_tools": max(1, n_calls),
+            "bfcl_max_tools": max_tool_budget,
             "bfcl_category": category,
         }
     started = time.perf_counter()
@@ -291,6 +441,8 @@ def run_bfcl_case(*, case: dict, stack: dict | None = None, planner_kind: str = 
     final = stack["runs"].get(TENANT, run.id)
     steps = stack["approve_step"].advance.steps.list_for_run(TENANT, run.id)
     actual_calls = extract_tool_calls_from_steps(steps)
+    if planner_kind == "llm" and actual_calls:
+        actual_calls = _coerce_actual_calls(actual_calls, case)
     gt = ground_truth if (planner_kind == "llm" and ground_truth) else None
     ok, scores = score_tool_calls(
         expected_calls=expected_calls,

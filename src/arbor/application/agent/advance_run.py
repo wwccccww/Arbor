@@ -324,7 +324,7 @@ class AdvanceAgentRun:
                 purpose="agent_step",
                 scopes=scopes,
                 filters=filters or None,
-                k=5,
+                k=int(dict(run.metadata.get("eval_variant") or {}).get("retrieve_k") or 5),
                 run_id=run.id,
                 step_id=step.id,
             )
@@ -346,14 +346,26 @@ class AdvanceAgentRun:
             run.metadata.pop("pending_retrieve_query", None)
             active = self.memories.list_active(tenant_id, run.persona_id)
             by_id = {m.id.value: m for m in active}
+            eval_variant = dict(run.metadata.get("eval_variant") or {})
+            context_budget = int(
+                eval_variant.get("context_token_budget") or run.token_budget or 4000
+            )
             with obs_or_noop(self.observability).span("rag.compile_context"):
-                _, manifest = build_step_context_items(
+                selected, manifest = build_step_context_items(
                     goal=run.goal,
                     persona_profile={"display_name": persona.profile.display_name},
                     evidence_ids=evidence_ids,
                     memories_by_id=by_id,
                     tool_results=list(run.metadata.get("tool_results") or []),
+                    token_budget=context_budget,
                 )
+            from arbor.application.agent.context_engine import ContextItemKind
+
+            manifest["evidence_snippets"] = [
+                {"id": item.id, "text": (item.content or "")[:800]}
+                for item in selected
+                if item.kind == ContextItemKind.EVIDENCE and (item.content or "").strip()
+            ][:6]
             run.metadata["context_manifest"] = manifest
             obs_or_noop(self.observability).observe(
                 "arbor_agent_context_tokens", manifest.get("token_usage", 0)
