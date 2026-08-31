@@ -6,6 +6,82 @@ export type FeishuCalendarStatus = {
   calendar_id?: string
 }
 
+export type AgentRunSummary = {
+  id: string
+  goal: string
+  status: string
+  current_step: number
+  max_steps: number
+  version: number
+  request_id?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type AgentStep = {
+  id: string
+  sequence: number
+  kind: string
+  status: string
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+  observation: Record<string, unknown>
+  trace_id?: string
+}
+
+export type AgentStepTreeNode = {
+  id?: string
+  type?: string
+  kind?: string
+  status?: string
+  label?: string
+  sequence?: number
+  latency_ms?: number
+  started_at?: string
+  finished_at?: string
+  children?: AgentStepTreeNode[]
+}
+
+export type AgentRunDetail = {
+  run: AgentRunSummary & {
+    employee_definition_version?: string
+    final_output?: Record<string, unknown> | null
+    failure?: Record<string, unknown> | null
+    metadata?: Record<string, unknown>
+    consumed_tokens?: number
+    token_budget?: number
+    consumed_cost_micros?: number
+    cost_budget_micros?: number
+  }
+  steps: AgentStep[]
+  step_tree?: AgentStepTreeNode
+  lineage?: Array<Record<string, unknown>>
+}
+
+export type EmployeeDefinition = {
+  persona_id: string
+  version: string
+  role: string
+  goals: string[]
+  skills: string[]
+  knowledge_scopes: string[]
+  tool_policy: Record<string, unknown>
+  approval_policy: Record<string, unknown>
+  memory_policy: Record<string, unknown>
+  escalation_policy: Record<string, unknown>
+  run_budget_policy: Record<string, unknown>
+  evaluation_suite: string
+  release_status: string
+}
+
+export type AgentApproval = {
+  id: string
+  run_id: string
+  tool_name: string
+  status: string
+  reason?: string
+}
+
 export type PersonaGrant = {
   user_id: string
   capabilities: Capability[]

@@ -15,6 +15,13 @@ class MemoryType(str, Enum):
     TRANSCRIPT = "transcript"
 
 
+class MemoryClass(str, Enum):
+    WORKING = "working"
+    EPISODIC = "episodic"
+    SEMANTIC = "semantic"
+    PROCEDURAL = "procedural"
+
+
 class MemoryStatus(str, Enum):
     ACTIVE = "active"
     SUPERSEDED = "superseded"
@@ -33,6 +40,7 @@ class MemoryItem:
     thread_id: ThreadId | None = None
     supersedes: MemoryId | None = None
     source: dict | None = None
+    memory_class: MemoryClass | None = None
 
     def __post_init__(self) -> None:
         if not self.tenant_id or not self.persona_id:

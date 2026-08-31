@@ -1712,6 +1712,34 @@ td:first-child {
   padding: 0.05rem 0.35rem;
 }
 
+.agent-step-tree {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--line);
+}
+
+.agent-step-tree--root {
+  padding-left: 0;
+  border-left: none;
+}
+
+.agent-step-tree__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0;
+}
+
+.agent-step-tree__label {
+  font-weight: 500;
+}
+
+.agent-trace {
+  margin-top: 0.75rem;
+}
+
 @media (max-width: 900px) {
   .workbench.workbench-narrow {
     grid-template-columns: 1fr;

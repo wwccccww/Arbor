@@ -17,6 +17,8 @@ tags:
   - name: Events
   - name: Eval
   - name: Audit
+  - name: Agent
+  - name: Employee
 
 components:
   securitySchemes:
@@ -1546,3 +1548,191 @@ paths:
           description: 日志
         "403":
           $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/agent-runs:
+    post:
+      tags: [Agent]
+      summary: 创建 Agent Run（异步推进）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "202":
+          description: 已接受
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /agent-runs/{run_id}:
+    get:
+      tags: [Agent]
+      summary: 查询 Agent Run 与步骤
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run 详情
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /agent-runs/{run_id}/cancel:
+    post:
+      tags: [Agent]
+      summary: 取消 Agent Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已取消
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /approvals:
+    get:
+      tags: [Agent]
+      summary: 待审批列表
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 审批项
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /approvals/{approval_id}/approve:
+    post:
+      tags: [Agent]
+      summary: 批准工具执行
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已批准
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /approvals/{approval_id}/reject:
+    post:
+      tags: [Agent]
+      summary: 拒绝工具执行
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: approval_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已拒绝
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /employee-templates:
+    get:
+      tags: [Employee]
+      summary: 数字员工模板列表
+      responses:
+        "200":
+          description: 模板
+
+  /personas/{persona_id}/employee-definition:
+    get:
+      tags: [Employee]
+      summary: 岗位定义版本
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: version
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 岗位定义
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/employee-eval:
+    post:
+      tags: [Employee]
+      summary: 岗位评测门禁（发布前跑 evaluation_suite）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+        - name: version
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 评测报告（含 gate_passed）
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/agent-runs:
+    get:
+      tags: [Agent]
+      summary: 列出 Persona 的 Agent Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      responses:
+        "200":
+          description: Run 列表
+
+  /agent-runs/{run_id}/steps:
+    get:
+      tags: [Agent]
+      summary: 查询 Run 步骤
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 步骤列表
+
+  /agent-runs/{run_id}/resume:
+    post:
+      tags: [Agent]
+      summary: 恢复非终态 Run
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - name: run_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 已恢复
+
+  /agent-eval/runs:
+    post:
+      tags: [Agent]
+      summary: 运行 agent-v1 冻结场景评测
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+      responses:
+        "200":
+          description: 评测报告

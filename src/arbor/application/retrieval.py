@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 
 from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
+from arbor.application.memory.validity import is_memory_expired
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.retrieval_lexical import (
@@ -35,7 +36,14 @@ def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
         if item.type.value not in allowed_types:
             return False
     exclude_ids = filters.get("exclude_ids")
-    return exclude_ids is None or item.id.value not in {str(value) for value in exclude_ids}
+    if exclude_ids is not None and item.id.value in {str(value) for value in exclude_ids}:
+        return False
+    memory_classes = filters.get("memory_classes")
+    if memory_classes is not None:
+        allowed_classes = {str(value) for value in memory_classes}
+        if item.memory_class is None or item.memory_class.value not in allowed_classes:
+            return False
+    return not is_memory_expired(item)
 
 
 def _lexical_scan(memories: list[MemoryItem], query: str, k: int) -> list[MemoryItem]:

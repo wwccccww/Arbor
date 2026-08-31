@@ -3,6 +3,7 @@ from __future__ import annotations
 from arbor.adapters.outbound.postgres.lexical import memory_lexical_tokens
 from arbor.adapters.outbound.postgres.mapping import memory_from_row
 from arbor.adapters.outbound.postgres.sql import require_tenant, vector_literal
+from arbor.application.memory.validity import is_memory_searchable
 from arbor.domain.errors import DomainError
 from arbor.domain.memory.memory import MemoryItem, MemoryStatus
 from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId
@@ -85,7 +86,7 @@ class PgVectorIndex:
         hits = []
         for row in rows:
             item = memory_from_row(row)
-            if not item.is_searchable():
+            if not is_memory_searchable(item):
                 continue
             hits.append((item, float(row["score"])))
         return hits
@@ -140,7 +141,7 @@ class PgVectorIndex:
         hits: list[MemoryItem] = []
         for row in rows:
             item = memory_from_row(row)
-            if item.is_searchable():
+            if is_memory_searchable(item):
                 hits.append(item)
         return hits
 

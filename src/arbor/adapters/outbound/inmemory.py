@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
+from arbor.application.memory.validity import is_memory_expired, is_memory_searchable
 from arbor.domain.audit.log import AuditLog
 from arbor.domain.conversation.stream import StreamFinished, chunk_text
 from arbor.domain.conversation.thread import Thread
@@ -32,7 +33,14 @@ def _apply_inmemory_filters(item: MemoryItem, filters: dict | None) -> bool:
         if item.type.value not in allowed_types:
             return False
     exclude_ids = filters.get("exclude_ids")
-    return exclude_ids is None or item.id.value not in {str(value) for value in exclude_ids}
+    if exclude_ids is not None and item.id.value in {str(value) for value in exclude_ids}:
+        return False
+    memory_classes = filters.get("memory_classes")
+    if memory_classes is not None:
+        allowed_classes = {str(value) for value in memory_classes}
+        if item.memory_class is None or item.memory_class.value not in allowed_classes:
+            return False
+    return not is_memory_expired(item)
 
 
 @dataclass
@@ -273,7 +281,7 @@ class InMemoryVectorIndex:
             if status is not MemoryStatus.ACTIVE:
                 continue
             item = self.memories.get(tenant_id, MemoryId(mid))
-            if item is None or not item.is_searchable():
+            if item is None or not is_memory_searchable(item):
                 continue
             if not _apply_inmemory_filters(item, filters):
                 continue

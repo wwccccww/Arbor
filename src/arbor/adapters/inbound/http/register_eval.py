@@ -11,11 +11,12 @@ class EvalHttpDeps:
     start_persona_eval: object
     seed_eval_world: object
     personas: object
-    session: object | None
-    stores: object | None
     current_user: Callable
     workspace_admin_for: Callable
+    session: object | None = None
+    stores: object | None = None
     resolve_tenant: Callable | None = None
+    list_baselines: object | None = None
 
 
 from arbor.adapters.inbound.http.schemas import EvalRunIn, PersonaEvalIn
@@ -139,3 +140,17 @@ def register_eval_routes(app, deps: EvalHttpDeps) -> None:
         result["tenant_id"] = tenant.value
         deps.eval_runs.save(result)
         return {"id": result["id"]}
+
+    if deps.list_baselines is not None:
+
+        @app.get("/v1/eval/baselines")
+        def get_eval_baselines(
+            authorization: str | None = Header(default=None),
+            x_tenant_id: str | None = Header(default=None),
+        ):
+            user = deps.current_user(authorization)
+            if not x_tenant_id:
+                raise DomainError("VALIDATION_ERROR", "X-Tenant-Id required")
+            if not deps.workspace_admin_for(user, x_tenant_id):
+                raise DomainError("FORBIDDEN_WORKSPACE", "admin required")
+            return deps.list_baselines()

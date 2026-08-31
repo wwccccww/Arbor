@@ -641,6 +641,15 @@ export function Workbench({
         >
           记忆收件箱
         </button>
+        <button
+          type="button"
+          className="btn--ghost"
+          onClick={() => {
+            window.location.hash = `#/personas/${personaId}/agent`
+          }}
+        >
+          Agent 任务
+        </button>
       </header>
       {sidebarError ? (
         <p className="workbench-alert workbench-alert--sidebar" role="alert">

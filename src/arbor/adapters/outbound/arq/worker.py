@@ -4,12 +4,17 @@ from __future__ import annotations
 
 from arq.connections import RedisSettings
 
+from arbor.adapters.outbound.arq.agent_runner import execute_agent_run
 from arbor.adapters.outbound.arq.runner import execute_import_job
 from arbor.env import redis_url
 
 
 async def process_import_job(_ctx, payload: dict) -> None:
     execute_import_job(payload)
+
+
+async def process_agent_run(_ctx, payload: dict) -> None:
+    execute_agent_run(payload)
 
 
 async def sweep_object_blobs(_ctx) -> dict:
@@ -59,6 +64,11 @@ async def cleanup_decision_traces(_ctx) -> dict:
 
 
 class WorkerSettings:
-    functions = [process_import_job, sweep_object_blobs, cleanup_decision_traces]
+    functions = [
+        process_import_job,
+        process_agent_run,
+        sweep_object_blobs,
+        cleanup_decision_traces,
+    ]
     redis_settings = RedisSettings.from_dsn(redis_url() or "redis://127.0.0.1:6379/0")
     job_timeout = 600

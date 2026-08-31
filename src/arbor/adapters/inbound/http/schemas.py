@@ -81,3 +81,14 @@ class EvalRunIn(BaseModel):
     strategy: str
     suite_version: str
     mode: str = "retrieval"
+
+
+class AgentRunIn(BaseModel):
+    goal: str
+    max_steps: int = 8
+    token_budget: int = 16000
+    plan_script: list[dict] | None = None
+
+
+class AgentApprovalIn(BaseModel):
+    modified_arguments: dict | None = None

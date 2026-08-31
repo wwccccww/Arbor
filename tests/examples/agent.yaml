@@ -1,0 +1,47 @@
+# Agent Runtime 状态机 Given-When-Then（Phase 0 契约样例）
+- id: agent.run.budget_exhausted_by_steps
+  layer: domain
+  severity: p0
+  title: 达到 max_steps 时预算耗尽
+  given:
+    run:
+      current_step: 8
+      max_steps: 8
+  when:
+    action: budget_exhausted
+  then:
+    budget_exhausted: true
+
+- id: agent.run.terminal_cannot_mark_running
+  layer: domain
+  severity: p0
+  title: 终态 Run 不可再 mark_running
+  given:
+    run:
+      status: completed
+  when:
+    action: mark_running
+  then:
+    error: AGENT_RUN_TERMINAL
+
+- id: agent.run.waiting_approval_blocks_advance
+  layer: domain
+  severity: p0
+  title: 待审批状态不可 can_advance
+  given:
+    run:
+      status: waiting_approval
+  when:
+    action: can_advance
+  then:
+    can_advance: false
+
+- id: agent.planner.reject_unknown_action
+  layer: domain
+  severity: p0
+  title: Planner 未知 action 被拒绝
+  when:
+    action: validate_planner_action
+    payload: { action: fly }
+  then:
+    error: VALIDATION_ERROR

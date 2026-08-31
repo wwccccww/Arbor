@@ -1,0 +1,37 @@
+{
+  "suite_version": "agent-evolution-v1",
+  "description": "Four-track agent comparison per guide §11.3 (Fake Planner / agent-v1 cases)",
+  "updated_at": "2026-08-30",
+  "metrics": {
+    "single_round_task_success_rate": 0.125,
+    "bounded_loop_task_success_rate": 1.0,
+    "bounded_step_rag_task_success_rate": 1.0,
+    "full_hitl_task_success_rate": 1.0
+  },
+  "tracks": [
+    {
+      "id": "single_round_tool",
+      "label": "单轮 tool calling（max_steps=1）",
+      "task_success_rate": 0.125,
+      "case_count": 8
+    },
+    {
+      "id": "bounded_agent_loop",
+      "label": "有界 Agent 循环（无 Step RAG）",
+      "task_success_rate": 1.0,
+      "case_count": 1
+    },
+    {
+      "id": "bounded_step_rag",
+      "label": "有界循环 + Step RAG",
+      "task_success_rate": 1.0,
+      "case_count": 1
+    },
+    {
+      "id": "bounded_rag_recovery_hitl",
+      "label": "Step RAG + 恢复/HITL",
+      "task_success_rate": 1.0,
+      "case_count": 8
+    }
+  ]
+}

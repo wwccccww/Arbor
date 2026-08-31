@@ -588,6 +588,197 @@ def create_app(
         observability=observability,
     )
 
+    from arbor.adapters.inbound.http.register_agent import AgentHttpDeps, register_agent_routes
+    from arbor.adapters.inbound.http.register_employee import EmployeeHttpDeps, register_employee_routes
+    from arbor.adapters.outbound.agent_job_queue import AgentJobQueueHolder
+    from arbor.adapters.outbound.inmemory_artifacts import (
+        InMemoryArtifactLineageRepository,
+        InMemoryArtifactRepository,
+        InMemoryArtifactStores,
+    )
+    from arbor.adapters.outbound.inmemory_agent import (
+        InMemoryAgentRunRepository,
+        InMemoryAgentStepRepository,
+        InMemoryAgentStores,
+        InMemoryApprovalRepository,
+        InMemoryToolExecutionRepository,
+        SyncAgentJobQueue,
+    )
+    from arbor.adapters.outbound.mcp.stub_adapter import default_mcp_stub
+    from arbor.application.agent.advance_run import AdvanceAgentRun
+    from arbor.application.agent.approve_step import ApproveAgentStep, RejectAgentStep
+    from arbor.application.agent.cancel_run import CancelAgentRun, GetAgentRun
+    from arbor.application.agent.start_run import StartAgentRun
+    from arbor.application.agent.employee_templates import default_employee_templates
+    from arbor.application.agent.extract_memory import ExtractRunMemory
+    from arbor.application.agent.list_runs import GetAgentRunSteps, ListAgentRuns
+    from arbor.application.agent.resume_run import ResumeAgentRun
+    from arbor.application.agent.queries import GetEmployeeDefinition, ListEmployeeTemplates
+    from arbor.application.evaluation.start_agent_eval import StartAgentEvalRun
+    from arbor.application.agent.tool_executor import (
+        build_default_tool_registry,
+        register_mcp_stub_tools,
+        ToolExecutor,
+    )
+
+    if session is not None:
+        agent_runs = session.agent_runs
+        agent_steps = session.agent_steps
+        agent_approvals = session.approvals
+        tool_executions = session.tool_executions
+        artifact_lineage = session.artifact_lineage
+        artifact_repo = session.artifacts
+    else:
+        agent_stores = InMemoryAgentStores()
+        agent_runs = InMemoryAgentRunRepository(agent_stores)
+        agent_steps = InMemoryAgentStepRepository(agent_stores)
+        agent_approvals = InMemoryApprovalRepository(agent_stores)
+        tool_executions = InMemoryToolExecutionRepository(agent_stores)
+        artifact_stores = InMemoryArtifactStores()
+        artifact_repo = InMemoryArtifactRepository(artifact_stores)
+        artifact_lineage = InMemoryArtifactLineageRepository(artifact_stores)
+
+    from arbor.application.multimodal.invalidate_artifacts import InvalidateArtifactsForObjectUri
+
+    delete_memory.invalidate_artifacts = InvalidateArtifactsForObjectUri(
+        personas=personas,
+        artifacts=artifact_repo,
+        auth=AuthorizationPolicy(),
+    )
+
+    tool_registry = build_default_tool_registry()
+    from arbor.adapters.outbound.mcp.jsonrpc_transport import McpJsonRpcTransport
+    from arbor.env import mcp_server_url
+
+    mcp_stub = default_mcp_stub()
+    register_mcp_stub_tools(tool_registry, mcp_stub)
+    mcp_url = mcp_server_url()
+    if mcp_url:
+        from arbor.adapters.outbound.mcp.http_transport import McpHttpJsonRpcTransport
+
+        mcp_transport = McpHttpJsonRpcTransport(mcp_url, fallback_adapter=mcp_stub)
+    else:
+        mcp_transport = McpJsonRpcTransport(mcp_stub)
+    tool_executor = ToolExecutor(
+        registry=tool_registry,
+        tool_executions=tool_executions,
+        calendar_tool=calendar_tool,
+        ticket_tool=ticket_tool,
+        mcp_transport=mcp_transport,
+        observability=observability,
+    )
+    extract_run_memory = ExtractRunMemory(
+        personas=personas,
+        inbox=inbox,
+        memories=memories,
+        ids=ids,
+        auth=AuthorizationPolicy(),
+    )
+    advance_agent_run = AdvanceAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        steps=agent_steps,
+        approvals=agent_approvals,
+        memories=memories,
+        events=events,
+        auth=AuthorizationPolicy(),
+        ids=ids,
+        vector_search=vectors.search,
+        embed=resolved_embed.embed,
+        tool_executor=tool_executor,
+        observability=observability,
+        lexical_search=getattr(vectors, "lexical_search", None),
+        extract_memory=extract_run_memory,
+    )
+    agent_job_queue = AgentJobQueueHolder(SyncAgentJobQueue(advance_agent_run))
+    employee_definitions = default_employee_templates()
+    start_agent_run = StartAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+        ids=ids,
+        employee_definitions=employee_definitions,
+        job_queue=agent_job_queue,
+        observability=observability,
+    )
+    approve_agent_step = ApproveAgentStep(
+        runs=agent_runs,
+        approvals=agent_approvals,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+        advance=advance_agent_run,
+    )
+    reject_agent_step = RejectAgentStep(
+        runs=agent_runs,
+        approvals=agent_approvals,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
+    cancel_agent_run = CancelAgentRun(runs=agent_runs, personas=personas, auth=AuthorizationPolicy())
+    get_agent_run = GetAgentRun(
+        runs=agent_runs,
+        steps=agent_steps,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+        lineage=artifact_lineage,
+    )
+    get_employee_definition = GetEmployeeDefinition(
+        personas=personas,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+    )
+    list_agent_runs = ListAgentRuns(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+    )
+    get_agent_run_steps = GetAgentRunSteps(
+        runs=agent_runs,
+        steps=agent_steps,
+        personas=personas,
+        auth=AuthorizationPolicy(),
+    )
+    resume_agent_run = ResumeAgentRun(
+        personas=personas,
+        runs=agent_runs,
+        auth=AuthorizationPolicy(),
+        job_queue=agent_job_queue,
+        advance=advance_agent_run,
+    )
+    start_agent_eval = StartAgentEvalRun(
+        start_run=start_agent_run,
+        approve_step=approve_agent_step,
+        reject_step=reject_agent_step,
+        personas=personas,
+        runs=agent_runs,
+        resume_run=resume_agent_run,
+        observability=observability,
+        eval_runs=eval_runs,
+        ids=ids,
+    )
+    from arbor.application.evaluation.start_employee_eval import StartEmployeeEvalRun
+
+    start_employee_eval = StartEmployeeEvalRun(
+        start_run=start_agent_run,
+        approve_step=approve_agent_step,
+        reject_step=reject_agent_step,
+        personas=personas,
+        runs=agent_runs,
+        employee_definitions=employee_definitions,
+        auth=AuthorizationPolicy(),
+        resume_run=resume_agent_run,
+        eval_runs=eval_runs,
+        ids=ids,
+    )
+    list_employee_templates = ListEmployeeTemplates(employee_definitions=employee_definitions)
+    from arbor.application.agent.compat_chat import AgentCompatRecorder
+
+    send.agent_compat = AgentCompatRecorder(
+        start_run=start_agent_run,
+        runs=agent_runs,
+        job_queue=agent_job_queue,
+    )
+
     def resolve_tenant(user: dict, x_tenant_id: str | None) -> TenantId:
         raw = (x_tenant_id or user.get("tenant_id") or "").strip()
         if not raw:
@@ -610,6 +801,9 @@ def create_app(
 
             pool = await create_pool(arq_redis_settings(redis_url))
             job_queue_holder.use_arq(ArqJobQueue(pool, observability=observability))
+            from arbor.adapters.outbound.job_queue import ArqAgentJobQueue
+
+            agent_job_queue.use_arq(ArqAgentJobQueue(pool, observability=observability))
             app.state.arq_pool = pool
         yield
         if pool is not None:
@@ -726,6 +920,8 @@ def create_app(
             return True
         return False
 
+    from arbor.application.evaluation.list_baselines import list_eval_baselines
+
     register_eval_routes(
         app,
         EvalHttpDeps(
@@ -736,6 +932,7 @@ def create_app(
             personas=personas,
             session=session,
             stores=stores,
+            list_baselines=list_eval_baselines,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
             resolve_tenant=resolve_tenant,
@@ -841,6 +1038,36 @@ def create_app(
             list_audit_logs=list_audit_logs,
             current_user=current_user,
             workspace_admin_for=workspace_admin_for,
+        ),
+    )
+    register_agent_routes(
+        app,
+        AgentHttpDeps(
+            start_run=start_agent_run,
+            get_run=get_agent_run,
+            list_runs=list_agent_runs,
+            get_steps=get_agent_run_steps,
+            resume_run=resume_agent_run,
+            cancel_run=cancel_agent_run,
+            approve_step=approve_agent_step,
+            reject_step=reject_agent_step,
+            approvals=agent_approvals,
+            personas=personas,
+            agent_runs=agent_runs,
+            agent_job_queue=agent_job_queue,
+            start_agent_eval=start_agent_eval,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+        ),
+    )
+    register_employee_routes(
+        app,
+        EmployeeHttpDeps(
+            get_definition=get_employee_definition,
+            list_templates=list_employee_templates,
+            current_user=current_user,
+            workspace_admin_for=workspace_admin_for,
+            start_employee_eval=start_employee_eval,
         ),
     )
     object_store_backend = object_store_label(storage)
