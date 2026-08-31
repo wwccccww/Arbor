@@ -305,6 +305,16 @@ class AdvanceAgentRun:
             if canonical not in allowed_normalized and canonical_short not in allowed_normalized:
                 raise DomainError("FORBIDDEN_TOOL", f"tool not allowed: {canonical}")
             if tool_def.approval_required:
+                eval_variant = dict(run.metadata.get("eval_variant") or {})
+                if eval_variant.get("approval_enabled") is False:
+                    run.status = AgentRunStatus.HANDED_OFF
+                    run.final_output = {
+                        "text": "approval required but disabled for eval variant",
+                        "kind": "handoff",
+                    }
+                    run.finished_at = _now_iso()
+                    step.mark_completed(run.final_output, observation={"approval_disabled": True})
+                    return
                 approval = ApprovalRequest(
                     id=self.ids.new_id(),
                     tenant_id=tenant_id,
@@ -339,7 +349,8 @@ class AdvanceAgentRun:
             run.consumed_tokens += 100
             run.metadata.setdefault("tool_results", []).append(result)
             pending = str(result.get("title") or result.get("ticket_id") or "").strip()
-            if pending:
+            eval_variant = dict(run.metadata.get("eval_variant") or {})
+            if pending and eval_variant.get("step_rag_enabled", True):
                 run.metadata["pending_retrieve_query"] = f"{pending} 处理方案"
             step.mark_completed({"tool": canonical, "result": result}, observation=result)
             return

@@ -437,10 +437,42 @@ export function Checkup({
           </div>
         ) : null}
 
-        {baselines.some((row) => row.id === 'agent-evolution-v1' && Array.isArray(row.tracks)) ? (
+        {baselines.some((row) => row.id === 'agent-ablation-v1' && Array.isArray(row.tracks)) ? (
           <div className="table-wrap">
             <table>
-              <caption>Agent 四轨演进基线（§11.3）</caption>
+              <caption>Agent 公平四轨消融（agent-ablation-v1 · Fake Planner · 同案例集）</caption>
+              <thead>
+                <tr>
+                  <th>轨道</th>
+                  <th>任务成功率</th>
+                  <th>用例数</th>
+                  <th>Planner</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(
+                  (baselines.find((row) => row.id === 'agent-ablation-v1')?.tracks as Array<
+                    Record<string, unknown>
+                  >) || []
+                ).map((track) => (
+                  <tr key={String(track.id)}>
+                    <td>{String(track.label ?? track.id)}</td>
+                    <td>{Number(track.task_success_rate ?? 0).toFixed(2)}</td>
+                    <td>{String(track.case_count ?? '—')}</td>
+                    <td>{String(track.planner_kind ?? 'fake')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        {baselines.some(
+          (row) => row.id === 'agent-evolution-v1' && row.historical && Array.isArray(row.tracks),
+        ) ? (
+          <div className="table-wrap">
+            <table>
+              <caption>Agent 四轨演进基线（历史 · 非公平案例集 · 勿用于简历）</caption>
               <thead>
                 <tr>
                   <th>轨道</th>
@@ -450,8 +482,9 @@ export function Checkup({
               </thead>
               <tbody>
                 {(
-                  (baselines.find((row) => row.id === 'agent-evolution-v1')?.tracks as Array<Record<string, unknown>>) ||
-                  []
+                  (baselines.find((row) => row.id === 'agent-evolution-v1')?.tracks as Array<
+                    Record<string, unknown>
+                  >) || []
                 ).map((track) => (
                   <tr key={String(track.id)}>
                     <td>{String(track.label ?? track.id)}</td>

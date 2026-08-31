@@ -27,11 +27,13 @@ SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
     "ragas-v1": ROOT / "eval" / "fixtures" / "suite-ragas-v1",
     "agent-v1": ROOT / "eval" / "fixtures" / "agent-v1",
+    "agent-ablation-v1": ROOT / "eval" / "fixtures" / "agent-ablation-v1",
 }
 BASELINE_FILES = {
     "v1": ROOT / "eval" / "baselines" / "suite-v1.json",
     "ragas-v1": ROOT / "eval" / "baselines" / "suite-ragas-v1.json",
     "agent-v1": ROOT / "eval" / "baselines" / "agent-v1-smoke.json",
+    "agent-ablation-v1": ROOT / "eval" / "baselines" / "agent-ablation-v1.json",
 }
 
 
@@ -100,17 +102,63 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     if args.mode == "agent":
-        if args.suite != "agent-v1":
-            print("agent mode requires --suite agent-v1", file=sys.stderr)
+        if args.suite not in ("agent-v1", "agent-ablation-v1"):
+            print("agent mode requires --suite agent-v1 or agent-ablation-v1", file=sys.stderr)
             return 1
         from arbor.adapters.inbound.agent_eval_stack import (
             agent_fixture_path,
             build_agent_eval_stack,
         )
+        from arbor.application.evaluation.agent_ablation import (
+            ablation_fixture_path,
+            run_agent_ablation_tracks,
+        )
         from arbor.application.evaluation.agent_evolution import run_agent_evolution_tracks
         from arbor.application.evaluation.agent_runner import run_agent_smoke
 
         stack = build_agent_eval_stack()
+        if args.suite == "agent-ablation-v1":
+            ablation = run_agent_ablation_tracks(
+                stack=build_agent_eval_stack(use_employee_templates=False),
+                fixture_path=ablation_fixture_path(),
+            )
+            baseline_path = BASELINE_FILES["agent-ablation-v1"]
+            baseline = {}
+            if baseline_path.is_file():
+                baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+            _export_metrics(
+                suite="agent-ablation-v1",
+                strategy="agent-ablation",
+                metrics={
+                    "task_success_rate": max(
+                        t.get("task_success_rate", 0.0) for t in ablation.get("tracks") or []
+                    ),
+                },
+                p0_ok=all(
+                    t.get("unauthorized_action_rate", 0.0) == 0.0
+                    and t.get("approval_bypass_rate", 0.0) == 0.0
+                    and t.get("duplicate_side_effect_rate", 0.0) == 0.0
+                    for t in ablation.get("tracks") or []
+                ),
+            )
+            print(json.dumps(ablation, ensure_ascii=False, indent=2))
+            for track in ablation.get("tracks") or []:
+                base_track = next(
+                    (t for t in baseline.get("tracks") or [] if t.get("id") == track.get("id")),
+                    None,
+                )
+                if base_track and track.get("task_success_rate", 0.0) < float(
+                    base_track.get("task_success_rate", 0.0)
+                ):
+                    return 1
+                if track.get("unauthorized_action_rate", 0.0) > 0:
+                    return 1
+                if track.get("approval_bypass_rate", 0.0) > 0:
+                    return 1
+                if track.get("duplicate_side_effect_rate", 0.0) > 0:
+                    return 1
+            return 0
+
         report = run_agent_smoke(
             fixture_path=agent_fixture_path(),
             start_run=stack["start_run"],

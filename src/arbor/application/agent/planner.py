@@ -16,8 +16,10 @@ class ScriptedPlanner:
         run_metadata: dict | None = None,
     ) -> dict:
         meta = dict(run_metadata or {})
+        eval_variant = dict(meta.get("eval_variant") or {})
+        step_rag_enabled = eval_variant.get("step_rag_enabled", True)
         pending_query = str(meta.get("pending_retrieve_query") or "").strip()
-        if pending_query:
+        if pending_query and step_rag_enabled:
             last_tool_idx = max(
                 (i for i, s in enumerate(steps) if s.get("kind") == "tool"),
                 default=-1,

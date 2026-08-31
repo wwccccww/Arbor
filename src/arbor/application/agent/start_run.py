@@ -47,6 +47,7 @@ class StartAgentRun:
         employee_definition_version: str | None = None,
         plan_script: list[dict] | None = None,
         enqueue: bool = True,
+        eval_variant: dict | None = None,
     ) -> AgentRun:
         persona = self.personas.get(tenant_id, persona_id)
         if persona is None:
@@ -73,6 +74,8 @@ class StartAgentRun:
         if ctx is not None and ctx.request_id:
             request_id = ctx.request_id
         metadata: dict = {"plan_script": plan_script or [], "request_id": request_id}
+        if eval_variant:
+            metadata["eval_variant"] = dict(eval_variant)
         if self.employee_definitions is not None:
             definition = self.employee_definitions.get(persona_id, version=employee_definition_version)
             if definition is not None and definition.evaluation_suite:

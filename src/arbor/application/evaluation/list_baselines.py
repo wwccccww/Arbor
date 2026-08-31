@@ -27,7 +27,9 @@ def list_eval_baselines() -> dict:
                     if k not in {"suite_version", "cases", "tracks"} and not isinstance(v, list)
                 },
                 "tracks": list(payload.get("tracks") or []),
-                "case_count": len(payload.get("cases") or []),
+                "case_count": len(payload.get("cases") or []) or payload.get("case_count"),
+                "historical": bool(payload.get("historical")),
+                "planner_kind": payload.get("planner_kind"),
             }
         )
     return {"items": items}
