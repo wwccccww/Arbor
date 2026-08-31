@@ -22,9 +22,10 @@
 12. [可观测性](observability.md) — 指标、日志、Trace、决策轨迹与 Grafana 实现契约
 13. [AI Agent 改造开发指南](ai-agent-development-guide.md) — Runtime、上下文、RAG、记忆、多模态、数字员工与评测路线
 14. [Agent 生产化补强开发指南](agent-production-hardening-guide.md) — 真实 Planner、公平消融、持久化、契约、观测与可直接使用的编码提示词
-15. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
-16. [简历材料](resume) — Arbor 项目口径，按 `001` 起递增
-17. [求职交付 · Sail](job/sail) — AI Agent 应用岗；主投简历为 [005](job/sail/005/005-改后简历.html)，另有 [003 扫读](job/sail/003/003-改后简历.html) / [004 完整](job/sail/004/004-改后简历.html)
+15. [公开基准评测接入指南](public-benchmark-integration-guide.md) — BFCL、AgentDojo、MultiHop-RAG 接入路线、数据治理与 CI 分层
+16. [ADR](adr) — 已冻结的技术决策（含 [0009 检索编排 v2](adr/0009-retrieval-orchestrator-v2.md)）
+17. [简历材料](resume) — Arbor 项目口径，按 `001` 起递增
+18. [求职交付 · Sail](job/sail) — AI Agent 应用岗；主投简历为 [005](job/sail/005/005-改后简历.html)，另有 [003 扫读](job/sail/003/003-改后简历.html) / [004 完整](job/sail/004/004-改后简历.html)
 
 ## 文档与代码的关系
 
@@ -34,6 +35,7 @@
 - 新增外部系统：只允许新增出站适配器，禁止改领域实体去迁就 SDK。
 - 新增 HTTP 路径：先改 `openapi.yaml` 与 `api.md`，再实现入站适配器。
 - 检索相关改动：必须能在评测集上对比 Recall、泄漏率、跨租户命中（目标为 0）。
+- 公开基准接入：见 [public-benchmark-integration-guide.md](public-benchmark-integration-guide.md)；私有与公开分栏报告，禁止混报 Fake/Real 分数。
 - 新增领域规则或端口：先在 `tests/examples/` 补一条 Given-When-Then，再写实现。
 
 ## 词汇
