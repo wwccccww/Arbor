@@ -93,6 +93,49 @@
         {"id": "ep-a", "text": "林夏讨厌香菜"},
         {"id": "ep-b", "text": "林夏不喜欢香菜"}
       ]
+    },
+    {
+      "id": "working-memory-run-scoped",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_run_scoped",
+      "run_id": "run-a",
+      "other_run_id": "run-b"
+    },
+    {
+      "id": "working-memory-expired-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_expired_excluded",
+      "run_id": "run-a",
+      "expires_at": "2020-01-01T00:00:00Z"
+    },
+    {
+      "id": "working-memory-cleared-on-complete",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "working_memory_cleared_on_complete",
+      "run_id": "run-complete"
+    },
+    {
+      "id": "procedural-draft-excluded",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "procedural_draft_excluded"
+    },
+    {
+      "id": "procedural-pinned-version",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "action": "procedural_pinned_version"
+    },
+    {
+      "id": "procedural-agent-write-blocked",
+      "tenant_id": "0a000000-0000-4000-a000-000000000001",
+      "persona_id": "0a000000-0000-4000-a000-000000000010",
+      "user_id": "0a000000-0000-4000-a000-000000000002",
+      "action": "procedural_agent_write_blocked",
+      "run_id": "run-agent"
     }
   ]
 }

@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from arbor.application.agent.planner import ScriptedPlanner, is_repeated_action_loop
 from arbor.application.agent.step_retrieval import StepRetrieval, build_step_context_items
 from arbor.application.agent.tool_executor import ToolExecutor
+from arbor.application.memory.working_memory import clear_working_memory_for_run
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.tools.run_tools import allowed_tool_names, normalize_tool_name
 from arbor.domain.agent.action import validate_planner_action
@@ -72,6 +73,16 @@ class AdvanceAgentRun:
             observability=observability,
         )
 
+    def _finalize_terminal_run(self, run: AgentRun) -> None:
+        if not run.is_terminal():
+            return
+        clear_working_memory_for_run(
+            self.memories,
+            run.tenant_id,
+            run.persona_id,
+            run.id,
+        )
+
     def __call__(
         self,
         *,
@@ -99,6 +110,7 @@ class AdvanceAgentRun:
         if run.budget_exhausted():
             run.mark_failed({"kind": "budget_exhausted"})
             run.updated_at = _now_iso()
+            self._finalize_terminal_run(run)
             self.runs.save(run)
             return run
 
@@ -147,6 +159,7 @@ class AdvanceAgentRun:
         ):
             run.mark_failed({"kind": "action_loop", "message": "repeated planner action"})
             run.updated_at = _now_iso()
+            self._finalize_terminal_run(run)
             self.runs.save(run)
             return run
         planner_meta = getattr(self.planner, "last_metadata", None)
@@ -193,6 +206,7 @@ class AdvanceAgentRun:
                 run.mark_failed({"kind": exc.code, "message": str(exc)})
                 run.updated_at = _now_iso()
                 self.steps.add(step)
+                self._finalize_terminal_run(run)
                 self.runs.save(run)
                 return run
             latency_ms = round((time.perf_counter() - step_started) * 1000, 2)
@@ -388,6 +402,7 @@ class AdvanceAgentRun:
             }
             run.mark_completed(output)
             run.updated_at = _now_iso()
+            self._finalize_terminal_run(run)
             if self.extract_memory is not None:
                 self.extract_memory(
                     tenant_id=tenant_id,
@@ -405,6 +420,7 @@ class AdvanceAgentRun:
             run.status = AgentRunStatus.HANDED_OFF
             run.final_output = {"text": str(action.get("text") or ""), "kind": "clarification"}
             run.finished_at = _now_iso()
+            self._finalize_terminal_run(run)
             step.mark_completed(run.final_output)
             return
 
@@ -412,6 +428,7 @@ class AdvanceAgentRun:
             run.status = AgentRunStatus.HANDED_OFF
             run.final_output = {"text": str(action.get("text") or ""), "kind": "handoff"}
             run.finished_at = _now_iso()
+            self._finalize_terminal_run(run)
             step.mark_completed(run.final_output)
             return
 

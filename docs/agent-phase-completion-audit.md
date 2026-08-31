@@ -2,7 +2,7 @@
 
 对照 `docs/ai-agent-development-guide.md` §14 与 §16.1。状态：**核心交付已落地**；本表记录可复现证据路径。
 
-仍需补齐的真实 Planner、公平四轨消融、数字员工持久化、OpenAPI、观测强门禁和演示证据，按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行。
+仍需补齐的演示证据包（P2），按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行；P0–P1 核心补强见下表。
 
 ## 横切 invariant
 
@@ -116,7 +116,7 @@
 | Agent Runtime | `domain/agent/run.py` `step.py` | inmemory + `postgres/agent.py` | 0014/0015 | `register_agent.py` | unit + contract + agent-v1 | `agent-v1` + smoke baseline | spans + Tempo 集成测 | 租户隔离 PG 契约 | demo-script | ADR 0010 |
 | Tool/审批 | `tool_executor.py` `approval.py` | tool_executions PG | 0014 | approvals API | idempotency + agent-v1 | forbidden-tool case | executor metrics | 审批绕过率=0 | 故障注入录屏 | ADR 0011 |
 | Step RAG/上下文 | `step_retrieval.py` `context_engine.py` | vector + memory repos | memory RLS | manifest in run metadata | second-retrieve case | RAG baseline gate | context manifest UI | injection 检测 | — | ADR 0011 |
-| Agent Memory | `memory_class` `validity` `decay` | memory PG | memory migrations | memory HTTP | memory-v1 9 cases | memory-smoke baseline | — | 删除传播 invalidate | — | guide §9 |
+| Agent Memory | `memory_class` `validity` `decay` | memory PG | memory migrations | memory HTTP | memory-v1 15 cases | memory-smoke baseline | — | 删除传播 invalidate | — | guide §9 |
 | 多模态证据链 | `application/multimodal/` | artifacts PG | 0016/0017 | artifact routes | multimodal-v1 5层 | multimodal-smoke | lineage UI | 对象删除失效 | — | guide §9.5 |
 | Agent Eval | `agent_runner.py` | eval_runs repo | eval_runs table | `/agent-eval/runs` | `test_start_agent_eval` | `agent-v1-smoke.json` | eval_runs metrics | P0 安全指标 | 录屏 | Checkup 对比表 |
 | 数字员工 | `employee.py` templates | inmemory templates | employee_definitions | employee-definition + employee-eval | templates + pinning + employee eval | evaluation_suite 门禁 | AgentRunsPage | 岗位评测 gate | AgentRunsPage | guide §10 |
@@ -126,5 +126,17 @@
 
 - Nightly 真实模型轨（`ARBOR_JUDGE_API_KEY` / DeepSeek）— `nightly.yml` generation-llm job
 - Nightly Agent smoke（Fake Planner）— `nightly.yml` agent-smoke job
-- 生产 Tempo Agent Run 端到端 — `test_tempo_trace_search_by_agent_run_request_id`（observability job `continue-on-error`）
-- 全量多 Agent（Phase 8 明确为可选，**不要求**完成 Phase 0–8）
+- 生产 Tempo Agent Run 端到端 — `test_tempo_trace_search_by_agent_run_request_id`（CI `observability-integration` 阻断 job）
+
+## 生产化补强 P0–P1（agent-production-hardening-guide）
+
+| 工作包 | 证据 |
+|--------|------|
+| P0-1 公平四轨消融 | `agent_ablation.py`；`eval/fixtures/agent-ablation-v1/`；`eval/baselines/agent-ablation-v1.json`；`test_agent_ablation.py` |
+| P0-2 PlannerPort | `ports/outbound/planner.py`；`LLMPlanner`/`FallbackPlanner`；`test_planner_port.py` |
+| P0-3 数字员工 PG | `postgres/employee.py`；`employee_commands.py`；`test_pg_employee_definition.py` |
+| P1-1 安全场景 | `agent_security_runner.py`；`agent-security-v1` fixture+baseline；`test_agent_security_smoke.py` |
+| P1-2 OpenAPI | `docs/openapi.yaml` Agent/Employee schemas；`scripts/validate_openapi_fastapi.py`；`test_openapi_fastapi_alignment.py` |
+| P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
+| P1-4 四类记忆 | `working_memory.py` `procedural_memory.py`；memory-v1 +6 cases（15 total） |
+| P2 演示证据 | 未完成 — `docs/demo-script.md` 录屏未入库 |

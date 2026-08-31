@@ -72,6 +72,7 @@ export type EmployeeDefinition = {
   run_budget_policy: Record<string, unknown>
   evaluation_suite: string
   release_status: string
+  eval_gate_passed?: boolean
 }
 
 export type AgentApproval = {

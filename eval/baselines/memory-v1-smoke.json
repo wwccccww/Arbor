@@ -14,6 +14,12 @@
     {"id": "expired-excluded", "ok": true},
     {"id": "superseded-excluded", "ok": true},
     {"id": "delete-completeness", "ok": true},
-    {"id": "consolidation-reduces-duplicates", "ok": true}
+    {"id": "consolidation-reduces-duplicates", "ok": true},
+    {"id": "working-memory-run-scoped", "ok": true},
+    {"id": "working-memory-expired-excluded", "ok": true},
+    {"id": "working-memory-cleared-on-complete", "ok": true},
+    {"id": "procedural-draft-excluded", "ok": true},
+    {"id": "procedural-pinned-version", "ok": true},
+    {"id": "procedural-agent-write-blocked", "ok": true}
   ]
 }

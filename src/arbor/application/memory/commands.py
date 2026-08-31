@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from arbor.application.memory.procedural_memory import agent_may_write_procedural
 from arbor.domain.errors import DomainError
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
 from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
@@ -79,6 +80,8 @@ class ConfirmInboxItem:
         if item.conflicts_with:
             old = self.memories.get(tenant_id, item.conflicts_with)
         text = item.payload.get("text", "")
+        if not agent_may_write_procedural(item.payload):
+            raise DomainError("FORBIDDEN_MEMORY_WRITE", "agent cannot overwrite published procedural memory")
         memory_type_raw = item.payload.get("memory_type") or "fact"
         try:
             mem_type = MemoryType(memory_type_raw)

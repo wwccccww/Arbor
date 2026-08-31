@@ -54,6 +54,7 @@ class ContextManifest:
 
 _INJECTION_PATTERNS = (
     "忽略之前",
+    "忽略所有",
     "ignore previous",
     "ignore all",
     "system:",
