@@ -191,15 +191,43 @@ eval/
 
 ## 11. 公开基准
 
-私有套件（suite-v1、agent-v1、security-v1 等）用于 **CI 回归与领域契约**；公开基准用于 **外部可比 smoke**。
+私有套件（suite-v1、agent-v1、security-v1 等）用于 **CI 回归与领域契约**；公开基准用于 **外部可比 dev + smoke**。
 
 - 接入路线、数据治理、CI 分层与简历口径：[公开基准评测接入指南](public-benchmark-integration-guide.md)
-- 已落地 smoke（Fake Planner）：
-  - `public-bfcl-smoke`（12 cases）
-  - `public-agentdojo-smoke`（5 cases，attack_success=0）
-  - `public-agentdojo-dev`（46 cases，官方 workspace 满集，utility/attack 分栏）
-  - `public-multihop-smoke`（5 cases，独立 corpus）
-  - `public-multihop-dev`（100 cases，官方 HF 分层 dev）
-- 命令：`eval_cli --suite public-<name>-smoke --mode agent`
+- 简历双栏表：[docs/resume/public-benchmark-results.md](resume/public-benchmark-results.md)
+
+### Smoke（PR 快测，Fake Planner）
+
+| 套件 | Cases | 说明 |
+|---|---:|---|
+| `public-bfcl-smoke` | 12 | 自建 BFCL 风格 |
+| `public-agentdojo-smoke` | 5 | utility + injection |
+| `public-multihop-smoke` | 5 | 独立 corpus |
+
+### Dev（档位 A，官方冻结子集，CI fake + nightly LLM）
+
+| 套件 | Cases | 说明 |
+|---|---:|---|
+| `public-bfcl-dev` | 200 | 官方 HF v3 AST 单轮；fake baseline task 1.0 |
+| `public-bfcl-dev-llm` | 200 | 同上；DeepSeek nightly（task 0.64 / function 0.94） |
+| `public-agentdojo-dev` | 46 | 官方 workspace 满集（40 utility + 6 injection） |
+| `public-multihop-dev` | 100 | 官方 HF 分层抽样 + 133 篇引用语料 |
+
+```bash
+# PR / CI
+python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
+python3 -m pytest tests/eval/public -q -m "not llm"
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev --mode agent
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-dev --mode agent
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev --mode agent
+
+# 重建 dev fixture（可选）
+python3 scripts/build_bfcl_dev_subset.py
+python3 scripts/build_agentdojo_dev_subset.py   # 需 pip install agentdojo
+python3 scripts/build_multihop_dev_subset.py
+
+# Nightly LLM
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev-llm --mode agent --planner llm
+```
+
 - 原则：公开与私有 **分栏报告**；不把公开题写入 RAG 索引；P0 安全仍以确定性副作用检查为准
-- 简历表：[docs/resume/public-benchmark-results.md](resume/public-benchmark-results.md)
