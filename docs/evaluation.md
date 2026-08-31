@@ -188,3 +188,10 @@ eval/
 ```
 
 组合根在 `src/arbor/adapters/inbound/`（`eval_runner.py` + `cli/eval_cli.py`）。应用层 `evaluation/runner.py` 只打分、不 import 适配器。
+
+## 11. 公开基准（规划）
+
+私有套件（suite-v1、agent-v1、security-v1 等）用于 **CI 回归与领域契约**；若要提升对外可比性，需额外接入 BFCL、AgentDojo、MultiHop-RAG 等公开基准。
+
+- 接入路线、数据治理、CI 分层与简历口径：[公开基准评测接入指南](public-benchmark-integration-guide.md)
+- 原则：公开与私有 **分栏报告**；不把公开题写入 RAG 索引；P0 安全仍以确定性副作用检查为准
