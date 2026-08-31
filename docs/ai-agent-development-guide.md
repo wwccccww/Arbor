@@ -5,7 +5,7 @@
 - 面向：AI Agent 应用开发、企业数字员工
 - 目标：把现有「对话 + 分层 RAG + 单轮工具调用」演进为可恢复、可治理、可评测的任务型 Agent
 
-本文是开发契约，不代表下述能力已经实现。每个阶段只有在对应代码、迁移、测试、评测基线和文档同时完成后，才可以在简历中写成“已实现”。**完成度审计表**见 [agent-phase-completion-audit.md](agent-phase-completion-audit.md)。
+本文是开发契约，不代表下述能力已经实现。每个阶段只有在对应代码、迁移、测试、评测基线和文档同时完成后，才可以在简历中写成“已实现”。**完成度审计表**见 [agent-phase-completion-audit.md](agent-phase-completion-audit.md)；真实 Planner、公平消融、持久化契约和生产观测等后续工作见 [Agent 生产化补强开发指南](agent-production-hardening-guide.md)。
 
 ---
 

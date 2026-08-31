@@ -2,6 +2,8 @@
 
 对照 `docs/ai-agent-development-guide.md` §14 与 §16.1。状态：**核心交付已落地**；本表记录可复现证据路径。
 
+仍需补齐的真实 Planner、公平四轨消融、数字员工持久化、OpenAPI、观测强门禁和演示证据，按 [Agent 生产化补强开发指南](agent-production-hardening-guide.md) 执行。
+
 ## 横切 invariant
 
 | 要求 | 证据 |
