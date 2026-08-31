@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
-from arbor.application.agent.planner import ScriptedPlanner
+from arbor.application.agent.planner import ScriptedPlanner, is_repeated_action_loop
 from arbor.application.agent.step_retrieval import StepRetrieval, build_step_context_items
 from arbor.application.agent.tool_executor import ToolExecutor
 from arbor.application.retrieval_config import RetrievalConfig
@@ -126,11 +126,32 @@ class AdvanceAgentRun:
         action = self.planner.next_action(
             goal=run.goal,
             steps=step_summaries,
+            context_manifest=dict(run.metadata.get("context_manifest") or {}),
+            tool_schemas=self._tool_schemas(),
+            budget={
+                "max_steps": run.max_steps,
+                "current_step": run.current_step,
+                "token_budget": run.token_budget,
+                "consumed_tokens": run.consumed_tokens,
+                "cost_budget_micros": run.cost_budget_micros,
+                "consumed_cost_micros": run.consumed_cost_micros,
+            },
             plan_script=list(run.metadata.get("plan_script") or []),
             evidence_ids=evidence_ids,
             run_metadata=run.metadata,
         )
         action = validate_planner_action(action)
+        if is_repeated_action_loop(
+            [{"input": dict(s.input or {})} for s in prior_steps],
+            action,
+        ):
+            run.mark_failed({"kind": "action_loop", "message": "repeated planner action"})
+            run.updated_at = _now_iso()
+            self.runs.save(run)
+            return run
+        planner_meta = getattr(self.planner, "last_metadata", None)
+        if isinstance(planner_meta, dict) and planner_meta:
+            run.metadata["planner"] = dict(planner_meta)
 
         step_id = self.ids.new_id()
         trace_id = str(run.metadata.get("request_id") or "")
@@ -395,3 +416,19 @@ class AdvanceAgentRun:
             return
 
         raise DomainError("VALIDATION_ERROR", f"unsupported action: {action['action']}")
+
+    def _tool_schemas(self) -> list[dict]:
+        schemas: list[dict] = []
+        for name in self.tool_executor.registry.list_names():
+            tool = self.tool_executor.registry.get(name)
+            if tool is None:
+                continue
+            schemas.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "input_schema": tool.input_schema,
+                    "approval_required": tool.approval_required,
+                }
+            )
+        return schemas

@@ -49,7 +49,20 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -e ".[dev,api]"
-      - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_memory_smoke.py tests/eval/test_multimodal_smoke.py tests/eval/test_retrieval_baseline_gate.py tests/unit/application/test_start_employee_eval.py tests/unit/application/test_employee_definition_version_pinning.py -q --tb=short
+      - run: python3 -m pytest tests/eval/test_agent_smoke.py tests/eval/test_memory_smoke.py tests/eval/test_multimodal_smoke.py tests/eval/test_retrieval_baseline_gate.py tests/unit/application/test_start_employee_eval.py tests/unit/application/test_employee_definition_version_pinning.py tests/unit/application/test_planner_port.py -q --tb=short
+  nightly-agent-llm:
+    runs-on: ubuntu-latest
+    env:
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev,api]"
+      - name: Agent ablation with real LLM planner (skip without key)
+        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        run: python3 -m pytest tests/eval/test_agent_ablation_llm.py -q -m llm --tb=short
   bge-retrieval:
     runs-on: ubuntu-latest
     services:
