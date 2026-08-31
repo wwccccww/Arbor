@@ -85,6 +85,45 @@ def build_corpus_index(corpus: list[dict]) -> dict[str, dict]:
     return {str(doc["id"]): dict(doc) for doc in corpus or [] if doc.get("id")}
 
 
+def seed_corpus_to_memory(
+    *,
+    memories,
+    vectors,
+    embed,
+    corpus: list[dict],
+    tenant_id,
+    persona_id,
+) -> int:
+    """Index benchmark corpus docs as semantic memories for real RAG eval."""
+    from arbor.domain.memory.memory import MemoryClass, MemoryItem, MemoryStatus, MemoryType
+    from arbor.domain.shared.ids import MemoryId
+
+    seeded = 0
+    for doc in corpus or []:
+        doc_id = str(doc.get("id") or "").strip()
+        if not doc_id:
+            continue
+        title = str(doc.get("title") or "").strip()
+        body = str(doc.get("text") or "").strip()
+        text = f"{title}\n{body}".strip() if title else body
+        if not text:
+            continue
+        item = MemoryItem(
+            id=MemoryId(doc_id),
+            tenant_id=tenant_id,
+            persona_id=persona_id,
+            text=text,
+            type=MemoryType.FILE_CHUNK,
+            status=MemoryStatus.ACTIVE,
+            memory_class=MemoryClass.SEMANTIC,
+            source={"benchmark_doc_id": doc_id, "url": doc.get("url")},
+        )
+        memories.save(item)
+        vectors.upsert(tenant_id, persona_id, item.id, embed.embed(text), item.status)
+        seeded += 1
+    return seeded
+
+
 def retrieve_from_corpus(*, query: str, corpus: list[dict], top_k: int = 5) -> list[str]:
     """Deterministic keyword retrieval for smoke — not production RAG."""
     query_tokens = set(normalize_answer(query).split())

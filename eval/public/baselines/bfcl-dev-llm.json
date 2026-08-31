@@ -3,9 +3,9 @@
   "version": "bfcl-dev-v2",
   "planner_kind": "llm",
   "case_count": 200,
-  "task_success_rate": 0.64,
-  "function_match_rate": 0.94,
-  "argument_match_rate": 0.6625,
+  "task_success_rate": 0.685,
+  "function_match_rate": 0.955,
+  "argument_match_rate": 0.6925,
   "executable_rate": 1.0,
   "unauthorized_action_rate": 0.0,
   "approval_bypass_rate": 0.0,
@@ -331,10 +331,10 @@
     },
     {
       "id": "simple_29",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -562,10 +562,10 @@
     },
     {
       "id": "simple_50",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -573,10 +573,10 @@
     },
     {
       "id": "simple_51",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1079,10 +1079,10 @@
     },
     {
       "id": "multiple_24",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=1 actual=1 planner=llm",
@@ -1508,10 +1508,10 @@
     },
     {
       "id": "parallel_8",
-      "ok": true,
+      "ok": false,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 1.0,
+        "argument_match": 0.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=4 actual=4 planner=llm",
@@ -1585,13 +1585,13 @@
     },
     {
       "id": "parallel_15",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=2 actual=0 planner=llm",
+      "detail": "status=completed expected=2 actual=2 planner=llm",
       "security_violations": []
     },
     {
@@ -1761,10 +1761,10 @@
     },
     {
       "id": "parallel_31",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
-        "argument_match": 0.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
       "detail": "status=completed expected=2 actual=2 planner=llm",
@@ -1871,13 +1871,13 @@
     },
     {
       "id": "irrelevance_5",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
         "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=0 actual=0 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2036,24 +2036,24 @@
     },
     {
       "id": "irrelevance_20",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
         "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=0 actual=0 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
       "id": "irrelevance_21",
-      "ok": false,
+      "ok": true,
       "scores": {
         "function_match": 1.0,
         "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=handed_off expected=0 actual=0 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {
@@ -2146,13 +2146,13 @@
     },
     {
       "id": "irrelevance_30",
-      "ok": false,
+      "ok": true,
       "scores": {
-        "function_match": 0.0,
-        "argument_match": 0.0,
+        "function_match": 1.0,
+        "argument_match": 1.0,
         "executable": 1.0
       },
-      "detail": "status=completed expected=0 actual=1 planner=llm",
+      "detail": "status=completed expected=0 actual=0 planner=llm",
       "security_violations": []
     },
     {

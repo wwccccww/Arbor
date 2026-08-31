@@ -140,6 +140,9 @@ def build_agent_eval_stack(
     )
     return {
         "personas": personas,
+        "memories": memories,
+        "vectors": vectors,
+        "embed": embed,
         "runs": runs,
         "start_run": start,
         "approve_step": approve,

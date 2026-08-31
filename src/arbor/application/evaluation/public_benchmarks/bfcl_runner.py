@@ -40,7 +40,7 @@ class BFCFunctionCallPlanner:
     """Multi-turn function-calling planner for official BFCL eval."""
 
     planner_kind = "real"
-    planner_version = "bfcl-fc-v2"
+    planner_version = "bfcl-fc-v3"
 
     def __init__(self, *, model: str | None = None, timeout_s: float = 60.0) -> None:
         self.model = model or chat_model()
@@ -55,6 +55,32 @@ class BFCFunctionCallPlanner:
             "max_tools": int(cfg.get("max_tools") or variant.get("bfcl_max_tools") or 6),
             "category": str(cfg.get("category") or variant.get("bfcl_category") or ""),
         }
+
+    def _system_prompt(self, *, tool_schemas: list[dict], category: str) -> str:
+        tools_blob = json.dumps(tool_schemas or [], ensure_ascii=False)
+        category_hint = ""
+        if category == "parallel":
+            category_hint = (
+                "This is a parallel category: issue each required tool call in separate turns "
+                "until all sub-tasks are done, then answer with completion=true. "
+            )
+        elif category == "multiple":
+            category_hint = "Multiple tools may be required in sequence; match each schema exactly. "
+        elif category == "simple":
+            category_hint = "Usually one tool call is enough; use exact argument types from schema. "
+        elif category == "irrelevance":
+            category_hint = "If no tool applies to the user request, answer without calling tools. "
+        return (
+            "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
+            "Allowed actions: tool, answer. Issue tool calls one at a time until the user task is satisfied, "
+            "then answer with completion=true. "
+            f"{category_hint}"
+            "tool_name must match a provided tool exactly. "
+            "Use only argument keys defined in the tool schema with correct JSON types "
+            "(string/number/boolean/array/object). Do not wrap strings in extra quotes. "
+            f"Tools: {tools_blob}. "
+            "Schema: {schema_version:1, action, tool_name?, arguments?, text?, completion?}"
+        )
 
     def next_action(
         self,
@@ -71,6 +97,7 @@ class BFCFunctionCallPlanner:
         del context_manifest, budget, plan_script, evidence_ids
         cfg = self._bfcl_config(run_metadata)
         max_tools = max(1, cfg["max_tools"])
+        category = cfg["category"]
         tool_steps = [s for s in steps if s.get("kind") == "tool"]
         if any(s.get("kind") == "answer" for s in steps):
             return validate_planner_action(
@@ -96,15 +123,7 @@ class BFCFunctionCallPlanner:
         key = chat_api_key()
         if not key:
             raise DomainError("LLM_UNAVAILABLE", "chat API key missing for BFCL LLM eval")
-        tools_blob = json.dumps(tool_schemas or [], ensure_ascii=False)
-        system = (
-            "You are a Berkeley Function Calling Leaderboard agent. Output exactly one JSON object. "
-            "Allowed actions: tool, answer. Issue tool calls one at a time until the user task is satisfied, "
-            "then answer with completion=true. If no tool applies, answer without tools. "
-            "tool_name must match a provided tool exactly. Use only argument keys defined in the tool schema. "
-            f"Tools: {tools_blob}. "
-            "Schema: {schema_version:1, action, tool_name?, arguments?, text?, completion?}"
-        )
+        system = self._system_prompt(tool_schemas=tool_schemas or [], category=category)
         messages: list[dict] = [
             {"role": "system", "content": system},
             {"role": "user", "content": goal},
@@ -136,7 +155,7 @@ class BFCFunctionCallPlanner:
         payload = {
             "model": self.model,
             "messages": messages,
-            "max_tokens": 800,
+            "max_tokens": 1200,
             "temperature": 0.0,
         }
         try:

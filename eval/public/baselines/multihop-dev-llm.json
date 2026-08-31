@@ -1,0 +1,1631 @@
+{
+  "benchmark_id": "multihop",
+  "version": "multihop-dev-v1",
+  "planner_kind": "llm",
+  "case_count": 100,
+  "task_success_rate": 0.53,
+  "supporting_fact_recall": 0.6466666666666667,
+  "answer_em": 0.6,
+  "answer_f1": 0.625,
+  "citation_precision": 1.0,
+  "citation_recall": 0.5716666666666667,
+  "faithfulness": 1.0,
+  "avg_retrieve_rounds": 1.0,
+  "tenant_leak_rate": 0.0,
+  "cases": [
+    {
+      "id": "multihop-dev-000",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-65f314cd109de5f0', 'mh-official-883e01bc82e19cf5', 'mh-official-3ff71c50cb02cf99', 'mh-official-8438207b101080d5', 'mh-official-6bdaa0b072f8c1b5'] citations=['mh-official-65f314cd109de5f0', 'mh-official-883e01bc82e19cf5'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-001",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-14d2e3bcd8b181dc', 'mh-official-cfdaf789ad9adb60', 'mh-official-748e8a3218b56d67', 'mh-official-d83eedea085ef55e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-14d2e3bcd8b181dc'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-002",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-c2c0cb536c48fcb6', 'mh-official-c2b105edf887c6fe', 'mh-official-6df4b1a2428fde1c', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-c2c0cb536c48fcb6'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-003",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-c098a48e36e317e0', 'mh-official-3ff71c50cb02cf99', 'mh-official-c117b3b60be6bf90', 'mh-official-22cc5ea346f06b5a', 'mh-official-f2afc4281f6567c7'] citations=['mh-official-c098a48e36e317e0', 'mh-official-3ff71c50cb02cf99', 'mh-official-c117b3b60be6bf90', 'mh-official-22cc5ea346f06b5a', 'mh-official-f2afc4281f6567c7'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-004",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-db1376690f8c6a1d', 'mh-official-d06e96f91a22317a', 'mh-official-eb046c4ddbd31a8f', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-db1376690f8c6a1d', 'mh-official-d06e96f91a22317a', 'mh-official-eb046c4ddbd31a8f', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-005",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.25,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.25,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3586053fcf33973e', 'mh-official-d83eedea085ef55e', 'mh-official-bb842b295903c1de', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3586053fcf33973e', 'mh-official-d83eedea085ef55e', 'mh-official-bb842b295903c1de', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-006",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-5efb99d68b4829b4', 'mh-official-3586053fcf33973e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-5efb99d68b4829b4', 'mh-official-3586053fcf33973e'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-007",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-bb842b295903c1de', 'mh-official-3586053fcf33973e', 'mh-official-d83eedea085ef55e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-bb842b295903c1de', 'mh-official-3586053fcf33973e', 'mh-official-d83eedea085ef55e'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-008",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-3ff71c50cb02cf99', 'mh-official-407a8063bf64f5c3', 'mh-official-89daac099b12c177'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-3ff71c50cb02cf99', 'mh-official-407a8063bf64f5c3', 'mh-official-89daac099b12c177'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-009",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.75,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.75,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-83aaae239f15c323', 'mh-official-a9a879368f2a59e1', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-34b19ba69031da47'] citations=['mh-official-83aaae239f15c323', 'mh-official-a9a879368f2a59e1', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-34b19ba69031da47'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-010",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-89daac099b12c177'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-89daac099b12c177'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-011",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.75,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.75,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-6df4b1a2428fde1c', 'mh-official-5efb99d68b4829b4', 'mh-official-b22fd1d97914c453', 'mh-official-c2c0cb536c48fcb6'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-6df4b1a2428fde1c', 'mh-official-5efb99d68b4829b4', 'mh-official-b22fd1d97914c453', 'mh-official-c2c0cb536c48fcb6'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-012",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.75,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.75,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-125d467e695e07dc', 'mh-official-bb842b295903c1de', 'mh-official-8f0621b8e5604c49', 'mh-official-f30e2f731a653070'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-125d467e695e07dc', 'mh-official-bb842b295903c1de', 'mh-official-8f0621b8e5604c49', 'mh-official-f30e2f731a653070'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-013",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-db1376690f8c6a1d', 'mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-db1376690f8c6a1d', 'mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-014",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.75,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.75,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-a0ca9f6399e72e19', 'mh-official-6df4b1a2428fde1c', 'mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-a0ca9f6399e72e19', 'mh-official-6df4b1a2428fde1c', 'mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-015",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-948b097b44f210cb', 'mh-official-6f388affbc74a371', 'mh-official-d44c37dede704683', 'mh-official-6d8cc96c978335f4', 'mh-official-a4d0e05fe78fd389'] citations=['mh-official-948b097b44f210cb', 'mh-official-6f388affbc74a371', 'mh-official-d44c37dede704683', 'mh-official-6d8cc96c978335f4', 'mh-official-a4d0e05fe78fd389'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-016",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-79ac175f7f2c79e0', 'mh-official-6d8cc96c978335f4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-748e8a3218b56d67'] citations=['mh-official-79ac175f7f2c79e0', 'mh-official-6d8cc96c978335f4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-748e8a3218b56d67'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-017",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-d06e96f91a22317a', 'mh-official-3ff71c50cb02cf99', 'mh-official-de40d6048f59ab86', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-d06e96f91a22317a', 'mh-official-3ff71c50cb02cf99', 'mh-official-de40d6048f59ab86', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-018",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-bb842b295903c1de', 'mh-official-3ff71c50cb02cf99', 'mh-official-20eca982c99cc513', 'mh-official-3586053fcf33973e', 'mh-official-44ef3730ae7f55ea'] citations=['mh-official-bb842b295903c1de', 'mh-official-3ff71c50cb02cf99', 'mh-official-20eca982c99cc513', 'mh-official-3586053fcf33973e', 'mh-official-44ef3730ae7f55ea'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-019",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-db1376690f8c6a1d', 'mh-official-8f0621b8e5604c49', 'mh-official-eb046c4ddbd31a8f', 'mh-official-d83eedea085ef55e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-db1376690f8c6a1d', 'mh-official-8f0621b8e5604c49', 'mh-official-eb046c4ddbd31a8f', 'mh-official-d83eedea085ef55e'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-020",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-89daac099b12c177', 'mh-official-77a817dff918b45a', 'mh-official-d83eedea085ef55e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-89daac099b12c177', 'mh-official-77a817dff918b45a', 'mh-official-d83eedea085ef55e'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-021",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-ec2ee50c7116fbc2', 'mh-official-b643406f3537f3b0', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-ec2ee50c7116fbc2', 'mh-official-b643406f3537f3b0', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-022",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.6666666666666666,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-331079227e018f8b', 'mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4', 'mh-official-f2afc4281f6567c7', 'mh-official-6d8cc96c978335f4'] citations=['mh-official-331079227e018f8b', 'mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4', 'mh-official-f2afc4281f6567c7', 'mh-official-6d8cc96c978335f4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-023",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-70f63b9e1c26a6da', 'mh-official-a0ca9f6399e72e19'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-70f63b9e1c26a6da', 'mh-official-a0ca9f6399e72e19'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-024",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-a0ca9f6399e72e19', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-a0ca9f6399e72e19', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-025",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 0.0,
+        "answer_f1": 0.5,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-948b097b44f210cb', 'mh-official-6d8cc96c978335f4', 'mh-official-85b194bc3634161d', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-948b097b44f210cb', 'mh-official-6d8cc96c978335f4', 'mh-official-85b194bc3634161d', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-026",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.3333333333333333,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-14d2e3bcd8b181dc', 'mh-official-d83eedea085ef55e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-14d2e3bcd8b181dc', 'mh-official-d83eedea085ef55e'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-027",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.25,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.25,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-0c70d85015833356', 'mh-official-bd0eb50c9a73850a', 'mh-official-77a817dff918b45a', 'mh-official-407a8063bf64f5c3'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-0c70d85015833356', 'mh-official-bd0eb50c9a73850a', 'mh-official-77a817dff918b45a', 'mh-official-407a8063bf64f5c3'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-028",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.25,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.25,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-d06e96f91a22317a', 'mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de', 'mh-official-d83eedea085ef55e', 'mh-official-de40d6048f59ab86'] citations=['mh-official-d06e96f91a22317a', 'mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de', 'mh-official-d83eedea085ef55e', 'mh-official-de40d6048f59ab86'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-029",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.25,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.25,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-ec2ee50c7116fbc2', 'mh-official-3ff71c50cb02cf99', 'mh-official-3586053fcf33973e', 'mh-official-8f0621b8e5604c49', 'mh-official-6f388affbc74a371'] citations=['mh-official-ec2ee50c7116fbc2', 'mh-official-3ff71c50cb02cf99', 'mh-official-3586053fcf33973e', 'mh-official-8f0621b8e5604c49', 'mh-official-6f388affbc74a371'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-030",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-bb842b295903c1de', 'mh-official-407a8063bf64f5c3', 'mh-official-c2b105edf887c6fe'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-031",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-a074b921038a1044', 'mh-official-5efb99d68b4829b4', 'mh-official-73d0e6295e85f8c1', 'mh-official-ec2ee50c7116fbc2'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-a074b921038a1044'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-032",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-46dc9d36b2aa2f33', 'mh-official-948b097b44f210cb', 'mh-official-5efb99d68b4829b4', 'mh-official-ade407c36402d472', 'mh-official-43c76bc8ce56e888'] citations=['mh-official-46dc9d36b2aa2f33', 'mh-official-948b097b44f210cb'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-033",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-79c1dbec9456afc0', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-979c20f28c0995c9'] citations=['mh-official-79c1dbec9456afc0', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-034",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-8cd8898a19dcbfb0', 'mh-official-a4254a6c5b84bf58', 'mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-8cd8898a19dcbfb0', 'mh-official-a4254a6c5b84bf58'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-035",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-948b097b44f210cb', 'mh-official-a2771e2ddba397a6', 'mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-c098a48e36e317e0'] citations=['mh-official-948b097b44f210cb', 'mh-official-a2771e2ddba397a6'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-036",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5d9abd79ec83aeb2', 'mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4', 'mh-official-e0ecfb65e8d9ffac'] citations=['mh-official-5d9abd79ec83aeb2', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-037",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-d83eedea085ef55e', 'mh-official-b355767a31fe11b3', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-d83eedea085ef55e', 'mh-official-b355767a31fe11b3', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-038",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-5efb99d68b4829b4', 'mh-official-948b097b44f210cb', 'mh-official-f1f71e07115fdbb7'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-5efb99d68b4829b4', 'mh-official-948b097b44f210cb', 'mh-official-f1f71e07115fdbb7'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-039",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-f1f71e07115fdbb7', 'mh-official-3586053fcf33973e', 'mh-official-e19cb7a93b5d40f1'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-f1f71e07115fdbb7', 'mh-official-3586053fcf33973e', 'mh-official-e19cb7a93b5d40f1'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-040",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-c098a48e36e317e0', 'mh-official-c117b3b60be6bf90', 'mh-official-f2afc4281f6567c7', 'mh-official-22cc5ea346f06b5a', 'mh-official-f911be80816bc75b'] citations=['mh-official-c098a48e36e317e0', 'mh-official-c117b3b60be6bf90', 'mh-official-f2afc4281f6567c7'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-041",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-f1f71e07115fdbb7', 'mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-b7a405efa023503c', 'mh-official-3f63287ba856792c'] citations=['mh-official-f1f71e07115fdbb7', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-042",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21', 'mh-official-d06e96f91a22317a', 'mh-official-6bdaa0b072f8c1b5', 'mh-official-db1376690f8c6a1d'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21', 'mh-official-d06e96f91a22317a', 'mh-official-6bdaa0b072f8c1b5', 'mh-official-db1376690f8c6a1d'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-043",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-ec2ee50c7116fbc2', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-89daac099b12c177'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-ec2ee50c7116fbc2', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-89daac099b12c177'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-044",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-bbdce052171595d5', 'mh-official-3ff71c50cb02cf99', 'mh-official-407a8063bf64f5c3', 'mh-official-6f388affbc74a371', 'mh-official-748e8a3218b56d67'] citations=['mh-official-bbdce052171595d5', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-045",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-748e8a3218b56d67', 'mh-official-50950c5a8d08383d', 'mh-official-6f388affbc74a371', 'mh-official-a2771e2ddba397a6', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-748e8a3218b56d67', 'mh-official-50950c5a8d08383d'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-046",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5047445db922ae92', 'mh-official-3ff71c50cb02cf99', 'mh-official-948b097b44f210cb', 'mh-official-748e8a3218b56d67', 'mh-official-fa4e350b2bd90b9a'] citations=['mh-official-5047445db922ae92', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-047",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-d696b6ad76d36c4d', 'mh-official-8f0621b8e5604c49', 'mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de'] citations=['mh-official-d696b6ad76d36c4d', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-048",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-46dc9d36b2aa2f33', 'mh-official-ade407c36402d472', 'mh-official-948b097b44f210cb', 'mh-official-27f7f1bb530ea21c', 'mh-official-a546c74591f1672b'] citations=['mh-official-46dc9d36b2aa2f33', 'mh-official-ade407c36402d472', 'mh-official-948b097b44f210cb', 'mh-official-27f7f1bb530ea21c', 'mh-official-a546c74591f1672b'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-049",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-6f388affbc74a371', 'mh-official-05cd6a49a650e655', 'mh-official-cc6cc57e696270c0'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-6f388affbc74a371'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-050",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-df0a8c805af1a1f0', 'mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-748e8a3218b56d67'] citations=['mh-official-df0a8c805af1a1f0', 'mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-748e8a3218b56d67'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-051",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6f388affbc74a371', 'mh-official-cc6cc57e696270c0', 'mh-official-73d0e6295e85f8c1', 'mh-official-5699de820f75e11e', 'mh-official-ae6d540ba6999c41'] citations=['mh-official-6f388affbc74a371', 'mh-official-cc6cc57e696270c0'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-052",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-948b097b44f210cb', 'mh-official-752111ed1beeba1f', 'mh-official-748e8a3218b56d67', 'mh-official-46dc9d36b2aa2f33', 'mh-official-43c76bc8ce56e888'] citations=['mh-official-948b097b44f210cb', 'mh-official-752111ed1beeba1f'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-053",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-46dc9d36b2aa2f33', 'mh-official-3025a3f34ba04492', 'mh-official-081fa6a837672c9b', 'mh-official-948b097b44f210cb', 'mh-official-6d8cc96c978335f4'] citations=['mh-official-46dc9d36b2aa2f33', 'mh-official-3025a3f34ba04492'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-054",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-46dc9d36b2aa2f33', 'mh-official-948b097b44f210cb', 'mh-official-3ff71c50cb02cf99', 'mh-official-077cc877df3da206', 'mh-official-081fa6a837672c9b'] citations=['mh-official-46dc9d36b2aa2f33', 'mh-official-948b097b44f210cb', 'mh-official-3ff71c50cb02cf99', 'mh-official-077cc877df3da206', 'mh-official-081fa6a837672c9b'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-055",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-34b19ba69031da47', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-5699de820f75e11e', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-34b19ba69031da47', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-5699de820f75e11e', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-056",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-15ff226254c01ca8', 'mh-official-d83eedea085ef55e'] citations=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-057",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-a0ca9f6399e72e19', 'mh-official-c2b105edf887c6fe', 'mh-official-bd0eb50c9a73850a', 'mh-official-c2c0cb536c48fcb6'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-a0ca9f6399e72e19'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-058",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-a2771e2ddba397a6', 'mh-official-1bac48978f613275', 'mh-official-5efb99d68b4829b4', 'mh-official-948b097b44f210cb', 'mh-official-748e8a3218b56d67'] citations=['mh-official-a2771e2ddba397a6', 'mh-official-1bac48978f613275'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-059",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-b3a4bfb625773ba8', 'mh-official-eab707d4e443497f', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-b3a4bfb625773ba8', 'mh-official-eab707d4e443497f', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-060",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-eb046c4ddbd31a8f', 'mh-official-f30e2f731a653070', 'mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-eb046c4ddbd31a8f', 'mh-official-f30e2f731a653070', 'mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-061",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-5efb99d68b4829b4', 'mh-official-77a817dff918b45a', 'mh-official-89daac099b12c177'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-062",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-c098a48e36e317e0', 'mh-official-331079227e018f8b', 'mh-official-6f388affbc74a371', 'mh-official-407a8063bf64f5c3'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-c098a48e36e317e0', 'mh-official-331079227e018f8b', 'mh-official-6f388affbc74a371', 'mh-official-407a8063bf64f5c3'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-063",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6b1066bc16d7b946', 'mh-official-55dd2c2aa8d72065', 'mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de', 'mh-official-6f388affbc74a371'] citations=['mh-official-6b1066bc16d7b946', 'mh-official-55dd2c2aa8d72065', 'mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de', 'mh-official-6f388affbc74a371'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-064",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-a2d384aad500cd3a', 'mh-official-cecba3a6c0a29853', 'mh-official-3ff71c50cb02cf99', 'mh-official-27f7f1bb530ea21c', 'mh-official-748e8a3218b56d67'] citations=['mh-official-a2d384aad500cd3a', 'mh-official-cecba3a6c0a29853', 'mh-official-3ff71c50cb02cf99', 'mh-official-27f7f1bb530ea21c', 'mh-official-748e8a3218b56d67'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-065",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-89daac099b12c177', 'mh-official-407a8063bf64f5c3', 'mh-official-3d08aa8f2eec4126', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-ec2ee50c7116fbc2'] citations=['mh-official-89daac099b12c177', 'mh-official-407a8063bf64f5c3', 'mh-official-3d08aa8f2eec4126', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-ec2ee50c7116fbc2'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-066",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-9faedfa849928823', 'mh-official-4022d17ad94f75ba', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126'] citations=['mh-official-9faedfa849928823', 'mh-official-4022d17ad94f75ba', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-067",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-8f0621b8e5604c49', 'mh-official-407a8063bf64f5c3', 'mh-official-89daac099b12c177'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-8f0621b8e5604c49', 'mh-official-407a8063bf64f5c3', 'mh-official-89daac099b12c177'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-068",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-77a817dff918b45a', 'mh-official-5efb99d68b4829b4', 'mh-official-3586053fcf33973e'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-e0ecfb65e8d9ffac'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-069",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-79c1dbec9456afc0', 'mh-official-8f0621b8e5604c49', 'mh-official-979c20f28c0995c9', 'mh-official-6d8cc96c978335f4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-79c1dbec9456afc0', 'mh-official-8f0621b8e5604c49', 'mh-official-979c20f28c0995c9', 'mh-official-6d8cc96c978335f4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-070",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-14d2e3bcd8b181dc', 'mh-official-cfdaf789ad9adb60', 'mh-official-d83eedea085ef55e', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-14d2e3bcd8b181dc', 'mh-official-cfdaf789ad9adb60'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-071",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.3333333333333333,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-77a817dff918b45a', 'mh-official-05cd6a49a650e655', 'mh-official-3ff71c50cb02cf99', 'mh-official-89daac099b12c177', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-77a817dff918b45a', 'mh-official-05cd6a49a650e655', 'mh-official-3ff71c50cb02cf99', 'mh-official-89daac099b12c177', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-072",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-89daac099b12c177', 'mh-official-ec2ee50c7116fbc2', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-89daac099b12c177', 'mh-official-ec2ee50c7116fbc2', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-073",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-c098a48e36e317e0', 'mh-official-3ff71c50cb02cf99', 'mh-official-c117b3b60be6bf90', 'mh-official-407a8063bf64f5c3', 'mh-official-6d8cc96c978335f4'] citations=['mh-official-c098a48e36e317e0', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-074",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-88c49170b0dde505', 'mh-official-8f0621b8e5604c49', 'mh-official-6d8cc96c978335f4', 'mh-official-3ff71c50cb02cf99', 'mh-official-79ac175f7f2c79e0'] citations=['mh-official-88c49170b0dde505', 'mh-official-8f0621b8e5604c49', 'mh-official-6d8cc96c978335f4', 'mh-official-3ff71c50cb02cf99', 'mh-official-79ac175f7f2c79e0'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-075",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-748e8a3218b56d67', 'mh-official-60e8a1622380e31b', 'mh-official-5efb99d68b4829b4', 'mh-official-05cd6a49a650e655'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-748e8a3218b56d67', 'mh-official-60e8a1622380e31b', 'mh-official-5efb99d68b4829b4', 'mh-official-05cd6a49a650e655'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-076",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-c117b3b60be6bf90', 'mh-official-3ff71c50cb02cf99', 'mh-official-c098a48e36e317e0', 'mh-official-407a8063bf64f5c3', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-c117b3b60be6bf90', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-077",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 0.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21', 'mh-official-883e01bc82e19cf5', 'mh-official-d06e96f91a22317a', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-078",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.6666666666666666,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-077cc877df3da206', 'mh-official-46dc9d36b2aa2f33', 'mh-official-c117b3b60be6bf90', 'mh-official-6f388affbc74a371'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-077cc877df3da206', 'mh-official-46dc9d36b2aa2f33', 'mh-official-c117b3b60be6bf90', 'mh-official-6f388affbc74a371'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-079",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.3333333333333333,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-5efb99d68b4829b4', 'mh-official-89daac099b12c177', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-080",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 0.0,
+        "answer_f1": 0.33333333333333337,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-27f7f1bb530ea21c', 'mh-official-a2d384aad500cd3a', 'mh-official-748e8a3218b56d67', 'mh-official-8c45ace0c9f63f21'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-27f7f1bb530ea21c', 'mh-official-a2d384aad500cd3a', 'mh-official-748e8a3218b56d67', 'mh-official-8c45ace0c9f63f21'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-081",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-8c45ace0c9f63f21', 'mh-official-883e01bc82e19cf5', 'mh-official-d06e96f91a22317a', 'mh-official-8438207b101080d5', 'mh-official-eb046c4ddbd31a8f'] citations=['mh-official-8c45ace0c9f63f21', 'mh-official-883e01bc82e19cf5', 'mh-official-d06e96f91a22317a', 'mh-official-8438207b101080d5', 'mh-official-eb046c4ddbd31a8f'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-082",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.5,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6d8cc96c978335f4', 'mh-official-c098a48e36e317e0', 'mh-official-f2afc4281f6567c7', 'mh-official-22cc5ea346f06b5a', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-6d8cc96c978335f4', 'mh-official-c098a48e36e317e0', 'mh-official-f2afc4281f6567c7', 'mh-official-22cc5ea346f06b5a', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-083",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.5,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de', 'mh-official-e0ecfb65e8d9ffac', 'mh-official-3586053fcf33973e', 'mh-official-20eca982c99cc513'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-bb842b295903c1de'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-084",
+      "ok": true,
+      "scores": {
+        "supporting_fact_recall": 0.6666666666666666,
+        "answer_em": 1.0,
+        "answer_f1": 1.0,
+        "citation_precision": 1.0,
+        "citation_recall": 0.6666666666666666,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-77a817dff918b45a', 'mh-official-89daac099b12c177', 'mh-official-5efb99d68b4829b4'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-3d08aa8f2eec4126', 'mh-official-77a817dff918b45a', 'mh-official-89daac099b12c177', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-085",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67', 'mh-official-3ff71c50cb02cf99', 'mh-official-d83eedea085ef55e', 'mh-official-bb842b295903c1de'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-086",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-8c45ace0c9f63f21'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-087",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4', 'mh-official-34b19ba69031da47', 'mh-official-3ff71c50cb02cf99', 'mh-official-ae6d540ba6999c41'] citations=['mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-088",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-748e8a3218b56d67', 'mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-6d8cc96c978335f4'] citations=['mh-official-748e8a3218b56d67', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-089",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67', 'mh-official-a0ca9f6399e72e19', 'mh-official-b355767a31fe11b3'] citations=['mh-official-3ff71c50cb02cf99', 'mh-official-5efb99d68b4829b4', 'mh-official-748e8a3218b56d67', 'mh-official-a0ca9f6399e72e19', 'mh-official-b355767a31fe11b3'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-090",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-ec2ee50c7116fbc2', 'mh-official-268f138a5ffdc97d', 'mh-official-4b13a9dee44488e3'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-091",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49', 'mh-official-6f388affbc74a371', 'mh-official-d83eedea085ef55e', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-8f0621b8e5604c49'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-092",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-d83eedea085ef55e', 'mh-official-a0ca9f6399e72e19', 'mh-official-3586053fcf33973e', 'mh-official-b22fd1d97914c453', 'mh-official-b355767a31fe11b3'] citations=['mh-official-d83eedea085ef55e', 'mh-official-a0ca9f6399e72e19'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-093",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-65f314cd109de5f0'] citations=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-094",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-6d8cc96c978335f4', 'mh-official-13f1b1985d66c6db'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-6f388affbc74a371', 'mh-official-3ff71c50cb02cf99', 'mh-official-6d8cc96c978335f4', 'mh-official-13f1b1985d66c6db'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-095",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-8f0621b8e5604c49', 'mh-official-14d2e3bcd8b181dc'] citations=['mh-official-6f388affbc74a371', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-096",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-d83eedea085ef55e', 'mh-official-5e35a051a03df040', 'mh-official-5efb99d68b4829b4', 'mh-official-f1f71e07115fdbb7', 'mh-official-3ff71c50cb02cf99'] citations=['mh-official-d83eedea085ef55e', 'mh-official-5e35a051a03df040'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-097",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-6d8cc96c978335f4', 'mh-official-bb842b295903c1de', 'mh-official-a0ca9f6399e72e19'] citations=['mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-6d8cc96c978335f4', 'mh-official-bb842b295903c1de', 'mh-official-a0ca9f6399e72e19'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-098",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-8f0621b8e5604c49', 'mh-official-3ff71c50cb02cf99', 'mh-official-f30e2f731a653070', 'mh-official-407a8063bf64f5c3', 'mh-official-8c45ace0c9f63f21'] citations=['mh-official-8f0621b8e5604c49', 'mh-official-3ff71c50cb02cf99'] planner=llm",
+      "security_violations": []
+    },
+    {
+      "id": "multihop-dev-099",
+      "ok": false,
+      "scores": {
+        "supporting_fact_recall": 1.0,
+        "answer_em": 0.0,
+        "answer_f1": 0.0,
+        "citation_precision": 1.0,
+        "citation_recall": 1.0,
+        "faithfulness": 1.0,
+        "retrieve_rounds": 1.0,
+        "tenant_leak": 0.0
+      },
+      "detail": "status=completed retrieved=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4', 'mh-official-3ff71c50cb02cf99', 'mh-official-6f388affbc74a371', 'mh-official-8f0621b8e5604c49'] citations=['mh-official-748e8a3218b56d67', 'mh-official-5efb99d68b4829b4'] planner=llm",
+      "security_violations": []
+    }
+  ],
+  "suite_version": "multihop-dev-v1",
+  "description": "Official MultiHop-RAG dev subset (100 stratified queries + referenced corpus).",
+  "eval_protocol": "official_dev_subset",
+  "corpus_doc_count": 133,
+  "source": {
+    "dataset": "yixuantt/MultiHopRAG",
+    "git_ref": "main",
+    "stratified_limits": {
+      "inference_query": 30,
+      "comparison_query": 30,
+      "temporal_query": 25,
+      "null_query": 15
+    }
+  }
+}

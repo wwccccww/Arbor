@@ -29,3 +29,4 @@ def test_bfcl_dev_llm_sample_cases():
         assert stored.get("planner_kind") == "llm"
         assert stored.get("case_count") == 200
         assert stored.get("function_match_rate", 0.0) > 0.0
+        assert stored.get("task_success_rate", 0.0) >= 0.68
