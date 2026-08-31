@@ -139,4 +139,4 @@
 | P1-2 OpenAPI | `docs/openapi.yaml` Agent/Employee schemas；`scripts/validate_openapi_fastapi.py`；`test_openapi_fastapi_alignment.py` |
 | P1-3 观测强门禁 | CI 移除 `continue-on-error`；`test_loki_tempo_integration.py` |
 | P1-4 四类记忆 | `working_memory.py` `procedural_memory.py`；memory-v1 +6 cases（15 total） |
-| P2 演示证据 | `demo_runner.py`；`demo-v1` manifest+baseline；`test_demo_v1_smoke.py`；`scripts/demo-agent.sh`；录屏 `docs/demo/recordings/agent-production-demo.mp4` |
+| P2 演示证据 | `adapters/inbound/demo_smoke.py`；`demo-v1` manifest+baseline；`test_demo_v1_smoke.py`；`scripts/demo-agent.sh`；录屏 `docs/demo/recordings/agent-production-demo.mp4` |

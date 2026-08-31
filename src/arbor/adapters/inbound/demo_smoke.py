@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
+from arbor.adapters.inbound.eval_runner import load_world
 from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
@@ -64,8 +65,6 @@ def _agent_case_ok(*, case_ids: set[str]) -> tuple[bool, str]:
 def _multimodal_case_ok(*, case_ids: set[str]) -> tuple[bool, str]:
     root = repo_root()
     stores = InMemoryStores()
-    from arbor.adapters.inbound.eval_runner import load_world
-
     load_world(root / "eval" / "fixtures" / "suite-v1" / "world.json", stores)
     personas = InMemoryPersonaRepository(stores)
     persona = personas.get(TENANT, LINXIA)

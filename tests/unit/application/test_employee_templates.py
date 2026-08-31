@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from arbor.application.agent.employee_templates import default_employee_templates
+from arbor.application.agent.employee_templates import DEMO_TENANT, default_employee_templates
 from arbor.domain.shared.ids import PersonaId
 
 
 def test_employee_templates_differ_in_tool_and_approval_policy():
     store = default_employee_templates()
-    customer = store.get(PersonaId("template-customer-service"))
-    tutor = store.get(PersonaId("template-tutor"))
-    interviewer = store.get(PersonaId("template-interviewer"))
+    customer = store.get(DEMO_TENANT, PersonaId("template-customer-service"))
+    tutor = store.get(DEMO_TENANT, PersonaId("template-tutor"))
+    interviewer = store.get(DEMO_TENANT, PersonaId("template-interviewer"))
     assert customer is not None
     assert tutor is not None
     assert interviewer is not None

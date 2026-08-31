@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from arbor.application.evaluation.demo_runner import (
+from arbor.adapters.inbound.demo_smoke import (
     demo_baseline_path,
     demo_manifest_path,
     run_demo_smoke,
