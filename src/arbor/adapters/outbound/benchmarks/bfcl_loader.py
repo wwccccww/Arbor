@@ -15,6 +15,7 @@ from arbor.paths import repo_root
 PUBLIC_ROOT = repo_root() / "eval" / "public"
 BFCL_MANIFEST = PUBLIC_ROOT / "manifests" / "bfcl.json"
 BFCL_SMOKE = PUBLIC_ROOT / "smoke" / "bfcl-smoke.json"
+BFCL_DEV = PUBLIC_ROOT / "dev" / "bfcl-dev.json"
 
 
 def load_manifest(path: Path | None = None) -> dict:
@@ -27,13 +28,27 @@ def load_smoke_cases(path: Path | None = None) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def load_dev_cases(path: Path | None = None) -> dict:
+    path = path or BFCL_DEV
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def bfcl_function_to_schema(fn: dict) -> dict:
     """Normalize BFCL/OpenAI-style function object to JSON Schema."""
     if "parameters" in fn:
-        return dict(fn["parameters"])
-    if "input_schema" in fn:
-        return dict(fn["input_schema"])
-    return {"type": "object", "properties": {}}
+        schema = dict(fn["parameters"])
+    elif "input_schema" in fn:
+        schema = dict(fn["input_schema"])
+    else:
+        return {"type": "object", "properties": {}}
+    if schema.get("type") == "dict":
+        schema["type"] = "object"
+    props = dict(schema.get("properties") or {})
+    for spec in props.values():
+        if isinstance(spec, dict) and spec.get("type") == "dict":
+            spec["type"] = "object"
+    schema["properties"] = props
+    return schema
 
 
 def register_bfcl_functions(registry: ToolRegistry, functions: list[dict]) -> None:
@@ -49,6 +64,7 @@ def register_bfcl_functions(registry: ToolRegistry, functions: list[dict]) -> No
                 risk_level=ToolRiskLevel.READ,
                 idempotency_policy=IdempotencyPolicy.NONE,
                 handler=lambda **_kwargs: {"status": "ok", "provider": "bfcl-stub"},
+                aliases=[name.lower()],
             )
         )
 
@@ -113,6 +129,91 @@ def _arguments_equal(expected: dict, actual: dict) -> bool:
         elif exp_val != act_val:
             return False
     return True
+
+
+def _value_in_options(actual: object, options: list) -> bool:
+    if not options:
+        return True
+    for opt in options:
+        if opt == "" or opt is None:
+            continue
+        if isinstance(opt, float) or isinstance(actual, float):
+            if abs(float(opt) - float(actual)) <= 1e-6:
+                return True
+        elif opt == actual:
+            return True
+    return False
+
+
+def _call_matches_ground_truth_item(actual: dict, gt_item: dict) -> tuple[bool, bool]:
+    """Match one BFCL ground_truth dict entry against an actual call."""
+    if not gt_item:
+        return False, False
+    exp_name = next(iter(gt_item.keys()))
+    act_name = str(actual.get("name") or actual.get("tool_name") or "")
+    fn_ok = normalize_call_name(exp_name) == normalize_call_name(act_name)
+    if not fn_ok:
+        return False, False
+    exp_args = dict(gt_item.get(exp_name) or {})
+    act_args = dict(actual.get("arguments") or {})
+    arg_ok = True
+    for key, options in exp_args.items():
+        if key not in act_args:
+            if any(opt not in ("", None) for opt in options):
+                arg_ok = False
+            continue
+        if not _value_in_options(act_args[key], list(options)):
+            arg_ok = False
+    return True, arg_ok
+
+
+def score_against_ground_truth(
+    *,
+    actual_calls: list[dict],
+    ground_truth: list[dict],
+    expect_no_tool: bool,
+) -> tuple[bool, dict]:
+    if expect_no_tool:
+        ok = len(actual_calls) == 0
+        return ok, {
+            "function_match": 1.0 if ok else 0.0,
+            "argument_match": 1.0 if ok else 0.0,
+            "executable": 1.0,
+        }
+    if not ground_truth:
+        ok = len(actual_calls) == 0
+        return ok, {
+            "function_match": 1.0 if ok else 0.0,
+            "argument_match": 1.0 if ok else 0.0,
+            "executable": 1.0,
+        }
+    if len(actual_calls) != len(ground_truth):
+        fn_hits = 0
+        arg_hits = 0
+        for exp, act in zip(ground_truth, actual_calls, strict=False):
+            fn_ok, arg_ok = _call_matches_ground_truth_item(act, exp)
+            fn_hits += int(fn_ok)
+            arg_hits += int(arg_ok)
+        n = max(len(ground_truth), len(actual_calls))
+        return False, {
+            "function_match": fn_hits / n if n else 0.0,
+            "argument_match": arg_hits / n if n else 0.0,
+            "executable": 1.0,
+        }
+    fn_hits = 0
+    arg_hits = 0
+    for gt_item, act in zip(ground_truth, actual_calls, strict=True):
+        fn_ok, arg_ok = _call_matches_ground_truth_item(act, gt_item)
+        fn_hits += int(fn_ok)
+        arg_hits += int(arg_ok)
+    n = len(ground_truth) or 1
+    scores = {
+        "function_match": fn_hits / n,
+        "argument_match": arg_hits / n,
+        "executable": 1.0,
+    }
+    ok = fn_hits == n and arg_hits == n
+    return ok, scores
 
 
 def validate_expected_executable(registry: ToolRegistry, case: dict) -> bool:

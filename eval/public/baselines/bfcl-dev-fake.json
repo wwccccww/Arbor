@@ -1,0 +1,632 @@
+{
+  "benchmark_id": "bfcl",
+  "version": "bfcl-dev-v1",
+  "planner_kind": "fake",
+  "case_count": 55,
+  "task_success_rate": 1.0,
+  "function_match_rate": 1.0,
+  "argument_match_rate": 1.0,
+  "executable_rate": 1.0,
+  "unauthorized_action_rate": 0.0,
+  "approval_bypass_rate": 0.0,
+  "cases": [
+    {
+      "id": "simple_0",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_1",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_2",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_3",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_4",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_5",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_6",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_7",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_8",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_9",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_10",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_11",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_12",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_13",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_14",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_15",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_16",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_17",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_18",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_19",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_0",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_1",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_2",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_3",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_4",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_5",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_6",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_7",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_8",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_9",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_10",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_11",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_12",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_13",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_14",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_0",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_1",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_2",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_3",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_4",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_5",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_6",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_7",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_8",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=4 actual=4 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_9",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_0",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_1",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_2",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_3",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_4",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_5",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_6",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_7",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_8",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_9",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    }
+  ],
+  "suite_version": "bfcl-dev-v1",
+  "description": "Official BFCL v3 dev subset (simple/multiple/parallel/irrelevance) frozen from HuggingFace.",
+  "eval_protocol": "official_dev_subset",
+  "source": {
+    "dataset": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+    "git_ref": "main",
+    "files": [
+      "BFCL_v3_simple.json",
+      "BFCL_v3_multiple.json",
+      "BFCL_v3_parallel.json",
+      "BFCL_v3_irrelevance.json"
+    ]
+  }
+}

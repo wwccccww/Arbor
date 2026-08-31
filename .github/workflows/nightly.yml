@@ -128,9 +128,12 @@ jobs:
       - name: Fetch public benchmark smoke fixtures
         run: python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
       - name: Public benchmark smoke (Fake Planner gate)
-        run: python3 -m pytest tests/eval/public -q --tb=short
-      - name: BFCL smoke via eval_cli (Fake; nightly LLM full set when upstream cloned)
+        run: python3 -m pytest tests/eval/public -q --tb=short -m "not llm"
+      - name: BFCL official dev with real LLM (writes bfcl-dev-llm.json)
         if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        env:
+          ARBOR_WRITE_LLM_BASELINE: "1"
         run: |
-          python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-smoke --mode agent --strategy all \
-            | tee eval/public/runs/nightly-bfcl-smoke-$(date -u +%Y%m%d).json
+          python3 -m pytest tests/eval/public/test_bfcl_llm_dev.py -q -m llm --tb=short
+          python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev-llm --mode agent --planner llm \
+            | tee eval/public/runs/nightly-bfcl-dev-llm-$(date -u +%Y%m%d).json

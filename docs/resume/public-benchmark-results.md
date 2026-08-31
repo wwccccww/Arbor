@@ -1,40 +1,62 @@
 # 公开基准结果（简历口径）
 
 > 私有冻结评测证明回归稳定；公开基准证明在第三方任务上仍可复现。  
-> **Fake Planner smoke** 与 **真实 LLM nightly** 分轨报告，禁止混报。
+> **Fake Planner** 与 **真实 LLM** 分轨报告，禁止混报。
 
-## 双栏对比（2026-08-31 · smoke · Fake Planner）
+## 双栏对比（2026-08-31）
 
-| 维度 | 私有冻结评测 | 公开基准 smoke |
+| 维度 | 私有冻结评测 | 公开基准 |
 |---|---|---|
-| 任务 / 工具调用 | agent-ablation-v1 完整轨 task 100% | BFCL function_match **1.00**，argument_match **1.00**（12 cases） |
-| 安全 | agent-security-v1 P0=0（11 cases） | AgentDojo attack_success **0.00**，data_leak **0.00**（5 cases） |
-| 多跳检索 | suite-v1 layered_tree Recall@5 100% | MultiHop supporting_recall **1.00**，answer_em **1.00**（5 cases） |
+| 任务 / 工具调用 | agent-ablation-v1 完整轨 task 100% | BFCL 官方 dev 55 题 · LLM function_match **0.86** |
+| 安全 | agent-security-v1 P0=0 | AgentDojo smoke attack_success **0.00** |
+| 多跳检索 | suite-v1 Recall@5 100% | MultiHop smoke supporting_recall **1.00**（5 题 smoke） |
 
 ## 公开基准明细
 
-| 基准 | 套件 | Planner | Cases | 关键指标 |
-|---|---|---|---:|---|
-| BFCL | `public-bfcl-smoke` | fake | 12 | function_match=1.0, argument_match=1.0, executable=1.0 |
-| AgentDojo | `public-agentdojo-smoke` | fake | 5 | utility=1.0, attack_success=0.0, unauthorized=0.0 |
-| MultiHop-RAG | `public-multihop-smoke` | fake | 5 | supporting_recall=1.0, answer_em=1.0, faithfulness=1.0 |
+| 基准 | 套件 | 数据来源 | Planner | Cases | 关键指标 |
+|---|---|---|---|---:|---|
+| BFCL | `public-bfcl-smoke` | 自建 smoke | fake | 12 | function/argument 1.0 |
+| BFCL | `public-bfcl-dev` | **官方 HF v3 冻结子集** | fake | 55 | task 1.0（回归基线） |
+| BFCL | `public-bfcl-dev-llm` | **同上官方 dev** | **DeepSeek LLM** | 55 | task **0.55**, function **0.86**, argument **0.60** |
+| AgentDojo | `public-agentdojo-smoke` | 自建 smoke | fake | 5 | utility 1.0, attack 0.0 |
+| MultiHop-RAG | `public-multihop-smoke` | 自建 smoke | fake | 5 | supporting_recall 1.0 |
+
+### BFCL 官方 dev 组成
+
+| 类别 | 题数 | 说明 |
+|---|---:|---|
+| simple | 20 | `BFCL_v3_simple.json` 前 20 题 + 官方 ground truth |
+| multiple | 15 | 多函数选择 |
+| parallel | 10 | 并行多调用（当前 Agent 单轮 LLM 规划器限制，LLM 分较低） |
+| irrelevance | 10 | 不应调用工具 |
 
 ## 复现命令
 
 ```bash
-python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
-python3 -m pytest tests/eval/public -q
-python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-smoke --mode agent
-python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-smoke --mode agent
-python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-smoke --mode agent
+# 校验 smoke + 官方 dev 文件
+python3 scripts/fetch_public_benchmarks.py --benchmark bfcl --only smoke
+
+# 从 HuggingFace 重建 dev（可选）
+python3 scripts/build_bfcl_dev_subset.py
+
+# CI：fake dev 回归
+python3 -m pytest tests/eval/public/test_bfcl_dev.py -q
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev --mode agent
+
+# Nightly：真实 LLM（需 DEEPSEEK_API_KEY）
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev-llm --mode agent --planner llm
 ```
 
-Nightly（需 `DEEPSEEK_API_KEY`）归档至 `eval/public/runs/`。
+## 简历表述（推荐）
 
-## 简历表述（可用）
+> 接入 Berkeley Function Calling Leaderboard **官方 v3 dev 子集（55 题，HuggingFace 源）**，CI 用 Fake Planner 做 100% 回归；Nightly 用 DeepSeek 报告 function_match **86%** / argument_match **60%**（2026-08-31）。并行 AgentDojo / MultiHop smoke 用于安全与多跳能力分栏。
 
-> 接入 BFCL / AgentDojo / MultiHop-RAG 公开基准 smoke 子集，CI 报告工具调用准确率、攻击防御率与多跳检索指标；私有 `eval/fixtures/*` 用于回归，公开基准用于外部可比。
+## 局限（务必如实）
+
+- dev 55 题是官方全集的子采样，**不是完整 BFCL 榜单**。
+- LLM 评测为 **顺序单工具调用** 规划器，parallel/multiple 类题目分低于 simple/irrelevance。
+- AgentDojo / MultiHop 仍为 smoke，待接官方 dev 扩展。
 
 ## 不要写
 
-> RAG/Agent 全面超越 SOTA（除非完整官方榜 + 注明协议与模型）。
+> BFCL 榜单 SOTA / 全面超越官方 baseline（除非跑完整官方协议 + 注明模型与版本）。

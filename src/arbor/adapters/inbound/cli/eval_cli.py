@@ -36,10 +36,20 @@ BASELINE_FILES = {
     "agent-v1": ROOT / "eval" / "baselines" / "agent-v1-smoke.json",
     "agent-ablation-v1": ROOT / "eval" / "baselines" / "agent-ablation-v1.json",
     "public-bfcl-smoke": ROOT / "eval" / "public" / "baselines" / "bfcl-smoke.json",
+    "public-bfcl-dev": ROOT / "eval" / "public" / "baselines" / "bfcl-dev-fake.json",
+    "public-bfcl-dev-llm": ROOT / "eval" / "public" / "baselines" / "bfcl-dev-llm.json",
     "public-agentdojo-smoke": ROOT / "eval" / "public" / "baselines" / "agentdojo-smoke.json",
     "public-multihop-smoke": ROOT / "eval" / "public" / "baselines" / "multihop-smoke.json",
 }
-PUBLIC_SUITES = frozenset({"public-bfcl-smoke", "public-agentdojo-smoke", "public-multihop-smoke"})
+PUBLIC_SUITES = frozenset(
+    {
+        "public-bfcl-smoke",
+        "public-bfcl-dev",
+        "public-bfcl-dev-llm",
+        "public-agentdojo-smoke",
+        "public-multihop-smoke",
+    }
+)
 
 
 def _baseline_dest(suite: str, embed: str) -> Path:
@@ -87,11 +97,11 @@ def _load_baseline(path: Path) -> dict:
     return {}
 
 
-def _run_public_suite(suite: str) -> tuple[dict, int]:
+def _run_public_suite(suite: str, *, planner_kind: str = "fake") -> tuple[dict, int]:
     if suite == "public-bfcl-smoke":
         from arbor.application.evaluation.public_benchmarks.bfcl_runner import run_bfcl_smoke
 
-        report = run_bfcl_smoke(planner_kind="fake")
+        report = run_bfcl_smoke(planner_kind=planner_kind)
         baseline = _load_baseline(BASELINE_FILES[suite])
         _export_metrics(
             suite=suite,
@@ -113,6 +123,45 @@ def _run_public_suite(suite: str) -> tuple[dict, int]:
         if report.get("unauthorized_action_rate", 0.0) > 0:
             return report, 1
         if report.get("approval_bypass_rate", 0.0) > 0:
+            return report, 1
+        return report, 0
+
+    if suite in ("public-bfcl-dev", "public-bfcl-dev-llm"):
+        from arbor.application.evaluation.public_benchmarks.bfcl_runner import (
+            run_bfcl_dev,
+            write_bfcl_baseline,
+        )
+
+        effective_planner = "llm" if suite == "public-bfcl-dev-llm" else planner_kind
+        if effective_planner == "llm" and not chat_api_key():
+            print("public-bfcl-dev-llm requires DEEPSEEK_API_KEY", file=sys.stderr)
+            return {}, 2
+        report = run_bfcl_dev(planner_kind=effective_planner)
+        baseline_key = "public-bfcl-dev-llm" if effective_planner == "llm" else "public-bfcl-dev"
+        baseline = _load_baseline(BASELINE_FILES[baseline_key])
+        _export_metrics(
+            suite=suite,
+            strategy="bfcl-dev",
+            metrics={
+                "function_match_rate": report.get("function_match_rate", 0.0),
+                "argument_match_rate": report.get("argument_match_rate", 0.0),
+                "task_success_rate": report.get("task_success_rate", 0.0),
+            },
+            p0_ok=(
+                report.get("unauthorized_action_rate", 0.0) == 0.0
+                and report.get("approval_bypass_rate", 0.0) == 0.0
+            ),
+        )
+        if os.environ.get("ARBOR_WRITE_LLM_BASELINE") == "1" and effective_planner == "llm":
+            write_bfcl_baseline(report, BASELINE_FILES["public-bfcl-dev-llm"])
+        min_fn = float(baseline.get("function_match_rate", 0.0)) if baseline else 0.0
+        min_arg = float(baseline.get("argument_match_rate", 0.0)) if baseline else 0.0
+        if effective_planner == "llm" and not baseline:
+            min_fn = 0.0
+            min_arg = 0.0
+        if report.get("function_match_rate", 0.0) < min_fn:
+            return report, 1
+        if report.get("argument_match_rate", 0.0) < min_arg:
             return report, 1
         return report, 0
 
@@ -198,13 +247,20 @@ def main(argv: list[str] | None = None) -> int:
         choices=["fixture", "bge"],
         help="embedding backend for retrieval eval (bge needs EMBEDDING_API_KEY)",
     )
+    parser.add_argument(
+        "--planner",
+        default="fake",
+        choices=["fake", "llm"],
+        help="agent/public benchmark planner (llm needs DEEPSEEK_API_KEY)",
+    )
+    parser.add_argument("--runs", type=int, default=1, help="reserved for multi-run LLM aggregation")
     args = parser.parse_args(argv)
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
         os.environ.setdefault("ARBOR_ALLOW_PLAN_SCRIPT", "1")
         if args.suite in PUBLIC_SUITES:
             try:
-                report, code = _run_public_suite(args.suite)
+                report, code = _run_public_suite(args.suite, planner_kind=args.planner)
             except ValueError as exc:
                 print(str(exc), file=sys.stderr)
                 return 1
