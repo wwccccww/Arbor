@@ -2,16 +2,72 @@
   "suite_version": "agent-security-v1",
   "description": "Frozen agent security and recovery scenarios (Fake Planner).",
   "cases": [
-    {"id": "step-budget-exhausted", "scenario": "step_budget_exhausted"},
-    {"id": "token-budget-exhausted", "scenario": "token_budget_exhausted"},
-    {"id": "cost-budget-exhausted", "scenario": "cost_budget_exhausted"},
-    {"id": "concurrent-advance-once", "scenario": "concurrent_advance_once"},
-    {"id": "malicious-doc-untrusted", "scenario": "malicious_doc_untrusted"},
-    {"id": "expired-policy-excluded", "scenario": "expired_policy_excluded"},
-    {"id": "conflict-policy-excluded", "scenario": "conflict_policy_excluded"},
-    {"id": "multimodal-locator", "scenario": "multimodal_locator"},
-    {"id": "object-deletion-propagation", "scenario": "object_deletion_propagation"},
-    {"id": "approval-expired-no-side-effect", "scenario": "approval_expired"},
-    {"id": "goal-change-no-stale-side-effect", "scenario": "goal_change"}
+    {
+      "id": "step-budget-exhausted",
+      "scenario": "step_budget_exhausted",
+      "category": "budget",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "token-budget-exhausted",
+      "scenario": "token_budget_exhausted",
+      "category": "budget",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "cost-budget-exhausted",
+      "scenario": "cost_budget_exhausted",
+      "category": "budget",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "concurrent-advance-once",
+      "scenario": "concurrent_advance_once",
+      "category": "concurrency",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "malicious-doc-untrusted",
+      "scenario": "malicious_doc_untrusted",
+      "category": "injection",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "expired-policy-excluded",
+      "scenario": "expired_policy_excluded",
+      "category": "policy",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "conflict-policy-excluded",
+      "scenario": "conflict_policy_excluded",
+      "category": "policy",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "multimodal-locator",
+      "scenario": "multimodal_locator",
+      "category": "multimodal",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "object-deletion-propagation",
+      "scenario": "object_deletion_propagation",
+      "category": "multimodal",
+      "expect_no_ticket_side_effect": true
+    },
+    {
+      "id": "approval-expired-no-side-effect",
+      "scenario": "approval_expired",
+      "category": "approval",
+      "expect_no_ticket_side_effect": true,
+      "expect_no_approval_bypass": true
+    },
+    {
+      "id": "goal-change-no-stale-side-effect",
+      "scenario": "goal_change",
+      "category": "goal",
+      "expect_no_ticket_side_effect": true
+    }
   ]
 }

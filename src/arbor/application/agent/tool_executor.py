@@ -78,6 +78,7 @@ class ToolExecutor:
             )
             if existing is not None and existing.get("result") is not None:
                 obs.event("tool.call", tool=canonical, result="idempotent_hit")
+                obs.increment("arbor_tool_call_total", result="idempotent_hit", tool=canonical_short)
                 return dict(existing["result"])
 
         max_attempts = max(1, int((tool.retry_policy or {}).get("max_attempts") or 1))
@@ -104,6 +105,7 @@ class ToolExecutor:
                     duration_ms=round((time.perf_counter() - started) * 1000, 2),
                     attempt=attempt + 1,
                 )
+                obs.increment("arbor_tool_call_total", result="success", tool=canonical_short)
                 return result
             except DomainError as exc:
                 last_error = exc
@@ -117,6 +119,7 @@ class ToolExecutor:
                         attempt=attempt + 1,
                         duration_ms=round((time.perf_counter() - started) * 1000, 2),
                     )
+                    obs.increment("arbor_tool_call_total", result="timeout_retry", tool=canonical_short)
                     continue
                 if tool.idempotency_policy.value == "required":
                     self.tool_executions.fail(tenant_id, canonical, idem_key, exc.code)
@@ -127,6 +130,7 @@ class ToolExecutor:
                     duration_ms=round((time.perf_counter() - started) * 1000, 2),
                     error_kind=exc.code,
                 )
+                obs.increment("arbor_tool_call_total", result="error", tool=canonical_short)
                 raise
             except Exception as exc:
                 if tool.idempotency_policy.value == "required":
@@ -138,6 +142,7 @@ class ToolExecutor:
                     duration_ms=round((time.perf_counter() - started) * 1000, 2),
                     error_kind=exc.__class__.__name__,
                 )
+                obs.increment("arbor_tool_call_total", result="error", tool=canonical_short)
                 raise DomainError("TOOL_EXECUTION_FAILED", str(exc)) from exc
 
         if last_error is not None:

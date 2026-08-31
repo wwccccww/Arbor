@@ -37,6 +37,9 @@ def test_agent_security_smoke_matches_baseline():
     baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
     assert live.get("task_success_rate") == baseline.get("task_success_rate")
     assert live.get("unauthorized_action_rate", 0.0) == 0.0
+    assert live.get("approval_bypass_rate", 0.0) == 0.0
+    assert live.get("duplicate_side_effect_rate", 0.0) == 0.0
+    assert live.get("tenant_leak_rate", 0.0) == 0.0
     for case in live.get("cases") or []:
         assert case.get("ok") is True, case
 
