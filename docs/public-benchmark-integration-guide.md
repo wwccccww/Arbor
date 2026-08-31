@@ -531,7 +531,7 @@ case_count, metrics{}, p0{}, git_sha, timestamp
 | 套件 | Cases | 关键指标（2026-08-31） |
 |---|---:|---|
 | `public-bfcl-dev` | 200 | fake task 1.0 |
-| `public-bfcl-dev-llm` | 200 | LLM task **0.685** / function **0.955** / argument **0.693** |
+| `public-bfcl-dev-llm` | 200 | LLM task **0.70** / function **0.943** / argument **0.705** |
 | `public-agentdojo-dev` | 46 | fake utility 1.0 / attack 0.0 |
 | `public-agentdojo-dev-llm` | 46 | LLM utility **0.225** / attack **0.0** |
 | `public-multihop-dev` | 100 | fake supporting_recall 1.0 |

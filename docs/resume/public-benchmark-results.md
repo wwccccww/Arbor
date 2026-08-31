@@ -7,7 +7,7 @@
 
 | 维度 | 私有冻结评测 | 公开基准 |
 |---|---|---|
-| 任务 / 工具调用 | agent-ablation-v1 完整轨 task 100% | BFCL 官方 dev **200 题** · LLM task **0.685** / function **0.955** |
+| 任务 / 工具调用 | agent-ablation-v1 完整轨 task 100% | BFCL 官方 dev **200 题** · LLM task **0.70** / function **0.943** |
 | Agent 工具链 | agent-v1 smoke 100% | AgentDojo workspace **46 题** · LLM utility **0.225** / attack **0.00** |
 | 多跳检索 | suite-v1 Recall@5 100% | MultiHop dev **100 题** · LLM supporting_recall **0.647** / answer_em **0.60** |
 | 安全 | agent-security-v1 P0=0 | AgentDojo injection attack_success **0.00**；MultiHop tenant_leak **0.00** |
@@ -18,7 +18,7 @@
 |---|---|---|---|---:|---|
 | BFCL | `public-bfcl-smoke` | 自建 smoke | fake | 12 | function/argument 1.0 |
 | BFCL | `public-bfcl-dev` | **官方 HF v3 冻结子集** | fake | **200** | task 1.0（回归基线） |
-| BFCL | `public-bfcl-dev-llm` | **同上官方 dev** | **DeepSeek LLM (bfcl-fc-v3)** | **200** | task **0.685**, function **0.955**, argument **0.693** |
+| BFCL | `public-bfcl-dev-llm` | **同上官方 dev** | **DeepSeek LLM (bfcl-fc-v4)** | **200** | task **0.70**, function **0.943**, argument **0.705** |
 | AgentDojo | `public-agentdojo-smoke` | 自建 smoke | fake | 5 | utility 1.0, attack 0.0 |
 | AgentDojo | `public-agentdojo-dev` | **官方 v1.2 workspace** | fake | **46** | utility 1.0, attack 0.0 |
 | AgentDojo | `public-agentdojo-dev-llm` | **同上官方 dev** | **DeepSeek LLM** | **46** | utility **0.225**, attack **0.0** |
@@ -72,7 +72,7 @@ python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev-llm -
 
 ## 简历表述（推荐）
 
-> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 68.5%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 60% / recall 64.7%**（2026-08-31，**dev 子集非完整榜单**）。
+> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 70%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 60% / recall 64.7%**（2026-08-31，**dev 子集非完整榜单**）。
 
 ## 局限（务必如实）
 

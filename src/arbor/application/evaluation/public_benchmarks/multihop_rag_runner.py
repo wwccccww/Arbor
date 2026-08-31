@@ -24,6 +24,7 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     seed_corpus_to_memory,
     supporting_fact_recall,
 )
+from arbor.adapters.outbound.embedding import embedding_client_from_env
 from arbor.application.agent.planner import (
     SCHEMA_VERSION,
     FallbackPlanner,
@@ -37,7 +38,7 @@ from arbor.domain.agent.action import validate_planner_action
 from arbor.domain.errors import DomainError
 from arbor.domain.persona.authorization import Capability, Grant
 from arbor.domain.shared.ids import PersonaId, TenantId, UserId
-from arbor.env import chat_api_key, chat_base_url
+from arbor.env import chat_api_key, chat_base_url, embedding_api_key
 
 TENANT = TenantId("0a000000-0000-4000-a000-000000000001")
 LINXIA = PersonaId("0a000000-0000-4000-a000-000000000010")
@@ -49,7 +50,7 @@ class MultihopLLMPlanner:
     """RAG planner tuned for short benchmark answers with mandatory citations."""
 
     planner_kind = "real"
-    planner_version = "multihop-rag-v1"
+    planner_version = "multihop-rag-v2"
 
     def __init__(
         self,
@@ -105,6 +106,7 @@ class MultihopLLMPlanner:
         enriched_goal = (
             f"{goal}\n\n"
             "Answer with a short factual phrase (entity name, date, or number). "
+            "If evidence_ids are insufficient you may retrieve once more, otherwise answer. "
             'Use JSON: {"schema_version":1,"action":"answer","text":"...","citations":[...],"completion":true}'
         )
         key = chat_api_key()
@@ -156,8 +158,21 @@ def _clear_benchmark_memories(stack: dict, *, tenant_id: TenantId, persona_id: P
         vectors.stores.vectors.pop(item.id.value, None)
 
 
+def _resolve_multihop_embed(planner_kind: str):
+    if planner_kind == "llm" and embedding_api_key():
+        client = embedding_client_from_env()
+        if client is not None:
+            return client
+    return None
+
+
 def _prepare_stack(*, corpus: list[dict], planner_kind: str = "fake", seed_corpus: bool = True) -> dict:
-    stack = build_agent_eval_stack(use_employee_templates=False, with_mcp=False)
+    embed_client = _resolve_multihop_embed(planner_kind)
+    stack = build_agent_eval_stack(
+        use_employee_templates=False,
+        with_mcp=False,
+        embed_client=embed_client,
+    )
     if planner_kind == "llm":
         _clear_benchmark_memories(stack, tenant_id=TENANT, persona_id=LINXIA)
     advance = stack["approve_step"].advance
@@ -228,7 +243,7 @@ def run_multihop_case(
         persona_id=LINXIA,
         goal=str(case.get("question") or case.get("goal") or ""),
         plan_script=plan_script,
-        max_steps=10 if planner_kind == "llm" else 8,
+        max_steps=12 if planner_kind == "llm" else 8,
         enqueue=True,
     )
     final = stack["runs"].get(TENANT, run.id)

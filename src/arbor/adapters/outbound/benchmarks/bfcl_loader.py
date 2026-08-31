@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -105,6 +106,127 @@ def plan_script_from_case(case: dict) -> list[dict]:
 
 def normalize_call_name(name: str) -> str:
     return (name or "").strip().replace("-", "_")
+
+
+def normalize_planner_tool_payload(data: dict) -> dict:
+    """Normalize common LLM variants into planner tool actions."""
+    out = dict(data)
+    action = str(out.get("action") or "").strip().lower()
+    if action in {"function", "tool_call", "call"}:
+        out["action"] = "tool"
+    if out.get("action") == "tool":
+        if not out.get("tool_name"):
+            for key in ("name", "function", "function_name"):
+                if out.get(key):
+                    out["tool_name"] = out[key]
+                    break
+        if out.get("arguments") is None:
+            for key in ("parameters", "args", "input"):
+                if out.get(key) is not None:
+                    out["arguments"] = out[key]
+                    break
+        if out.get("arguments") is None:
+            out["arguments"] = {}
+    return out
+
+
+def _schema_type(spec: dict) -> str | None:
+    typ = spec.get("type")
+    if isinstance(typ, list):
+        for candidate in typ:
+            if candidate and candidate != "null":
+                return str(candidate)
+        return None
+    return str(typ) if typ else None
+
+
+def _coerce_scalar(value: object, spec: dict) -> object:
+    typ = _schema_type(spec)
+    if typ == "string":
+        if value is None:
+            return ""
+        text = str(value).strip()
+        if re.fullmatch(r"\d{4}[/.\-]\d{1,2}[/.\-]\d{1,2}", text):
+            parts = re.split(r"[/.\-]", text)
+            if len(parts) == 3:
+                y, m, d = parts
+                return f"{y}-{int(m):02d}-{int(d):02d}"
+        return text
+    if typ == "integer":
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+            return int(value.strip())
+        return value
+    if typ == "number":
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value.strip())
+            except ValueError:
+                return value
+        return value
+    if typ == "boolean":
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            low = value.strip().lower()
+            if low in {"true", "1", "yes"}:
+                return True
+            if low in {"false", "0", "no"}:
+                return False
+        return value
+    if typ == "array":
+        if isinstance(value, list):
+            item_spec = dict(spec.get("items") or {})
+            return [_coerce_scalar(item, item_spec) for item in value]
+        if isinstance(value, str):
+            return [value]
+        return value
+    if typ == "object" and isinstance(value, dict):
+        nested = dict(spec.get("properties") or {})
+        return coerce_tool_arguments(
+            value,
+            {"type": "object", "properties": nested, "required": spec.get("required") or []},
+        )
+    return value
+
+
+def coerce_tool_arguments(arguments: dict, schema: dict) -> dict:
+    """Best-effort schema coercion for BFCL / AgentDojo tool arguments."""
+    props = dict(schema.get("properties") or {})
+    if not props:
+        return dict(arguments or {})
+    required = set(schema.get("required") or [])
+    coerced: dict = {}
+    incoming = dict(arguments or {})
+    for key, spec in props.items():
+        if key in incoming:
+            coerced[key] = _coerce_scalar(incoming[key], spec if isinstance(spec, dict) else {})
+        elif "default" in (spec or {}):
+            coerced[key] = spec["default"]
+    for key in required:
+        if key not in coerced and key in incoming:
+            coerced[key] = _coerce_scalar(incoming[key], props.get(key) or {})
+    return coerced if coerced else dict(incoming)
+
+
+def schema_for_tool_name(tool_name: str, tool_schemas: list[dict]) -> dict:
+    target = normalize_call_name(tool_name)
+    for schema in tool_schemas or []:
+        fn = dict(schema.get("function") or schema)
+        name = normalize_call_name(str(fn.get("name") or schema.get("name") or ""))
+        if name == target:
+            if "parameters" in fn:
+                return bfcl_function_to_schema(fn)
+            if "input_schema" in fn:
+                return dict(fn["input_schema"])
+    return {"type": "object", "properties": {}}
 
 
 def calls_equivalent(expected: dict, actual: dict) -> tuple[bool, bool]:
