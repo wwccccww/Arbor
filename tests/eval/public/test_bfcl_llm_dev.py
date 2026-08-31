@@ -16,7 +16,7 @@ LLM_BASELINE = repo_root() / "eval" / "public" / "baselines" / "bfcl-dev-llm.jso
 
 @pytest.mark.skipif(not chat_api_key(), reason="DEEPSEEK_API_KEY required for BFCL LLM dev eval")
 def test_bfcl_dev_llm_sample_cases():
-    """Nightly gate: real LLM on a small official dev slice (not full 55 in PR)."""
+    """Nightly gate: real LLM on a small official dev slice (not full 200 in PR)."""
     sample_ids = {"simple_0", "simple_1", "irrelevance_0", "multiple_0", "parallel_0"}
     report = run_bfcl_dev(planner_kind="llm", case_ids=sample_ids)
     assert report.get("case_count") == len(sample_ids)
@@ -27,5 +27,5 @@ def test_bfcl_dev_llm_sample_cases():
     if LLM_BASELINE.is_file():
         stored = json.loads(LLM_BASELINE.read_text(encoding="utf-8"))
         assert stored.get("planner_kind") == "llm"
-        assert stored.get("case_count") == 55
+        assert stored.get("case_count") == 200
         assert stored.get("function_match_rate", 0.0) > 0.0

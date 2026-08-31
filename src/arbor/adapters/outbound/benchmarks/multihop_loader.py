@@ -9,6 +9,7 @@ from arbor.paths import repo_root
 PUBLIC_ROOT = repo_root() / "eval" / "public"
 MULTIHOP_MANIFEST = PUBLIC_ROOT / "manifests" / "multihop.json"
 MULTIHOP_SMOKE = PUBLIC_ROOT / "smoke" / "multihop-smoke.json"
+MULTIHOP_DEV = PUBLIC_ROOT / "dev" / "multihop-dev.json"
 MULTIHOP_CORPUS = PUBLIC_ROOT / "corpora" / "multihop"
 
 
@@ -19,6 +20,11 @@ def load_manifest(path: Path | None = None) -> dict:
 
 def load_smoke_cases(path: Path | None = None) -> dict:
     path = path or MULTIHOP_SMOKE
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_dev_cases(path: Path | None = None) -> dict:
+    path = path or MULTIHOP_DEV
     return json.loads(path.read_text(encoding="utf-8"))
 
 

@@ -1,6 +1,6 @@
 {
   "benchmark_id": "agentdojo",
-  "dataset_version": "dev-v1",
+  "dataset_version": "dev-v2",
   "license": "MIT",
   "source_url": "https://github.com/ethz-spylab/agentdojo",
   "git_ref": "main",

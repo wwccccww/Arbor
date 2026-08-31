@@ -6,6 +6,7 @@ from pathlib import Path
 
 from arbor.adapters.inbound.agent_eval_stack import build_agent_eval_stack
 from arbor.adapters.outbound.benchmarks.multihop_loader import (
+    MULTIHOP_DEV,
     MULTIHOP_SMOKE,
     answer_em,
     answer_f1,
@@ -13,6 +14,7 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     citation_recall,
     expected_from_plan_script,
     faithfulness,
+    load_dev_cases,
     load_smoke_cases,
     plan_script_from_case,
     supporting_fact_recall,
@@ -130,5 +132,25 @@ def run_multihop_smoke(*, fixture_path: Path | None = None, planner_kind: str = 
             "description": payload.get("description"),
             "eval_protocol": "smoke_subset",
             "corpus_doc_count": len(corpus),
+        },
+    )
+
+
+def run_multihop_dev(*, fixture_path: Path | None = None, planner_kind: str = "fake") -> dict:
+    os.environ["ARBOR_ALLOW_PLAN_SCRIPT"] = "1"
+    payload = load_dev_cases(fixture_path or MULTIHOP_DEV)
+    corpus = list(payload.get("corpus") or [])
+    results = [run_multihop_case(case=case, corpus=corpus) for case in payload.get("cases") or []]
+    return aggregate_multihop(
+        benchmark_id="multihop",
+        version=str(payload.get("suite_version") or "multihop-dev-v1"),
+        planner_kind=planner_kind,
+        results=results,
+        extra={
+            "suite_version": payload.get("suite_version"),
+            "description": payload.get("description"),
+            "eval_protocol": "official_dev_subset",
+            "corpus_doc_count": len(corpus),
+            "source": payload.get("source"),
         },
     )

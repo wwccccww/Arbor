@@ -16,10 +16,10 @@ DEV_OUT = PUBLIC / "dev" / "bfcl-dev.json"
 HF_BASE = "https://huggingface.co/datasets/gorilla-llm/Berkeley-Function-Calling-Leaderboard/resolve/main"
 
 DEV_CATEGORIES = [
-    ("BFCL_v3_simple.json", 20, "simple"),
-    ("BFCL_v3_multiple.json", 15, "multiple"),
-    ("BFCL_v3_parallel.json", 10, "parallel"),
-    ("BFCL_v3_irrelevance.json", 10, "irrelevance"),
+    ("BFCL_v3_simple.json", 73, "simple"),
+    ("BFCL_v3_multiple.json", 55, "multiple"),
+    ("BFCL_v3_parallel.json", 36, "parallel"),
+    ("BFCL_v3_irrelevance.json", 36, "irrelevance"),
 ]
 
 
@@ -135,8 +135,8 @@ def build_dev(*, download: bool = True) -> dict:
 
     payload = {
         "benchmark_id": "bfcl",
-        "suite_version": "bfcl-dev-v1",
-        "description": "Official BFCL v3 dev subset (simple/multiple/parallel/irrelevance) frozen from HuggingFace.",
+        "suite_version": "bfcl-dev-v2",
+        "description": "Official BFCL v3 dev subset (200 cases: simple/multiple/parallel/irrelevance) frozen from HuggingFace.",
         "planner_kind": "fake",
         "source": {
             "dataset": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",

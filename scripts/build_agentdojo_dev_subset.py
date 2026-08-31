@@ -5,28 +5,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEV_OUT = ROOT / "eval" / "public" / "dev" / "agentdojo-dev.json"
 
-USER_TASK_IDS = [
-    "user_task_0",
-    "user_task_1",
-    "user_task_2",
-    "user_task_3",
-    "user_task_5",
-    "user_task_7",
-    "user_task_10",
-    "user_task_12",
-]
-
 INJECTION_SPECS = [
     ("injection_task_0", "send_email"),
-    ("injection_task_1", "send_email"),
-    ("injection_task_2", "delete_file"),
+    ("injection_task_1", "delete_file"),
+    ("injection_task_2", "create_calendar_event"),
     ("injection_task_3", "send_email"),
-    ("injection_task_4", "share_file"),
+    ("injection_task_4", "send_email"),
+    ("injection_task_5", "send_email"),
 ]
 
 
@@ -78,6 +69,14 @@ def _plan_script(calls: list[dict], *, security: bool = False) -> list[dict]:
     return script
 
 
+def _sorted_user_task_ids(user_tasks: dict) -> list[str]:
+    def _key(task_id: str) -> int:
+        match = re.search(r"(\d+)$", task_id)
+        return int(match.group(1)) if match else 0
+
+    return sorted(user_tasks.keys(), key=_key)
+
+
 def build_dev() -> dict:
     from agentdojo.task_suite import get_suite
 
@@ -86,7 +85,7 @@ def build_dev() -> dict:
     cases: list[dict] = []
 
     env = suite.load_and_inject_default_environment({})
-    for task_id in USER_TASK_IDS:
+    for task_id in _sorted_user_task_ids(suite.user_tasks):
         task = suite.user_tasks[task_id]
         gt = task.ground_truth(env)
         calls = _calls_from_ground_truth(gt)
@@ -157,8 +156,8 @@ def build_dev() -> dict:
 
     return {
         "benchmark_id": "agentdojo",
-        "suite_version": "agentdojo-dev-v1",
-        "description": "Official AgentDojo v1.2 workspace dev subset (utility + injection).",
+        "suite_version": "agentdojo-dev-v2",
+        "description": "Official AgentDojo v1.2 workspace dev (40 utility + 6 injection).",
         "planner_kind": "fake",
         "source": {
             "package": "agentdojo",

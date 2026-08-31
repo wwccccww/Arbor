@@ -41,6 +41,7 @@ BASELINE_FILES = {
     "public-agentdojo-smoke": ROOT / "eval" / "public" / "baselines" / "agentdojo-smoke.json",
     "public-agentdojo-dev": ROOT / "eval" / "public" / "baselines" / "agentdojo-dev-fake.json",
     "public-multihop-smoke": ROOT / "eval" / "public" / "baselines" / "multihop-smoke.json",
+    "public-multihop-dev": ROOT / "eval" / "public" / "baselines" / "multihop-dev-fake.json",
 }
 PUBLIC_SUITES = frozenset(
     {
@@ -50,6 +51,7 @@ PUBLIC_SUITES = frozenset(
         "public-agentdojo-smoke",
         "public-agentdojo-dev",
         "public-multihop-smoke",
+        "public-multihop-dev",
     }
 )
 
@@ -237,6 +239,31 @@ def _run_public_suite(suite: str, *, planner_kind: str = "fake") -> tuple[dict, 
         _export_metrics(
             suite=suite,
             strategy="multihop-smoke",
+            metrics={
+                "supporting_fact_recall": report.get("supporting_fact_recall", 0.0),
+                "answer_em": report.get("answer_em", 0.0),
+                "faithfulness": report.get("faithfulness", 0.0),
+            },
+            p0_ok=report.get("tenant_leak_rate", 0.0) == 0.0,
+        )
+        if report.get("supporting_fact_recall", 0.0) < float(baseline.get("supporting_fact_recall", 1.0)):
+            return report, 1
+        if report.get("answer_em", 0.0) < float(baseline.get("answer_em", 1.0)):
+            return report, 1
+        if report.get("tenant_leak_rate", 0.0) > 0:
+            return report, 1
+        return report, 0
+
+    if suite == "public-multihop-dev":
+        from arbor.application.evaluation.public_benchmarks.multihop_rag_runner import (
+            run_multihop_dev,
+        )
+
+        report = run_multihop_dev(planner_kind=planner_kind)
+        baseline = _load_baseline(BASELINE_FILES[suite])
+        _export_metrics(
+            suite=suite,
+            strategy="multihop-dev",
             metrics={
                 "supporting_fact_recall": report.get("supporting_fact_recall", 0.0),
                 "answer_em": report.get("answer_em", 0.0),

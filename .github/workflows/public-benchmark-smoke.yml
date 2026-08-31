@@ -15,8 +15,9 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev,api]"
       - run: python3 scripts/fetch_public_benchmarks.py --benchmark all --only smoke
-      - run: python3 -m pytest tests/eval/public/test_bfcl_smoke.py tests/eval/public/test_bfcl_dev.py tests/eval/public/test_agentdojo_smoke.py tests/eval/public/test_agentdojo_dev.py tests/eval/public/test_multihop_smoke.py -q --tb=short
+      - run: python3 -m pytest tests/eval/public/test_bfcl_smoke.py tests/eval/public/test_bfcl_dev.py tests/eval/public/test_agentdojo_smoke.py tests/eval/public/test_agentdojo_dev.py tests/eval/public/test_multihop_smoke.py tests/eval/public/test_multihop_dev.py -q --tb=short
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev --mode agent --strategy all
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-smoke --mode agent --strategy all
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-dev --mode agent --strategy all
       - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-smoke --mode agent --strategy all
+      - run: python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev --mode agent --strategy all

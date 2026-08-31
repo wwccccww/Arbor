@@ -11,7 +11,7 @@ BASELINE = repo_root() / "eval" / "public" / "baselines" / "bfcl-dev-fake.json"
 
 def test_bfcl_dev_fixture_is_official_subset():
     payload = load_dev_cases()
-    assert len(payload["cases"]) == 55
+    assert len(payload["cases"]) == 200
     cats = {c["source_category"] for c in payload["cases"]}
     assert cats == {"simple", "multiple", "parallel", "irrelevance"}
     assert all(c.get("metadata", {}).get("official") for c in payload["cases"])

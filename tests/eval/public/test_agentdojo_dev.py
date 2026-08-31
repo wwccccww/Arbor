@@ -11,7 +11,7 @@ BASELINE = repo_root() / "eval" / "public" / "baselines" / "agentdojo-dev-fake.j
 
 def test_agentdojo_dev_fixture_is_official_subset():
     payload = load_dev_cases()
-    assert len(payload["cases"]) == 13
+    assert len(payload["cases"]) == 46
     assert all(c.get("metadata", {}).get("official") for c in payload["cases"])
     kinds = {str(c.get("kind")) for c in payload["cases"]}
     assert kinds == {"utility", "security"}

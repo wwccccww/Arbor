@@ -1,8 +1,8 @@
 {
   "benchmark_id": "bfcl",
-  "version": "bfcl-dev-v1",
+  "version": "bfcl-dev-v2",
   "planner_kind": "fake",
-  "case_count": 55,
+  "case_count": 200,
   "task_success_rate": 1.0,
   "function_match_rate": 1.0,
   "argument_match_rate": 1.0,
@@ -231,6 +231,589 @@
       "security_violations": []
     },
     {
+      "id": "simple_20",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_21",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_22",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_23",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_24",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_25",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_26",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_27",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_28",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_29",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_30",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_31",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_32",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_33",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_34",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_35",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_36",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_37",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_38",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_39",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_40",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_41",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_42",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_43",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_44",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_45",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_46",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_47",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_48",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_49",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_50",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_51",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_52",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_53",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_54",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_55",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_56",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_57",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_58",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_59",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_60",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_61",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_62",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_63",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_64",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_65",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_66",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_67",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_68",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_69",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_70",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_71",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "simple_72",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
       "id": "multiple_0",
       "ok": true,
       "scores": {
@@ -396,6 +979,446 @@
       "security_violations": []
     },
     {
+      "id": "multiple_15",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_16",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_17",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_18",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_19",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_20",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_21",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_22",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_23",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_24",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_25",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_26",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_27",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_28",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_29",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_30",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_31",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_32",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_33",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_34",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_35",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_36",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_37",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_38",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_39",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_40",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_41",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_42",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_43",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_44",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_45",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_46",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_47",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_48",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_49",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_50",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_51",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_52",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_53",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "multiple_54",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=1 actual=1 planner=fake",
+      "security_violations": []
+    },
+    {
       "id": "parallel_0",
       "ok": true,
       "scores": {
@@ -496,6 +1519,292 @@
     },
     {
       "id": "parallel_9",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_10",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_11",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_12",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_13",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_14",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_15",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_16",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_17",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_18",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_19",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=3 actual=3 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_20",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_21",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_22",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=4 actual=4 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_23",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_24",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_25",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_26",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=4 actual=4 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_27",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_28",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_29",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_30",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_31",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_32",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_33",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=4 actual=4 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_34",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=2 actual=2 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "parallel_35",
       "ok": true,
       "scores": {
         "function_match": 1.0,
@@ -614,10 +1923,296 @@
       },
       "detail": "status=completed expected=0 actual=0 planner=fake",
       "security_violations": []
+    },
+    {
+      "id": "irrelevance_10",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_11",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_12",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_13",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_14",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_15",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_16",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_17",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_18",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_19",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_20",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_21",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_22",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_23",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_24",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_25",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_26",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_27",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_28",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_29",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_30",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_31",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_32",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_33",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_34",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
+    },
+    {
+      "id": "irrelevance_35",
+      "ok": true,
+      "scores": {
+        "function_match": 1.0,
+        "argument_match": 1.0,
+        "executable": 1.0
+      },
+      "detail": "status=completed expected=0 actual=0 planner=fake",
+      "security_violations": []
     }
   ],
-  "suite_version": "bfcl-dev-v1",
-  "description": "Official BFCL v3 dev subset (simple/multiple/parallel/irrelevance) frozen from HuggingFace.",
+  "suite_version": "bfcl-dev-v2",
+  "description": "Official BFCL v3 dev subset (200 cases: simple/multiple/parallel/irrelevance) frozen from HuggingFace.",
   "eval_protocol": "official_dev_subset",
   "source": {
     "dataset": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
