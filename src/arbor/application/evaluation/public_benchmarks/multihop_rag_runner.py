@@ -13,6 +13,7 @@ from arbor.adapters.outbound.benchmarks.multihop_loader import (
     citation_precision,
     citation_recall,
     expected_from_plan_script,
+    extract_answer_from_steps,
     faithfulness,
     load_dev_cases,
     load_smoke_cases,
@@ -55,8 +56,6 @@ def run_multihop_case(*, case: dict, corpus: list[dict]) -> PublicBenchmarkResul
     )
     final = stack["runs"].get(TENANT, run.id)
     steps = stack["approve_step"].advance.steps.list_for_run(TENANT, run.id)
-
-    from arbor.adapters.outbound.benchmarks.multihop_loader import extract_answer_from_steps
 
     answer_text, citations, retrieved = extract_answer_from_steps(steps)
     exp_answer, exp_citations, exp_retrieved = expected_from_plan_script(case)

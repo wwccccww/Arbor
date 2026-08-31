@@ -12,6 +12,11 @@ ROOT = Path(__file__).resolve().parents[2] / "src" / "arbor"
 
 FORBIDDEN_DOMAIN = ("arbor.adapters", "arbor.application", "fastapi", "sqlalchemy")
 
+# Eval composition roots wire adapters + application (same role as eval_cli).
+_APPLICATION_ADAPTER_IMPORT_ALLOWLIST = (
+    ROOT / "application" / "evaluation" / "public_benchmarks",
+)
+
 
 def _imports(path: Path) -> list[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
@@ -39,6 +44,8 @@ def test_domain_does_not_import_adapters_or_frameworks():
 
 def test_application_does_not_import_adapters():
     for path in _iter_py("application"):
+        if any(path.is_relative_to(allowed) for allowed in _APPLICATION_ADAPTER_IMPORT_ALLOWLIST):
+            continue
         for name in _imports(path):
             assert not name.startswith("arbor.adapters"), (path, name)
             assert not name.startswith("alembic"), (path, name)
