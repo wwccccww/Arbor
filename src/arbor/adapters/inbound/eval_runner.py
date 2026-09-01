@@ -284,23 +284,26 @@ def run_generation(
     llm=None,
     scorer=None,
     backend: str = "auto",
+    embed: str = "fixture",
+    case_limit: int | None = None,
 ) -> dict:
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
-    from arbor.adapters.outbound.ragas_scorer import RagasFaithfulnessScorer
+    from arbor.adapters.outbound.ragas_scorer import RagasFaithfulnessScorer, RagasMetricsScorer, RagasSample
 
     world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
     backend = resolve_backend(backend)
     session = None
     stores = None
+    embed_client, embed_label = resolve_embed(embed)
     if backend == "postgres":
-        session = _open_postgres(world_path)
+        session = _open_postgres(world_path, embed_client=embed_client)
         memories, events, threads, index, embed, _summary = _postgres_ports(session)
         personas = session.personas
         inbox = session.inbox
     else:
         stores = InMemoryStores()
-        load_world(world_path, stores)
-        memories, events, threads, index, embed, _summary = _ports(stores)
+        load_world(world_path, stores, embed_client=embed_client)
+        memories, events, threads, index, embed, _summary = _ports(stores, embed_client=embed_client)
         personas = InMemoryPersonaRepository(stores)
         inbox = InMemoryInboxRepository(stores)
     send = SendMessage(
@@ -318,10 +321,15 @@ def run_generation(
         strategy=strategy,
     )
     scorer = scorer if scorer is not None else RagasFaithfulnessScorer()
+    batch_scorer = scorer if hasattr(scorer, "score_batch") else None
     mem_index = {item["id"]: item for item in world["memories"]}
-    rows = []
+    rows: list[dict] = []
+    pending: list[tuple[int, RagasSample | None]] = []
+    cases = list(cases_doc["cases"])
+    if case_limit is not None:
+        cases = cases[:case_limit]
     try:
-        for case in cases_doc["cases"]:
+        for case in cases:
             actor = case["actor"]
             tenant_id = TenantId(actor["tenant_id"])
             persona_id = PersonaId(actor["persona_id"])
@@ -341,24 +349,101 @@ def run_generation(
             leak_ids = [mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])]
             result["leak_ids"] = leak_ids
             contexts = [ctx for ctx in result.get("injected_contexts") or [] if ctx]
-            ragas = None
+            row_idx = len(rows)
+            sample: RagasSample | None = None
             if case.get("expected_behavior") in {"answer", "cite"} and not leak_ids:
-                ragas = scorer.score(case["query"], result.get("text") or "", contexts)
-            result["ragas_faithfulness"] = ragas
+                if batch_scorer is not None:
+                    sample = RagasSample(
+                        question=str(case["query"]),
+                        answer=str(result.get("text") or ""),
+                        contexts=contexts,
+                        ground_truth=str(case.get("reference") or ""),
+                        reference_contexts=[str(x) for x in case.get("reference_contexts") or []],
+                    )
+                elif hasattr(scorer, "score"):
+                    result["ragas_faithfulness"] = scorer.score(case["query"], result.get("text") or "", contexts)
+            pending.append((row_idx, sample))
             row = score_generation_case(case, result, mem_index)
             row["query"] = case["query"]
             row["text"] = result.get("text") or ""
             rows.append(row)
+        if batch_scorer is not None:
+            samples = [sample for _, sample in pending if sample is not None]
+            scored = batch_scorer.score_batch(samples)
+            score_iter = iter(scored)
+            for row_idx, sample in pending:
+                if sample is None:
+                    continue
+                metric_row = next(score_iter, {})
+                for name, value in metric_row.items():
+                    rows[row_idx][f"ragas_{name}"] = value
     finally:
         if session is not None:
             session.close()
     metrics = aggregate_generation(rows)
+    suite_version = cases_doc.get("suite_version") or world.get("suite_version")
+    if suite_dir.name == "suite-ragas-official":
+        suite_version = "ragas-official-v1"
     return {
-        "suite_version": cases_doc.get("suite_version") or world.get("suite_version"),
+        "suite_version": suite_version,
         "strategy": strategy,
         "mode": "generation",
         "backend": backend,
+        "embeddings": embed_label,
         "metrics": metrics,
         "p0_tenant_leak_zero": metrics.get("generation_p0_pass", False),
         "cases": rows,
     }
+
+
+def run_ragas_official_generation(
+    *,
+    strategy: str = "layered_tree",
+    llm=None,
+    scorer=None,
+    backend: str = "auto",
+    embed: str = "fixture",
+    case_limit: int | None = None,
+) -> dict:
+    from arbor.adapters.outbound.ragas_scorer import RagasMetricsScorer
+
+    official_dir = ROOT / "eval" / "fixtures" / "suite-ragas-official"
+    manifest_path = ROOT / "eval" / "public" / "manifests" / "ragas-official.json"
+    report = run_generation(
+        suite_dir=official_dir,
+        strategy=strategy,
+        llm=llm,
+        scorer=scorer or RagasMetricsScorer(),
+        backend=backend,
+        embed=embed,
+        case_limit=case_limit,
+    )
+    report["protocol"] = str(manifest_path.relative_to(ROOT)) if manifest_path.is_file() else None
+    report["benchmark_id"] = "ragas-official"
+    report["n_cases"] = len(report.get("cases") or [])
+    return report
+
+
+def write_ragas_official_baseline(report: dict, dest: Path) -> None:
+    import json
+    from datetime import date
+
+    from arbor.env import judge_status
+
+    metrics = dict(report.get("metrics") or {})
+    payload = {
+        "suite_version": "ragas-official-v1",
+        "updated_at": date.today().isoformat(),
+        "mode": "generation",
+        "n_cases": report.get("n_cases") or metrics.get("n_cases"),
+        "protocol": report.get("protocol") or "eval/public/manifests/ragas-official.json",
+        "benchmark_id": "ragas-official",
+        "strategy": report.get("strategy"),
+        "generator": "deepseek-chat",
+        "judge": judge_status(),
+        "embedding": report.get("embeddings"),
+        "backend": report.get("backend"),
+        "metrics": metrics,
+    }
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

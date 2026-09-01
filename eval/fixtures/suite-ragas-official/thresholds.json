@@ -1,0 +1,14 @@
+{
+  "k": 5,
+  "retrieval": {
+    "tenant_leak_count": {"max": 0},
+    "persona_leak_rate": {"max": 0},
+    "recall_at_5": {"min": 0.0},
+    "identity_consistency": {"min": 0.0},
+    "superseded_in_topk": {"max": 0}
+  },
+  "generation": {
+    "citation_subset_rate": {"min": 1.0},
+    "ragas_faithfulness": {"min": 0.8}
+  }
+}

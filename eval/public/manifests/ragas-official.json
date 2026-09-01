@@ -1,0 +1,34 @@
+{
+  "benchmark_id": "ragas-official",
+  "version": "ragas-official-v1",
+  "license": "MIT",
+  "source_url": "https://github.com/explodinggradients/ragas",
+  "testset_generator": "ragas.testset.TestsetGenerator==0.2.15",
+  "corpus": "eval/fixtures/suite-ragas-official/knowledge_graph.json",
+  "content_hash": null,
+  "n_cases": 100,
+  "eval_protocol": "ragas_generation_v1",
+  "generator_llm": "deepseek-chat",
+  "judge_llm": "ARBOR_JUDGE_API_KEY (OpenAI-compatible, must differ from generator)",
+  "embedding": "BAAI/bge-m3 (nightly) / fixture_embed (smoke)",
+  "retrieval_strategy": "layered_tree",
+  "retrieval_k": 5,
+  "metrics": [
+    "faithfulness",
+    "context_recall",
+    "context_precision",
+    "answer_relevancy",
+    "answer_correctness"
+  ],
+  "p0_metrics": [
+    "citation_subset_rate",
+    "n_leaking_cases",
+    "refuse_text_leak_count"
+  ],
+  "dev_stratified_limits": {
+    "single_hop_specifc_query_synthesizer": 50,
+    "multi_hop_specific_query_synthesizer": 50
+  },
+  "frozen_at": "2026-08-31",
+  "notes": "Official TestsetGenerator rows aligned to memory_id on Arbor frozen KG. Not a global RAGAS leaderboard. Fake Planner not used; generation mode only."
+}

@@ -24,7 +24,8 @@
 | AgentDojo | `public-agentdojo-dev-llm` | **同上官方 dev** | **DeepSeek LLM** | **46** | utility **0.225**, attack **0.0** |
 | MultiHop-RAG | `public-multihop-smoke` | 自建 smoke | fake | 5 | supporting_recall 1.0 |
 | MultiHop-RAG | `public-multihop-dev` | **官方 HF 分层抽样** | fake | **100** | supporting_recall 1.0 |
-| MultiHop-RAG | `public-multihop-dev-llm` | **同上官方 dev** | **DeepSeek RAG+LLM (v5)** | **100** | recall **0.721**, answer_em **0.65**, tenant_leak **0.0** |
+| MultiHop-RAG | `public-multihop-dev-llm` | **同上官方 dev** | **DeepSeek RAG+LLM (v6)** | **100** | recall **0.721**, answer_em **0.65**, tenant_leak **0.0** |
+| RAGAS 官方 | `ragas-official-v1` | **TestsetGenerator 对齐 100 条** | **DeepSeek generation + judge** | **100** | nightly 写入 `ragas-official-generation.json`（faithfulness / context_recall / answer_correctness 等五维） |
 
 ### BFCL 官方 dev 组成（200 题）
 
@@ -72,7 +73,7 @@ python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev-llm -
 
 ## 简历表述（推荐）
 
-> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 90%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**（2026-08-31，**dev 子集非完整榜单**）。
+> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 91.5%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**（2026-08-31，**dev 子集非完整榜单**）。
 
 ## 局限（务必如实）
 

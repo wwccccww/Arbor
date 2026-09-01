@@ -153,3 +153,11 @@ jobs:
           python3 -m pytest tests/eval/public/test_multihop_llm_dev.py -q -m llm --tb=short
           python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev-llm --mode agent --planner llm \
             | tee eval/public/runs/nightly-multihop-dev-llm-$(date -u +%Y%m%d).json
+      - name: RAGAS official 100 generation (writes ragas-official-generation.json)
+        if: ${{ env.DEEPSEEK_API_KEY != '' && env.ARBOR_JUDGE_API_KEY != '' }}
+        run: |
+          pip install -r eval/requirements-eval.txt
+          python3 -m pytest tests/eval/test_ragas_official_llm.py -q -m llm --tb=short
+          python3 -m arbor.adapters.inbound.cli.eval_cli \
+            --suite ragas-official-v1 --mode generation --strategy layered_tree --embed bge --write-baseline \
+            | tee eval/public/runs/nightly-ragas-official-$(date -u +%Y%m%d).json

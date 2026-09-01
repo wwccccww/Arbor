@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+RAGAS_METRIC_KEYS: tuple[str, ...] = (
+    "ragas_faithfulness",
+    "ragas_context_recall",
+    "ragas_context_precision",
+    "ragas_answer_relevancy",
+    "ragas_answer_correctness",
+)
+
 
 def injected_contexts(prompt_slots: dict) -> list[str]:
     contexts: list[str] = []
@@ -63,9 +71,12 @@ def score_generation_case(case: dict, result: dict, memories: dict[str, dict]) -
     retrieval_leak = bool(result.get("leak_ids"))
     leaked = text_leak or retrieval_leak
     behavior = case.get("expected_behavior")
-    ragas = result.get("ragas_faithfulness")
-    if leaked or behavior == "refuse":
-        ragas = None
+    ragas_fields: dict[str, float | None] = {}
+    for key in RAGAS_METRIC_KEYS:
+        value = result.get(key)
+        if leaked or behavior == "refuse":
+            value = None
+        ragas_fields[key] = value
     return {
         "id": case["id"],
         "behavior": behavior,
@@ -74,7 +85,8 @@ def score_generation_case(case: dict, result: dict, memories: dict[str, dict]) -
         "text_leak": text_leak,
         "retrieval_leak": retrieval_leak,
         "leaked": leaked,
-        "ragas_faithfulness": ragas,
+        "ragas_faithfulness": ragas_fields.get("ragas_faithfulness"),
+        **ragas_fields,
         "injected_memory_ids": injected,
         "citations": citations,
     }
@@ -108,5 +120,12 @@ def aggregate_generation(rows: list[dict]) -> dict:
         "ragas_skipped": len(ragas_vals) == 0,
         "judge_status": judge_status(),
     }
+    for key in RAGAS_METRIC_KEYS:
+        short = key.removeprefix("ragas_")
+        vals = [r[key] for r in rows if r.get(key) is not None]
+        metrics[key] = round(sum(vals) / len(vals), 4) if vals else None
+        metrics[f"ragas_{short}_n"] = len(vals)
+    if any(metrics.get(key) is not None for key in RAGAS_METRIC_KEYS):
+        metrics["ragas_skipped"] = False
     metrics["generation_p0_pass"] = generation_p0_pass(metrics)
     return metrics

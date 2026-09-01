@@ -1,0 +1,29 @@
+{
+  "suite_version": "ragas-official-v1",
+  "updated_at": "2026-08-31",
+  "mode": "generation",
+  "n_cases": 100,
+  "protocol": "eval/public/manifests/ragas-official.json",
+  "benchmark_id": "ragas-official",
+  "strategy": "layered_tree",
+  "generator": "deepseek-chat",
+  "judge": "missing_key",
+  "embedding": "fixture_embed (deterministic hash, not bge-m3)",
+  "backend": "memory",
+  "note": "Placeholder baseline. Nightly with DEEPSEEK_API_KEY + ARBOR_JUDGE_API_KEY + EMBEDDING_API_KEY overwrites via --write-baseline.",
+  "metrics": {
+    "n_cases": 100,
+    "citation_subset_rate": null,
+    "refuse_text_leak_count": null,
+    "n_leaking_cases": null,
+    "generation_p0_pass": null,
+    "ragas_faithfulness": null,
+    "ragas_context_recall": null,
+    "ragas_context_precision": null,
+    "ragas_answer_relevancy": null,
+    "ragas_answer_correctness": null,
+    "ragas_n": 0,
+    "ragas_skipped": true,
+    "judge_status": "missing_key"
+  }
+}
