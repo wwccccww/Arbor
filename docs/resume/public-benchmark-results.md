@@ -69,6 +69,10 @@ python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev --mod
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev-llm --mode agent --planner llm
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-dev-llm --mode agent --planner llm
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev-llm --mode agent --planner llm
+
+# Nightly RAGAS 官方 100（DeepSeek + ARBOR_JUDGE_API_KEY + bge）
+pip install -r eval/requirements-eval.txt
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-official-v1 --mode generation --embed bge --write-baseline
 ```
 
 ## 简历表述（推荐）
