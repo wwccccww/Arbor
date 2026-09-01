@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -843,27 +844,26 @@ def create_app(
         allow_headers=["*"],
     )
     limiter = InMemoryRateLimiter(limit=rate_limit_per_window, window_seconds=rate_window_seconds)
+    pg_session_lock = asyncio.Lock() if session is not None else None
 
     @app.middleware("http")
     async def pg_tenant_rls(request: Request, call_next):
-        if session is not None and request.headers.get("x-tenant-id"):
-            from arbor.adapters.outbound.postgres.connection_scope import (
-                reset_request_connection,
-                set_request_connection,
-            )
-            from arbor.adapters.outbound.postgres.sql import set_app_tenant
-
+        # Starlette BaseHTTPMiddleware runs call_next in a child task, so ContextVar
+        # does not reach route handlers. Handlers always query session._primary_conn
+        # via RequestScopedConnection; RLS must use that same connection inside one
+        # transaction. Serialize /v1 Postgres traffic to avoid interleaved commits.
+        if pg_session_lock is None or not request.url.path.startswith("/v1"):
+            return await call_next(request)
+        async with pg_session_lock:
             tenant_id = request.headers.get("x-tenant-id")
-            conn, borrowed = session.borrow_connection()
-            token = set_request_connection(conn)
-            try:
+            if tenant_id:
+                from arbor.adapters.outbound.postgres.sql import set_app_tenant
+
+                conn = session._primary_conn
                 with conn.transaction():
                     set_app_tenant(conn, tenant_id, local=True)
                     return await call_next(request)
-            finally:
-                reset_request_connection(token)
-                session.release_connection(conn, borrowed)
-        return await call_next(request)
+            return await call_next(request)
 
     @app.middleware("http")
     async def enforce_rate_limit(request: Request, call_next):
