@@ -32,6 +32,33 @@ def test_http_embedding_parses_openai_response(monkeypatch):
     assert client.embed("林夏讨厌香菜") == [0.1, 0.2, 0.3]
 
 
+def test_http_embedding_truncates_overlong_input(monkeypatch):
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.embedding_api_key", lambda: "sk-emb")
+    monkeypatch.setattr(
+        "arbor.adapters.outbound.embedding.embedding_base_url",
+        lambda: "https://api.siliconflow.cn/v1",
+    )
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.embedding_model", lambda: "BAAI/bge-m3")
+
+    captured: dict[str, str] = {}
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"embedding": [1.0]}]}
+
+    def fake_post(url, **kwargs):
+        captured["input"] = kwargs["json"]["input"]
+        return FakeResponse()
+
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.httpx.post", fake_post)
+    client = HttpEmbeddingClient()
+    client.max_input_chars = 100
+    assert client.embed("x" * 500) == [1.0]
+    assert len(captured["input"]) == 100
+
+
 def test_create_app_from_env_uses_http_embed(monkeypatch):
     from apps.api.main import create_app_from_env
 
