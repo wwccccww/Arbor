@@ -50,6 +50,26 @@ def judge_api_key() -> str:
     return judge
 
 
+def judge_base_url() -> str:
+    load_dotenv()
+    raw = (
+        os.environ.get("ARBOR_JUDGE_BASE_URL")
+        or os.environ.get("SILICONFLOW_BASE_URL")
+        or "https://api.siliconflow.cn/v1"
+    )
+    return raw.rstrip("/")
+
+
+def judge_model() -> str:
+    load_dotenv()
+    return os.environ.get("ARBOR_JUDGE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+
+
+def judge_embedding_model() -> str:
+    load_dotenv()
+    return os.environ.get("ARBOR_JUDGE_EMBEDDING_MODEL") or embedding_model()
+
+
 def judge_status() -> str:
     """Why RAGAS faithfulness may be skipped: configured | missing_key | same_as_generator."""
     load_dotenv()

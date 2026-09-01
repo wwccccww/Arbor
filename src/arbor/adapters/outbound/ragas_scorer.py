@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from arbor.env import judge_api_key
+from arbor.env import judge_api_key, judge_base_url, judge_embedding_model, judge_model
 
 RAGAS_METRIC_NAMES: tuple[str, ...] = (
     "faithfulness",
@@ -52,6 +52,33 @@ class RagasFaithfulnessScorer:
         return batch[0].get("faithfulness")
 
 
+def _build_ragas_llm_and_embeddings():
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    from ragas.embeddings.base import LangchainEmbeddingsWrapper
+    from ragas.llms.base import LangchainLLMWrapper
+
+    key = judge_api_key()
+    base = judge_base_url()
+    llm = LangchainLLMWrapper(
+        ChatOpenAI(
+            model=judge_model(),
+            api_key=key,
+            base_url=base,
+            temperature=0,
+            max_retries=2,
+            timeout=120,
+        )
+    )
+    embeddings = LangchainEmbeddingsWrapper(
+        OpenAIEmbeddings(
+            model=judge_embedding_model(),
+            api_key=key,
+            base_url=base,
+        )
+    )
+    return llm, embeddings
+
+
 class RagasMetricsScorer:
     """Batch RAGAS evaluate for Route A official generation suite."""
 
@@ -88,7 +115,8 @@ class RagasMetricsScorer:
                     ],
                 }
             )
-            result = evaluate(dataset, metrics=metrics)
+            llm, embeddings = _build_ragas_llm_and_embeddings()
+            result = evaluate(dataset, metrics=metrics, llm=llm, embeddings=embeddings)
             frame = result.to_pandas()
         except Exception:
             return empty
