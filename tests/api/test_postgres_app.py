@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +9,29 @@ from arbor.env import database_url
 from tests.api.test_auth import _citation_ids
 
 pytestmark = pytest.mark.postgres
+
+_TENANT_HEADERS = {
+    "Authorization": "Bearer token-a",
+    "X-Tenant-Id": "0a000000-0000-4000-a000-000000000001",
+}
+
+
+@pytest.mark.skipif(not (database_url() or os.environ.get("DATABASE_URL")), reason="Postgres API needs DATABASE_URL")
+def test_postgres_app_concurrent_me_with_tenant_header():
+    """RLS middleware must not corrupt pooled transactions under parallel requests."""
+    client = TestClient(
+        create_app(database_url=database_url() or os.environ["DATABASE_URL"]),
+        raise_server_exceptions=False,
+    )
+
+    def hit() -> int:
+        return client.get("/v1/me", headers=_TENANT_HEADERS).status_code
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        statuses = list(pool.map(lambda _: hit(), range(24)))
+
+    assert statuses.count(500) == 0
+    assert all(code == 200 for code in statuses)
 
 
 @pytest.mark.skipif(not (database_url() or os.environ.get("DATABASE_URL")), reason="Postgres API needs DATABASE_URL")
