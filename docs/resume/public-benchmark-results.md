@@ -25,7 +25,7 @@
 | MultiHop-RAG | `public-multihop-smoke` | 自建 smoke | fake | 5 | supporting_recall 1.0 |
 | MultiHop-RAG | `public-multihop-dev` | **官方 HF 分层抽样** | fake | **100** | supporting_recall 1.0 |
 | MultiHop-RAG | `public-multihop-dev-llm` | **同上官方 dev** | **DeepSeek RAG+LLM (v6)** | **100** | recall **0.721**, answer_em **0.65**, tenant_leak **0.0** |
-| RAGAS 官方 | `ragas-official-v1` | **TestsetGenerator 对齐 100 条** | **DeepSeek generation + judge** | **100** | nightly 写入 `ragas-official-generation.json`（faithfulness / context_recall / answer_correctness 等五维） |
+| RAGAS 官方 | `ragas-official-v1` | **TestsetGenerator 对齐 100 条** | **DeepSeek + SF Qwen2.5-14B judge + bge-m3** | **100** | faithfulness **88.0%**, context_recall **72.7%**, answer_correctness **56.6%**, citation **1.0**, leak **0**（2026-09-01） |
 
 ### BFCL 官方 dev 组成（200 题）
 
