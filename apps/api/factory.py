@@ -847,16 +847,22 @@ def create_app(
     @app.middleware("http")
     async def pg_tenant_rls(request: Request, call_next):
         if session is not None and request.headers.get("x-tenant-id"):
+            from arbor.adapters.outbound.postgres.connection_scope import (
+                reset_request_connection,
+                set_request_connection,
+            )
             from arbor.adapters.outbound.postgres.sql import set_app_tenant
 
             tenant_id = request.headers.get("x-tenant-id")
-            conn, borrowed = session.checkout()
+            conn, borrowed = session.borrow_connection()
+            token = set_request_connection(conn)
             try:
                 with conn.transaction():
                     set_app_tenant(conn, tenant_id, local=True)
                     return await call_next(request)
             finally:
-                session.checkin(conn, borrowed)
+                reset_request_connection(token)
+                session.release_connection(conn, borrowed)
         return await call_next(request)
 
     @app.middleware("http")

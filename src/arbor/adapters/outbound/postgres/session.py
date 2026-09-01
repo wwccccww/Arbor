@@ -17,6 +17,7 @@ from arbor.adapters.outbound.postgres.artifacts import (
 )
 from arbor.adapters.outbound.postgres.audit import PgAuditLogRepository
 from arbor.adapters.outbound.postgres.connection import connect, wipe_public_schema
+from arbor.adapters.outbound.postgres.connection_scope import RequestScopedConnection
 from arbor.adapters.outbound.postgres.decision_traces import PgDecisionTraceRepository
 from arbor.adapters.outbound.postgres.employee import PgEmployeeDefinitionRepository
 from arbor.adapters.outbound.postgres.events import PgEventGraphRepository
@@ -38,43 +39,48 @@ class PostgresSession:
         self._pool = pool
         self._observability = observability
         self._primary_conn = conn
+        self._scoped = RequestScopedConnection(lambda: self._primary_conn)
         self._bind()
 
-    def _bind(self, conn=None) -> None:
-        conn = conn or self.conn
-        self.conn = conn
-        self.personas = PgPersonaRepository(self.conn)
-        self.memories = PgMemoryRepository(self.conn)
-        self.inbox = PgInboxRepository(self.conn)
-        self.events = PgEventGraphRepository(self.conn)
-        self.threads = PgThreadRepository(self.conn)
-        self.vectors = PgVectorIndex(self.conn, self.memories)
-        self.audit_logs = PgAuditLogRepository(self.conn)
-        self.decision_traces = PgDecisionTraceRepository(self.conn)
-        self.tenants = PgTenantRepository(self.conn)
-        self.users = PgUserRepository(self.conn)
-        self.agent_runs = PgAgentRunRepository(self.conn)
-        self.agent_steps = PgAgentStepRepository(self.conn)
-        self.approvals = PgApprovalRepository(self.conn)
-        self.tool_executions = PgToolExecutionRepository(self.conn)
-        self.artifacts = PgArtifactRepository(self.conn)
-        self.artifact_segments = PgArtifactSegmentRepository(self.conn)
-        self.artifact_lineage = PgArtifactLineageRepository(self.conn)
-        self.employee_definitions = PgEmployeeDefinitionRepository(self.conn)
+    def _bind(self) -> None:
+        conn = self._scoped
+        self.personas = PgPersonaRepository(conn)
+        self.memories = PgMemoryRepository(conn)
+        self.inbox = PgInboxRepository(conn)
+        self.events = PgEventGraphRepository(conn)
+        self.threads = PgThreadRepository(conn)
+        self.vectors = PgVectorIndex(conn, self.memories)
+        self.audit_logs = PgAuditLogRepository(conn)
+        self.decision_traces = PgDecisionTraceRepository(conn)
+        self.tenants = PgTenantRepository(conn)
+        self.users = PgUserRepository(conn)
+        self.agent_runs = PgAgentRunRepository(conn)
+        self.agent_steps = PgAgentStepRepository(conn)
+        self.approvals = PgApprovalRepository(conn)
+        self.tool_executions = PgToolExecutionRepository(conn)
+        self.artifacts = PgArtifactRepository(conn)
+        self.artifact_segments = PgArtifactSegmentRepository(conn)
+        self.artifact_lineage = PgArtifactLineageRepository(conn)
+        self.employee_definitions = PgEmployeeDefinitionRepository(conn)
 
-    def checkout(self) -> tuple[object, bool]:
+    def borrow_connection(self) -> tuple[object, bool]:
         if self._pool is None:
-            return self.conn, False
+            return self._primary_conn, False
         from arbor.observability.postgres import observe_connection
 
         conn = observe_connection(self._pool.getconn(), self._observability)
-        self._bind(conn)
         return conn, True
 
-    def checkin(self, conn: object, borrowed: bool) -> None:
+    def release_connection(self, conn: object, borrowed: bool) -> None:
         if borrowed and self._pool is not None:
             self._pool.putconn(conn)
-            self._bind(self._primary_conn)
+
+    def checkout(self) -> tuple[object, bool]:
+        """Deprecated: use borrow_connection + request-scoped routing instead."""
+        return self.borrow_connection()
+
+    def checkin(self, conn: object, borrowed: bool) -> None:
+        self.release_connection(conn, borrowed)
 
     @classmethod
     def connect(
