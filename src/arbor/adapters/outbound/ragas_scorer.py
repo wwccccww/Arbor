@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass, field
 
-from arbor.env import judge_api_key, judge_base_url, judge_embedding_model, judge_model
+from arbor.env import judge_api_key, judge_base_url, judge_embedding_model, judge_model, load_dotenv
 
 RAGAS_METRIC_NAMES: tuple[str, ...] = (
     "faithfulness",
@@ -52,6 +54,21 @@ class RagasFaithfulnessScorer:
         return batch[0].get("faithfulness")
 
 
+def _siliconflow_is_finished(response) -> bool:
+    """SiliconFlow/OpenAI-compatible hosts may return finish_reason=length."""
+    allowed = {"stop", "STOP", "MAX_TOKENS", "eos_token", "length"}
+    for generation in response.flatten():
+        resp = generation.generations[0][0]
+        finish = None
+        if resp.generation_info is not None:
+            finish = resp.generation_info.get("finish_reason")
+        elif getattr(resp, "message", None) is not None:
+            finish = resp.message.response_metadata.get("finish_reason")
+        if finish is not None and finish not in allowed:
+            return False
+    return True
+
+
 def _build_ragas_llm_and_embeddings():
     from langchain_openai import ChatOpenAI, OpenAIEmbeddings
     from ragas.embeddings.base import LangchainEmbeddingsWrapper
@@ -59,24 +76,51 @@ def _build_ragas_llm_and_embeddings():
 
     key = judge_api_key()
     base = judge_base_url()
-    llm = LangchainLLMWrapper(
-        ChatOpenAI(
-            model=judge_model(),
-            api_key=key,
-            base_url=base,
-            temperature=0,
-            max_retries=2,
-            timeout=120,
-        )
+    load_dotenv()
+    max_tokens = int(os.environ.get("ARBOR_JUDGE_MAX_TOKENS", "4096"))
+    chat = ChatOpenAI(
+        model=judge_model(),
+        api_key=key,
+        base_url=base,
+        temperature=0,
+        max_retries=5,
+        timeout=300,
+        max_tokens=max_tokens,
     )
+    llm = LangchainLLMWrapper(chat, is_finished_parser=_siliconflow_is_finished)
     embeddings = LangchainEmbeddingsWrapper(
         OpenAIEmbeddings(
             model=judge_embedding_model(),
             api_key=key,
             base_url=base,
+            max_retries=5,
+            timeout=120,
         )
     )
     return llm, embeddings
+
+
+def _judge_run_config():
+    import os
+
+    from ragas.run_config import RunConfig
+
+    load_dotenv()
+    workers = int(os.environ.get("ARBOR_JUDGE_MAX_WORKERS", "2"))
+    timeout = int(os.environ.get("ARBOR_JUDGE_TIMEOUT", "300"))
+    return RunConfig(max_workers=workers, timeout=timeout, max_retries=10, max_wait=90)
+
+
+def _metric_value(raw) -> float | None:
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if value != value:  # NaN
+        return None
+    return value
 
 
 class RagasMetricsScorer:
@@ -116,7 +160,13 @@ class RagasMetricsScorer:
                 }
             )
             llm, embeddings = _build_ragas_llm_and_embeddings()
-            result = evaluate(dataset, metrics=metrics, llm=llm, embeddings=embeddings)
+            result = evaluate(
+                dataset,
+                metrics=metrics,
+                llm=llm,
+                embeddings=embeddings,
+                run_config=_judge_run_config(),
+            )
             frame = result.to_pandas()
         except Exception:
             return empty
@@ -135,7 +185,7 @@ class RagasMetricsScorer:
             item: dict[str, float | None] = {}
             for name in RAGAS_METRIC_NAMES:
                 value = row.get(name)
-                item[name] = None if value is None else float(value)
+                item[name] = _metric_value(value)
             scored.append(item)
         return scored
 

@@ -101,6 +101,23 @@ def generation_p0_pass(metrics: dict) -> bool:
     return metrics.get("citation_subset_rate", 1.0) >= 1.0
 
 
+def _finite_scores(rows: list[dict], key: str) -> list[float]:
+    import math
+
+    out: list[float] = []
+    for row in rows:
+        value = row.get(key)
+        if value is None:
+            continue
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number):
+            out.append(number)
+    return out
+
+
 def aggregate_generation(rows: list[dict]) -> dict:
     from arbor.env import judge_status
 
@@ -109,7 +126,7 @@ def aggregate_generation(rows: list[dict]) -> dict:
         sum(1 for r in cite_rows if r["citation_subset"]) / len(cite_rows) if cite_rows else 1.0
     )
     refuse_rows = [r for r in rows if r["behavior"] == "refuse"]
-    ragas_vals = [r["ragas_faithfulness"] for r in rows if r["ragas_faithfulness"] is not None]
+    ragas_vals = _finite_scores(rows, "ragas_faithfulness")
     metrics = {
         "n_cases": len(rows),
         "citation_subset_rate": round(subset_rate, 4),
@@ -122,7 +139,7 @@ def aggregate_generation(rows: list[dict]) -> dict:
     }
     for key in RAGAS_METRIC_KEYS:
         short = key.removeprefix("ragas_")
-        vals = [r[key] for r in rows if r.get(key) is not None]
+        vals = _finite_scores(rows, key)
         metrics[key] = round(sum(vals) / len(vals), 4) if vals else None
         metrics[f"ragas_{short}_n"] = len(vals)
     if any(metrics.get(key) is not None for key in RAGAS_METRIC_KEYS):

@@ -446,4 +446,7 @@ def write_ragas_official_baseline(report: dict, dest: Path) -> None:
         "metrics": metrics,
     }
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    dest.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
+        encoding="utf-8",
+    )

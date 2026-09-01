@@ -67,7 +67,8 @@ def judge_base_url() -> str:
 
 def judge_model() -> str:
     load_dotenv()
-    return os.environ.get("ARBOR_JUDGE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+    # Qwen2.5-7B hits RagasOutputParserException on SiliconFlow; 14B is the stable default.
+    return os.environ.get("ARBOR_JUDGE_MODEL", "Qwen/Qwen2.5-14B-Instruct")
 
 
 def judge_embedding_model() -> str:

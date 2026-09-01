@@ -9,7 +9,7 @@
   "n_cases": 100,
   "eval_protocol": "ragas_generation_v1",
   "generator_llm": "deepseek-chat",
-  "judge_llm": "Qwen/Qwen2.5-7B-Instruct @ SiliconFlow (defaults to EMBEDDING_API_KEY when ARBOR_JUDGE unset)",
+  "judge_llm": "Qwen/Qwen2.5-14B-Instruct @ SiliconFlow (7B fails RAGAS parser; reuses EMBEDDING_API_KEY when ARBOR_JUDGE unset)",
   "embedding": "BAAI/bge-m3 (nightly) / fixture_embed (smoke)",
   "retrieval_strategy": "layered_tree",
   "retrieval_k": 5,
