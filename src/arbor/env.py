@@ -43,7 +43,12 @@ def reasoner_model() -> str:
 def judge_api_key() -> str:
     """Separate judge for RAGAS. Must not be the generator key."""
     load_dotenv()
-    judge = os.environ.get("ARBOR_JUDGE_API_KEY") or ""
+    judge = (
+        os.environ.get("ARBOR_JUDGE_API_KEY")
+        or os.environ.get("EMBEDDING_API_KEY")
+        or os.environ.get("SILICONFLOW_API_KEY")
+        or ""
+    )
     generator = chat_api_key()
     if not judge or judge == generator:
         return ""
@@ -73,11 +78,10 @@ def judge_embedding_model() -> str:
 def judge_status() -> str:
     """Why RAGAS faithfulness may be skipped: configured | missing_key | same_as_generator."""
     load_dotenv()
-    judge = os.environ.get("ARBOR_JUDGE_API_KEY") or ""
-    if not judge:
+    if not judge_api_key():
+        if chat_api_key() and embedding_api_key() == chat_api_key():
+            return "same_as_generator"
         return "missing_key"
-    if judge == chat_api_key():
-        return "same_as_generator"
     return "configured"
 
 
