@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
+from arbor.application.event_graph_router import expand_event_nodes, filter_event_nodes, route_event_seeds
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_lexical import lexical_token_score, tokenize
 from arbor.domain.eventgraph.graph import EventEdge, EventNode
@@ -54,6 +54,23 @@ def test_route_event_seeds_returns_matches():
     ]
     seeds = route_event_seeds("面店吵架", events, fixture_embed, seed_k=2)
     assert seeds[0].id.value == "0a000000-0000-4000-a000-000000000101"
+
+
+def test_filter_event_nodes_drops_irrelevant_events():
+    events = [
+        _event("0a000000-0000-4000-a000-000000000101", "面店吵架", "因香菜在老张面馆吵架"),
+        _event("0a000000-0000-4000-a000-000000000102", "约定每周末打电话", "每周日21:00打电话"),
+        _event("0a000000-0000-4000-a000-000000000103", "第一次见面", "在西湖边认识"),
+    ]
+    filtered = filter_event_nodes(
+        "Where does Lin Xia reside in Hangzhou?",
+        events,
+        fixture_embed,
+        limit=2,
+        min_score=0.08,
+        require_lexical=True,
+    )
+    assert filtered == []
 
 
 def test_tokenize_cjk_pairs():

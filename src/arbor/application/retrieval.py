@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections import defaultdict
 
-from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
+from arbor.application.event_graph_router import expand_event_nodes, filter_event_nodes, route_event_seeds
 from arbor.application.memory.validity import is_memory_expired
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
@@ -303,12 +303,13 @@ def _retrieve_inner(
             with obs.span("event_tree.route", intent=intent):
                 seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
             expand_depth = cfg.event_expand_depth + (1 if intent == "causal" else 0)
+            expand_max = cfg.event_expand_max if intent == "causal" else min(cfg.event_expand_max, 4)
             sub_event_nodes, expanded_event_ids = expand_event_nodes(
                 seeds,
                 events,
                 edge_list,
                 depth=expand_depth,
-                max_events=cfg.event_expand_max,
+                max_events=expand_max,
             )
             for node in sub_event_nodes:
                 if node.id.value not in seen_event_node:
@@ -405,6 +406,26 @@ def _retrieve_inner(
 
     per_source_counts["event_tree"] = len(event_hits)
     per_source_counts["vector"] = len(vector_hits)
+
+    causal_query = any(plan.get("intent") == "causal" for plan in planned)
+    episode_query = any(plan.get("intent") == "episode" for plan in planned)
+    profile_query = any(plan.get("intent") == "profile" for plan in planned)
+    if strategy == "layered_tree" and event_nodes:
+        if profile_query:
+            event_nodes = []
+        else:
+            inject_k = cfg.event_inject_k + (1 if causal_query else 0)
+            min_score = cfg.event_min_score * (0.5 if causal_query else 1.0)
+            require_lexical = not (causal_query or episode_query)
+            event_nodes = filter_event_nodes(
+                query,
+                event_nodes,
+                embed,
+                limit=inject_k,
+                min_score=min_score,
+                require_lexical=require_lexical,
+                min_lexical=0.08,
+            )
 
     if strategy != "summary_only":
         rerank_started = time.perf_counter()
