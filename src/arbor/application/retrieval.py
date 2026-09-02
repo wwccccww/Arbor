@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 
@@ -20,6 +21,23 @@ from arbor.domain.shared.ids import PersonaId, TenantId
 from arbor.observability.noop import NoopObservability
 
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
+
+_TICKET_QUERY_RE = re.compile(r"(?:工单|ticket|work\s*order)\s*#?\s*\d+|#\s*\d{4}", re.IGNORECASE)
+
+
+def _is_ticket_query(query: str) -> bool:
+    return bool(_TICKET_QUERY_RE.search(query or ""))
+
+
+def _filter_ticket_policy_chunks(hits: list[MemoryItem]) -> list[MemoryItem]:
+    """Drop generic售后政策 chunks when the query targets a specific ticket."""
+    kept = [
+        item
+        for item in hits
+        if item.type is not MemoryType.FILE_CHUNK
+        or not (item.text or "").strip().startswith(("售后手册", "食品类", "质量问题退换"))
+    ]
+    return kept if kept else hits[:1]
 
 
 def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
@@ -566,6 +584,8 @@ def _retrieve_inner(
         )
         if any(plan.get("intent") == "causal" for plan in planned) and strategy == "layered_tree":
             rag_hits = _stabilize_causal_hits(rag_hits, event_hits, rag_pool, final_k)
+        if _is_ticket_query(query):
+            rag_hits = _filter_ticket_policy_chunks(rag_hits)
     else:
         rag_hits = []
         all_hit_scores = {}

@@ -36,7 +36,7 @@ def detect_context_conflicts(profile: dict, memory_hits: list[MemoryItem]) -> li
     return notes
 
 
-_TABOO_HINTS = ("香菜", "点餐", "吃", "饮食", "diet", "food", "cilantro", "spice", "辣", "meal", "order", "restrict")
+_TABOO_HINTS = ("香菜", "点餐", "吃", "饮食", "diet", "food", "cilantro", "spice", "辣", "meal", "order", "restrict", "dietary", "restrictions", "微辣")
 _LOCATION_HINTS = ("住", "reside", "live", "区", "district", "address", "home", "where", " reside")
 
 

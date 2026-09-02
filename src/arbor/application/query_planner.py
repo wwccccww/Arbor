@@ -25,7 +25,21 @@ _SPLIT_MARKERS = (
 
 _PROFILE_HINTS = ("住", "禁忌", "讨厌", "喜欢", "是谁", "叫什么", "哪里人", "职业")
 _PROFILE_HINTS_EN = ("reside", "live in", "where does", "where do", "address", "home", "district")
-_EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店")
+_DIETARY_HINTS = (
+    "dietary",
+    "cilantro",
+    "spice",
+    "restrictions",
+    "restricting",
+    "饮食",
+    "辣度",
+    "香菜",
+    "点餐",
+    "meal order",
+    "food preference",
+    "微辣",
+)
+_EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店", "周末", "养宠物", "宠物", "通常做什么")
 _EPISODE_HINTS_EN = ("weekend", "pet", "dormitory", "usually do")
 _CAUSAL_HINTS = (
     "为什么",
@@ -57,21 +71,23 @@ def plan_queries(query: str, mode: str) -> list[dict]:
 
 
 def _rules_plan_queries(stripped: str) -> list[dict]:
-    parts: list[str] = [stripped]
-    for marker in _SPLIT_MARKERS:
-        next_parts: list[str] = []
-        for part in parts:
-            if marker in part and len(part) > len(marker) + 2:
-                segments = re.split(re.escape(marker), part, maxsplit=1)
-                for segment in segments:
-                    piece = segment.strip()
-                    if piece:
-                        next_parts.append(piece)
-            else:
-                next_parts.append(part)
-        parts = next_parts
-        if len(parts) >= 3:
-            break
+    cn_parts = _split_chinese_clauses(stripped)
+    parts: list[str] = cn_parts if cn_parts else [stripped]
+    if not cn_parts:
+        for marker in _SPLIT_MARKERS:
+            next_parts: list[str] = []
+            for part in parts:
+                if marker in part and len(part) > len(marker) + 2:
+                    segments = re.split(re.escape(marker), part, maxsplit=1)
+                    for segment in segments:
+                        piece = segment.strip()
+                        if piece:
+                            next_parts.append(piece)
+                else:
+                    next_parts.append(part)
+            parts = next_parts
+            if len(parts) >= 3:
+                break
 
     deduped: list[str] = []
     seen: set[str] = set()
@@ -89,6 +105,15 @@ def _rules_plan_queries(stripped: str) -> list[dict]:
     for piece in deduped[:3]:
         planned.append({"query": piece, "intent": _intent_for(piece)})
     return planned
+
+
+def _split_chinese_clauses(stripped: str) -> list[str] | None:
+    if "？" not in stripped:
+        return None
+    raw = [piece.strip() for piece in stripped.split("？") if piece.strip()]
+    if len(raw) < 2:
+        return None
+    return [f"{raw[index]}？" for index in range(len(raw) - 1)] + [raw[-1]]
 
 
 def _llm_plan_queries(query: str) -> list[dict] | None:
@@ -169,6 +194,10 @@ def _intent_for(text: str) -> str:
     lowered = text.lower()
     if any(hint in text for hint in _CAUSAL_HINTS):
         return "causal"
+    if any(hint in text for hint in _DIETARY_HINTS) or any(
+        hint in lowered for hint in _DIETARY_HINTS
+    ):
+        return "profile"
     if any(hint in text for hint in _PROFILE_HINTS) or any(
         hint in lowered for hint in _PROFILE_HINTS_EN
     ):

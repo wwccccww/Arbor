@@ -89,6 +89,36 @@ def query_residence_boost(query: str, text: str) -> float:
     return 0.0
 
 
+_SPICE_HINTS = ("spice", "辣", "辣度", "spicy", "微辣")
+_TABOO_HINTS = ("cilantro", "香菜", "taboo", "禁忌", "dietary", "restrict")
+
+
+def query_dietary_boost(query: str, text: str) -> float:
+    lowered = (query or "").lower()
+    blob = text or ""
+    boost = 0.0
+    if any(hint in lowered or hint in query for hint in _SPICE_HINTS):
+        if any(token in blob for token in ("微辣", "辣")):
+            boost = max(boost, 0.45)
+    if any(hint in lowered or hint in query for hint in _TABOO_HINTS):
+        if "香菜" in blob or "讨厌" in blob:
+            boost = max(boost, 0.4)
+    return boost
+
+
+_PET_HINTS = ("pet", "宠物", "养猫", "橘猫", "猫")
+
+
+def query_pet_boost(query: str, text: str) -> float:
+    lowered = (query or "").lower()
+    if not any(hint in lowered or hint in query for hint in _PET_HINTS):
+        return 0.0
+    blob = text or ""
+    if any(token in blob for token in ("猫", "宠物", "橘猫")):
+        return 0.45
+    return 0.0
+
+
 def memory_type_weight(item: MemoryItem, *, fact_weight: float, chunk_weight: float) -> float:
     if item.type is MemoryType.FACT:
         return fact_weight
@@ -115,6 +145,8 @@ def score_memory(
         + query_media_boost(query, blob, item.type)
         + query_residence_boost(query, blob)
         + query_lifestyle_boost(query, blob)
+        + query_dietary_boost(query, blob)
+        + query_pet_boost(query, blob)
     )
     if query_vector is not None and item_vector is not None:
         vec = cosine(query_vector, item_vector)
