@@ -35,7 +35,7 @@ def _filter_ticket_policy_chunks(hits: list[MemoryItem]) -> list[MemoryItem]:
         item
         for item in hits
         if item.type is not MemoryType.FILE_CHUNK
-        or not (item.text or "").strip().startswith(("售后手册", "食品类", "质量问题退换"))
+        or not (item.text or "").strip().startswith(("售后手册", "食品类", "质量问题退换", "在线客服"))
     ]
     return kept if kept else hits[:1]
 
@@ -266,6 +266,15 @@ def _rerank_planned_hits(
     return merged[:limit], all_scores
 
 
+def _effective_prompt_k(planned: list[dict], base_k: int) -> int:
+    if len(planned) > 1:
+        return max(base_k, min(6, base_k + 1))
+    intent = (planned[0].get("intent") or "general") if planned else "general"
+    if intent in {"profile", "episode", "causal"}:
+        return base_k
+    return min(base_k, 3)
+
+
 def _merge_injection_hits(
     profile_hits: list[MemoryItem],
     rag_hits: list[MemoryItem],
@@ -425,6 +434,7 @@ def _retrieve_inner(
     planned = plan_queries(query, cfg.query_plan) if strategy != "summary_only" else []
     if not planned:
         planned = [{"query": query, "intent": "general"}]
+    final_k = _effective_prompt_k(planned, final_k)
 
     for plan in planned:
         sub_query = plan["query"]

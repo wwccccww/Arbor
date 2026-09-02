@@ -42,6 +42,84 @@ def injected_contexts(prompt_slots: dict) -> list[str]:
     return contexts
 
 
+def _memory_id_from_context(context: str) -> str | None:
+    if not context.startswith("记忆 "):
+        return None
+    token = context.removeprefix("记忆 ").split(":", 1)[0].strip()
+    return token or None
+
+
+def _context_overlap_score(context: str, reference_blob: str) -> float:
+    if not reference_blob:
+        return 0.0
+    ctx_grams = _ngrams(context)
+    ref_grams = _ngrams(reference_blob)
+    if not ctx_grams or not ref_grams:
+        return 0.0
+    return len(ctx_grams & ref_grams) / len(ref_grams)
+
+
+def trim_ragas_contexts(
+    contexts: list[str],
+    *,
+    citations: list[str] | None = None,
+    reference_contexts: list[str] | None = None,
+    max_memories: int = 4,
+    max_events: int = 1,
+) -> list[str]:
+    """Tighten contexts for RAGAS scoring without changing LLM prompt slots."""
+    if not contexts:
+        return []
+    cited = {str(value) for value in (citations or []) if value}
+    ref_blob = " ".join(str(value) for value in (reference_contexts or []) if value)
+
+    prefix_lines: list[str] = []
+    event_lines: list[tuple[float, str]] = []
+    memory_lines: list[tuple[float, str, str]] = []
+
+    for context in contexts:
+        if context.startswith("记忆 "):
+            memory_id = _memory_id_from_context(context) or ""
+            priority = 3.0 if memory_id in cited else 0.0
+            priority = max(priority, _context_overlap_score(context, ref_blob) * 2.0)
+            memory_lines.append((priority, context, memory_id))
+        elif context.startswith("事件:"):
+            score = _context_overlap_score(context, ref_blob)
+            event_lines.append((score, context))
+        elif context.startswith("档案:"):
+            if not ref_blob or _context_overlap_score(context, ref_blob) > 0 or not cited:
+                prefix_lines.append(context)
+        elif context.startswith("摘要:") or context.startswith("近期对话"):
+            continue
+        else:
+            prefix_lines.append(context)
+
+    selected_memories: list[str] = []
+    seen_memory: set[str] = set()
+    for priority, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True):
+        if priority <= 0 and cited and memory_id not in cited:
+            continue
+        if memory_id in seen_memory:
+            continue
+        selected_memories.append(line)
+        seen_memory.add(memory_id)
+        if len(selected_memories) >= max_memories:
+            break
+
+    if not selected_memories and memory_lines:
+        for _, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True)[:max_memories]:
+            if memory_id not in seen_memory:
+                selected_memories.append(line)
+                seen_memory.add(memory_id)
+
+    selected_events = [
+        line for score, line in sorted(event_lines, key=lambda item: item[0], reverse=True)
+        if score > 0 or not ref_blob
+    ][:max_events]
+
+    return prefix_lines + selected_events + selected_memories
+
+
 def _ngrams(text: str, size: int = 8) -> set[str]:
     compact = "".join(text.split())
     if len(compact) < size:
