@@ -96,13 +96,7 @@ def trim_ragas_contexts(
             )
             event_lines.append((score, context))
         elif context.startswith("档案:"):
-            if (
-                not ref_blob
-                or _context_overlap_score(context, ref_blob) > 0
-                or _context_overlap_score(context, answer_blob) > 0
-                or not cited
-            ):
-                prefix_lines.append(context)
+            prefix_lines.append(context)
         elif context.startswith("摘要:") or context.startswith("近期对话"):
             continue
         else:
@@ -110,10 +104,14 @@ def trim_ragas_contexts(
 
     selected_memories: list[str] = []
     seen_memory: set[str] = set()
+    for _, line, memory_id in memory_lines:
+        if memory_id in cited and memory_id not in seen_memory:
+            selected_memories.append(line)
+            seen_memory.add(memory_id)
     for priority, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True):
-        if priority <= 0 and cited and memory_id not in cited:
-            continue
         if memory_id in seen_memory:
+            continue
+        if priority <= 0 and cited:
             continue
         selected_memories.append(line)
         seen_memory.add(memory_id)
@@ -126,10 +124,15 @@ def trim_ragas_contexts(
                 selected_memories.append(line)
                 seen_memory.add(memory_id)
 
-    selected_events = [
-        line for score, line in sorted(event_lines, key=lambda item: item[0], reverse=True)
-        if score > 0 or not ref_blob
-    ][:max_events]
+    memory_blob = " ".join(selected_memories)
+    selected_events = []
+    for score, line in sorted(event_lines, key=lambda item: item[0], reverse=True):
+        if score > 0 or not ref_blob:
+            selected_events.append(line)
+        elif memory_blob and any(token in memory_blob for token in line.replace("事件:", "").split() if len(token) >= 2):
+            selected_events.append(line)
+        if len(selected_events) >= max_events:
+            break
 
     return prefix_lines + selected_events + selected_memories
 

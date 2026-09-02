@@ -48,3 +48,20 @@ def test_trim_ragas_contexts_keeps_answer_overlap():
     )
     assert any("mem-a" in line for line in trimmed)
     assert not any("mem-b" in line for line in trimmed)
+
+
+def test_trim_ragas_contexts_always_keeps_profile():
+    raw = [
+        "档案: display_name=林夏",
+        "记忆 mem-a: 和好后约定每周日晚上 21:00 打电话。",
+        "记忆 mem-b: unrelated noise",
+    ]
+    trimmed = trim_ragas_contexts(
+        raw,
+        citations=["mem-a"],
+        reference_contexts=["和好后约定每周日晚上 21:00 打电话。"],
+        answer="林夏和好后约定每周日晚上 21:00 打电话。",
+        max_memories=1,
+    )
+    assert any(line.startswith("档案:") for line in trimmed)
+    assert any("mem-a" in line for line in trimmed)
