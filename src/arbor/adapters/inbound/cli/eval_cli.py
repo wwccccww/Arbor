@@ -16,7 +16,9 @@ from arbor.adapters.inbound.eval_runner import (
     resolve_embed,
     run_all_strategies,
     run_generation,
+    run_ragas_official_generation,
     run_suite,
+    write_ragas_official_baseline,
 )
 from arbor.application.evaluation.runner import comparison_row
 from arbor.application.retrieval import STRATEGIES
@@ -27,9 +29,11 @@ from arbor.observability.runtime import build_observability
 SUITE_DIRS = {
     "v1": ROOT / "eval" / "fixtures" / "suite-v1",
     "ragas-v1": ROOT / "eval" / "fixtures" / "suite-ragas-v1",
+    "ragas-official-v1": ROOT / "eval" / "fixtures" / "suite-ragas-official",
     "agent-v1": ROOT / "eval" / "fixtures" / "agent-v1",
     "agent-ablation-v1": ROOT / "eval" / "fixtures" / "agent-ablation-v1",
 }
+RAGAS_OFFICIAL_SUITE = "ragas-official-v1"
 BASELINE_FILES = {
     "v1": ROOT / "eval" / "baselines" / "suite-v1.json",
     "ragas-v1": ROOT / "eval" / "baselines" / "suite-ragas-v1.json",
@@ -44,6 +48,7 @@ BASELINE_FILES = {
     "public-multihop-smoke": ROOT / "eval" / "public" / "baselines" / "multihop-smoke.json",
     "public-multihop-dev": ROOT / "eval" / "public" / "baselines" / "multihop-dev-fake.json",
     "public-multihop-dev-llm": ROOT / "eval" / "public" / "baselines" / "multihop-dev-llm.json",
+    RAGAS_OFFICIAL_SUITE: ROOT / "eval" / "baselines" / "ragas-official-generation.json",
 }
 PUBLIC_SUITES = frozenset(
     {
@@ -485,43 +490,65 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if args.mode == "generation":
-        if args.suite != "v1" and not args.allow_large:
-            print("generation defaults to suite-v1; pass --allow-large for ragas-v1", file=sys.stderr)
+        if args.suite not in ("v1", RAGAS_OFFICIAL_SUITE) and not args.allow_large:
+            print(
+                f"generation defaults to suite-v1 or {RAGAS_OFFICIAL_SUITE}; pass --allow-large for ragas-v1",
+                file=sys.stderr,
+            )
             return 1
         if not chat_api_key():
             print("generation needs DEEPSEEK_API_KEY in this process", file=sys.stderr)
             return 2
         strategy = "layered_tree" if args.strategy == "all" else args.strategy
-        payload = run_generation(suite_dir=suite_dir, strategy=strategy, backend=args.backend)
+        if args.embed == "bge" and not embedding_api_key():
+            print("bge embed needs EMBEDDING_API_KEY in this process", file=sys.stderr)
+            return 2
+        if args.suite == RAGAS_OFFICIAL_SUITE:
+            payload = run_ragas_official_generation(
+                strategy=strategy,
+                backend=args.backend,
+                embed=args.embed,
+            )
+        else:
+            payload = run_generation(
+                suite_dir=suite_dir,
+                strategy=strategy,
+                backend=args.backend,
+                embed=args.embed,
+            )
         _export_metrics(
             suite=args.suite,
             strategy=strategy,
             metrics=dict(payload.get("metrics") or {}),
-            p0_ok=not (payload.get("metrics") or {}).get("n_leaking_cases"),
+            p0_ok=bool((payload.get("metrics") or {}).get("generation_p0_pass")),
         )
-        print(json.dumps({"metrics": payload["metrics"]}, ensure_ascii=False, indent=2))
+        print(json.dumps({"metrics": payload["metrics"], "protocol": payload.get("protocol")}, ensure_ascii=False, indent=2))
         if args.out:
-            slim = {"metrics": payload["metrics"], "cases": payload["cases"]}
+            slim = {"metrics": payload["metrics"], "cases": payload["cases"], "protocol": payload.get("protocol")}
             Path(args.out).write_text(json.dumps(slim, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if args.write_baseline:
-            dest = ROOT / "eval" / "baselines" / "suite-v1-generation.json"
-            dest.write_text(
-                json.dumps(
-                    {
-                        "suite_version": args.suite,
-                        "updated_at": date.today().isoformat(),
-                        "mode": "generation",
-                        "strategy": strategy,
-                        "generator": "deepseek-chat",
-                        "judge": judge_status(),
-                        "metrics": payload["metrics"],
-                    },
-                    ensure_ascii=False,
-                    indent=2,
+            if args.suite == RAGAS_OFFICIAL_SUITE:
+                dest = BASELINE_FILES[RAGAS_OFFICIAL_SUITE]
+                write_ragas_official_baseline(payload, dest)
+            else:
+                dest = ROOT / "eval" / "baselines" / "suite-v1-generation.json"
+                dest.write_text(
+                    json.dumps(
+                        {
+                            "suite_version": args.suite,
+                            "updated_at": date.today().isoformat(),
+                            "mode": "generation",
+                            "strategy": strategy,
+                            "generator": "deepseek-chat",
+                            "judge": judge_status(),
+                            "metrics": payload["metrics"],
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                    + "\n",
+                    encoding="utf-8",
                 )
-                + "\n",
-                encoding="utf-8",
-            )
             print(f"wrote {dest}", file=sys.stderr)
         metrics = payload["metrics"]
         if metrics["n_leaking_cases"] or metrics["refuse_text_leak_count"]:

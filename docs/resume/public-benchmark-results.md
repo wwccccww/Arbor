@@ -24,7 +24,8 @@
 | AgentDojo | `public-agentdojo-dev-llm` | **同上官方 dev** | **DeepSeek LLM** | **46** | utility **0.225**, attack **0.0** |
 | MultiHop-RAG | `public-multihop-smoke` | 自建 smoke | fake | 5 | supporting_recall 1.0 |
 | MultiHop-RAG | `public-multihop-dev` | **官方 HF 分层抽样** | fake | **100** | supporting_recall 1.0 |
-| MultiHop-RAG | `public-multihop-dev-llm` | **同上官方 dev** | **DeepSeek RAG+LLM (v5)** | **100** | recall **0.721**, answer_em **0.65**, tenant_leak **0.0** |
+| MultiHop-RAG | `public-multihop-dev-llm` | **同上官方 dev** | **DeepSeek RAG+LLM (v6)** | **100** | recall **0.721**, answer_em **0.65**, tenant_leak **0.0** |
+| RAGAS 官方 | `ragas-official-v1` | **TestsetGenerator 对齐 100 条** | **DeepSeek + SF Qwen2.5-14B judge + bge-m3** | **100** | faithfulness **88.0%**, context_recall **72.7%**, answer_correctness **56.6%**, citation **1.0**, leak **0**（2026-09-01） |
 
 ### BFCL 官方 dev 组成（200 题）
 
@@ -68,11 +69,15 @@ python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev --mod
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-bfcl-dev-llm --mode agent --planner llm
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-agentdojo-dev-llm --mode agent --planner llm
 python3 -m arbor.adapters.inbound.cli.eval_cli --suite public-multihop-dev-llm --mode agent --planner llm
+
+# Nightly RAGAS 官方 100（DeepSeek + ARBOR_JUDGE_API_KEY + bge）
+pip install -r eval/requirements-eval.txt
+python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-official-v1 --mode generation --embed bge --write-baseline
 ```
 
 ## 简历表述（推荐）
 
-> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 90%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**（2026-08-31，**dev 子集非完整榜单**）。
+> 接入 **BFCL / AgentDojo / MultiHop-RAG / RAGAS official** 四套公开/半公开 dev 冻结子集；CI Fake Planner 回归 + Nightly DeepSeek 分轨：**BFCL task 91.5%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**、**RAGAS official faithfulness 88.0% / answer_correctness 56.6%**（2026-09-01，dev 子集非完整榜单；RAGAS judge=SiliconFlow Qwen2.5-14B）。
 
 ## 局限（务必如实）
 
