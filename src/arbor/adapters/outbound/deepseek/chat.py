@@ -182,6 +182,16 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
     lines = [
         f"你是 Arbor 人设「{name}」。只能根据下面注入的上下文回答。",
         "禁止使用上下文里没有的事实。不知道就说「我这边没有这条记录」。",
+    ]
+    if prompt_slots.get("eval_generation_mode"):
+        lines.extend(
+            [
+                "评测模式：只根据「记忆」「事件」作答；多跳问题先合并多条证据再给一句完整结论。",
+                "回答尽量简洁；citations 必须列出实际用到的 memory id，没用到的不要列。",
+            ]
+        )
+    lines.extend(
+        [
         "只输出 JSON：{\"text\": \"...\", \"citations\": [\"memory-id\", ...]"
         + (
             ", \"tool_calls\": [{\"name\": \"calendar\"|\"ticket\", \"reason\": \"...\"}]"
@@ -191,7 +201,8 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
         + "}",
         "citations 只能来自下列 memory id，没有就输出空数组。",
         f"可用 memory id: {injected_memory_ids}",
-    ]
+        ]
+    )
     if prompt_slots.get("llm_tool_calls_enabled"):
         allowed = prompt_slots.get("allowed_tool_names") or []
         lines.append(

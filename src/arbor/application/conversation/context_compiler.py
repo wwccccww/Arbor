@@ -29,7 +29,6 @@ from arbor.env import (
     context_recent_k,
     context_system_overhead_tokens,
     context_window_tokens,
-    retrieval_prompt_k,
     tool_mode,
 )
 from arbor.observability.noop import NoopObservability
@@ -61,6 +60,7 @@ class ContextCompiler:
         system_overhead: int | None = None,
         recent_k: int | None = None,
         retrieval_config: RetrievalConfig | None = None,
+        eval_generation_mode: bool = False,
     ) -> None:
         self.policy = policy or ContextPolicy()
         self.strategy = strategy
@@ -69,6 +69,7 @@ class ContextCompiler:
         self.system_overhead = system_overhead if system_overhead is not None else context_system_overhead_tokens()
         self.recent_k = recent_k if recent_k is not None else context_recent_k()
         self.retrieval_config = retrieval_config or RetrievalConfig.from_env()
+        self.eval_generation_mode = eval_generation_mode
 
     def compile(
         self,
@@ -92,7 +93,7 @@ class ContextCompiler:
         obs = observability or NoopObservability()
         compile_started = time.perf_counter()
         retrieval_strategy = self.strategy if Capability.READ_MEMORY in capabilities else "summary_only"
-        prompt_k = retrieval_prompt_k()
+        prompt_k = self.retrieval_config.prompt_k
         with obs.span("rag.compile_context"):
             retrieved = retrieve(
                 strategy=retrieval_strategy,
@@ -162,6 +163,8 @@ class ContextCompiler:
                 "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
                 "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
             }
+            if self.eval_generation_mode:
+                prompt_slots["eval_generation_mode"] = True
 
             budget = self._slot_budget(user_text)
             notes: list[str] = []

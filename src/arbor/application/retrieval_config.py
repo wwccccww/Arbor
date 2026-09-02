@@ -47,3 +47,20 @@ class RetrievalConfig:
             type_weight_chunk=retrieval_type_weight_chunk(),
         )
 
+    @classmethod
+    def ragas_tuned(cls) -> RetrievalConfig:
+        """Tighter retrieval for RAGAS official: fewer prompt slots, higher MMR relevance."""
+        return cls(
+            pool_k=20,
+            rerank_k=4,
+            prompt_k=3,
+            event_seed_k=2,
+            event_expand_depth=2,
+            event_expand_max=8,
+            hybrid_enabled=True,
+            query_plan="rules",
+            mmr_lambda=0.85,
+            type_weight_fact=1.0,
+            type_weight_chunk=0.6,
+        )
+

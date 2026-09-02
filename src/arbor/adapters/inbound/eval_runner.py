@@ -411,6 +411,9 @@ def run_ragas_official_generation(
     resume: bool = True,
     use_disk: bool = False,
     gen_workers: int | None = None,
+    retrieval_preset: str = "tuned",
+    eval_generation_prompt: bool = True,
+    worst_n: int = 20,
 ) -> dict:
     from arbor.application.evaluation.ragas_pipeline import run_ragas_official_pipeline
 
@@ -429,6 +432,9 @@ def run_ragas_official_generation(
             resume=resume,
             use_disk=True,
             gen_workers=gen_workers,
+            retrieval_preset=retrieval_preset,
+            eval_generation_prompt=eval_generation_prompt,
+            worst_n=worst_n,
         )
     from arbor.adapters.outbound.ragas_scorer import RagasMetricsScorer
 
@@ -468,6 +474,11 @@ def write_ragas_official_baseline(report: dict, dest: Path) -> None:
         "judge": judge_status(),
         "embedding": report.get("embeddings"),
         "backend": report.get("backend"),
+        "retrieval_preset": report.get("retrieval_preset"),
+        "eval_generation_prompt": report.get("eval_generation_prompt"),
+        "primary_metrics": report.get("primary_metrics"),
+        "reference_metrics": report.get("reference_metrics"),
+        "by_evolution": report.get("by_evolution"),
         "metrics": metrics,
     }
     dest.parent.mkdir(parents=True, exist_ok=True)

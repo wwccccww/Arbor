@@ -402,6 +402,28 @@ def main(argv: list[str] | None = None) -> int:
         default=0,
         help="parallel workers for RAGAS generation (0 = ARBOR_GEN_MAX_WORKERS, default 4)",
     )
+    parser.add_argument(
+        "--ragas-retrieval-preset",
+        default="tuned",
+        choices=["default", "tuned"],
+        help="retrieval config preset for ragas-official generation",
+    )
+    parser.add_argument(
+        "--ragas-inline",
+        action="store_true",
+        help="run ragas-official in memory without disk pipeline (tests/smoke)",
+    )
+    parser.add_argument(
+        "--ragas-ablation",
+        action="store_true",
+        help="compare default vs tuned retrieval on ragas-official (no LLM)",
+    )
+    parser.add_argument(
+        "--ragas-worst-n",
+        type=int,
+        default=20,
+        help="export bottom-N cases by primary RAGAS metrics to worst-cases.jsonl",
+    )
     args = parser.parse_args(argv)
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
@@ -542,6 +564,17 @@ def main(argv: list[str] | None = None) -> int:
             print("bge embed needs EMBEDDING_API_KEY in this process", file=sys.stderr)
             return 2
         if args.suite == RAGAS_OFFICIAL_SUITE:
+            if args.ragas_ablation:
+                from arbor.application.evaluation.ragas_tuning import run_ragas_retrieval_ablation
+
+                strategy = "layered_tree" if args.strategy == "all" else args.strategy
+                table = run_ragas_retrieval_ablation(
+                    backend=args.backend,
+                    embed=args.embed,
+                    strategy=strategy,
+                )
+                print(json.dumps({"retrieval_ablation": table}, ensure_ascii=False, indent=2))
+                return 0
             run_dir = Path(args.ragas_run_dir) if args.ragas_run_dir else None
             payload = run_ragas_official_generation(
                 strategy=strategy,
@@ -552,8 +585,10 @@ def main(argv: list[str] | None = None) -> int:
                 run_id=args.ragas_run_id or None,
                 batch_size=args.ragas_batch_size,
                 resume=not args.ragas_no_resume,
-                use_disk=args.ragas_pipeline or bool(args.ragas_run_dir),
+                use_disk=not args.ragas_inline,
                 gen_workers=args.ragas_gen_workers or None,
+                retrieval_preset=args.ragas_retrieval_preset,
+                worst_n=args.ragas_worst_n,
             )
         else:
             payload = run_generation(
@@ -568,7 +603,20 @@ def main(argv: list[str] | None = None) -> int:
             metrics=dict(payload.get("metrics") or {}),
             p0_ok=bool((payload.get("metrics") or {}).get("generation_p0_pass")),
         )
-        print(json.dumps({"metrics": payload["metrics"], "protocol": payload.get("protocol"), "run_dir": payload.get("run_dir")}, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "metrics": payload["metrics"],
+                    "protocol": payload.get("protocol"),
+                    "run_dir": payload.get("run_dir"),
+                    "by_evolution": payload.get("by_evolution"),
+                    "worst_cases": payload.get("worst_cases"),
+                    "retrieval_preset": payload.get("retrieval_preset"),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         if args.out:
             slim = {"metrics": payload["metrics"], "cases": payload["cases"], "protocol": payload.get("protocol")}
             Path(args.out).write_text(json.dumps(slim, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

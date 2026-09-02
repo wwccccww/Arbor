@@ -26,8 +26,15 @@ from arbor.adapters.outbound.inmemory import (
     SeqIdGenerator,
 )
 from arbor.adapters.outbound.ragas_scorer import RAGAS_METRIC_NAMES, RagasSample
+from arbor.application.conversation.context_compiler import ContextCompiler
 from arbor.application.conversation.send_message import SendMessage
 from arbor.application.evaluation.generation import aggregate_generation, score_generation_case
+from arbor.application.evaluation.ragas_tuning import (
+    build_ragas_report_extras,
+    cases_by_id,
+    resolve_retrieval_config,
+)
+from arbor.application.retrieval_config import RetrievalConfig
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
 from arbor.env import chat_model, gen_max_workers, judge_embedding_model, judge_model
@@ -195,6 +202,8 @@ def _open_generation_session(
     llm,
     backend: str,
     embed: str,
+    retrieval_config: RetrievalConfig | None = None,
+    eval_generation_prompt: bool = True,
 ) -> _GenerationSession:
     from arbor.adapters.inbound.eval_runner import _open_postgres, _ports, _postgres_ports
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
@@ -204,6 +213,12 @@ def _open_generation_session(
     session = None
     stores = None
     embed_client, embed_label = resolve_embed(embed)
+    config = retrieval_config or resolve_retrieval_config("tuned")
+    compiler = ContextCompiler(
+        strategy=strategy,
+        retrieval_config=config,
+        eval_generation_mode=eval_generation_prompt,
+    )
     if backend == "postgres":
         session = _open_postgres(world_path, embed_client=embed_client)
         memories, events, threads, index, embed_fn, _summary = _postgres_ports(session)
@@ -228,6 +243,7 @@ def _open_generation_session(
         ids=SeqIdGenerator(),
         auth=AuthorizationPolicy(),
         strategy=strategy,
+        context_compiler=compiler,
     )
     return _GenerationSession(
         send=send,
@@ -278,6 +294,7 @@ def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[st
         "query": str(case["query"]),
         "reference": str(case.get("reference") or ""),
         "reference_contexts": [str(x) for x in case.get("reference_contexts") or []],
+        "evolution_type": case.get("evolution_type"),
         "answer": str(result.get("text") or ""),
         "text": str(result.get("text") or ""),
         "contexts": contexts,
@@ -315,6 +332,8 @@ class _SessionFactoryArgs:
     llm: object | None
     backend: str
     embed: str
+    retrieval_config: RetrievalConfig
+    eval_generation_prompt: bool
 
 
 _worker_local = threading.local()
@@ -329,6 +348,8 @@ def _init_generation_worker(args: _SessionFactoryArgs) -> None:
         llm=args.llm,
         backend=args.backend,
         embed=args.embed,
+        retrieval_config=args.retrieval_config,
+        eval_generation_prompt=args.eval_generation_prompt,
     )
     _worker_local.session = session
     with _worker_sessions_lock:
@@ -363,6 +384,8 @@ def _generate_batch_cases(
             llm=session_args.llm,
             backend=session_args.backend,
             embed=session_args.embed,
+            retrieval_config=session_args.retrieval_config,
+            eval_generation_prompt=session_args.eval_generation_prompt,
         )
         try:
             return [_public_generation_record(_generate_case(session, case)) for case in batch_cases]
@@ -393,10 +416,14 @@ def run_ragas_official_generate(
     batch_size: int = DEFAULT_BATCH_SIZE,
     resume: bool = True,
     gen_workers: int | None = None,
+    retrieval_preset: str = "tuned",
+    eval_generation_prompt: bool = True,
+    worst_n: int = 20,
 ) -> Path:
     store = RagasRunStore(run_dir or default_run_dir(run_id), batch_size=batch_size)
     store.ensure_dirs()
     workers = gen_max_workers() if gen_workers is None else max(1, min(gen_workers, 16))
+    retrieval_config = resolve_retrieval_config(retrieval_preset)
     _world, cases_doc, _thresholds, _k, _world_path = load_suite_files(RAGAS_OFFICIAL_DIR)
     cases = list(cases_doc["cases"])
     if case_limit is not None:
@@ -414,6 +441,8 @@ def run_ragas_official_generate(
             "gen_workers": workers,
             "isolated_threads": True,
             "persist": False,
+            "retrieval_preset": retrieval_preset,
+            "eval_generation_prompt": eval_generation_prompt,
         }
     )
     session_args = _SessionFactoryArgs(
@@ -422,6 +451,8 @@ def run_ragas_official_generate(
         llm=llm,
         backend=backend,
         embed=embed,
+        retrieval_config=retrieval_config,
+        eval_generation_prompt=eval_generation_prompt,
     )
     for batch_idx, batch_cases in enumerate(_chunk_cases(cases, batch_size)):
         case_ids = [case["id"] for case in batch_cases]
@@ -524,22 +555,28 @@ def build_report_from_artifacts(
     strategy: str,
     backend: str,
     embed_label: str,
+    worst_n: int = 20,
 ) -> dict[str, Any]:
     store = RagasRunStore(run_dir)
     generations = store.load_all_generations()
     scores_by_case = store.load_all_scores()
+    _world, cases_doc, _thresholds, _k, _world_path = load_suite_files(RAGAS_OFFICIAL_DIR)
+    case_index = cases_by_id(cases_doc["cases"])
     rows: list[dict[str, Any]] = []
     for record in generations:
         case_id = str(record["case_id"])
+        case = case_index.get(case_id) or {}
         row = {
             "id": case_id,
             "behavior": record.get("behavior"),
             "skill": record.get("skill"),
+            "evolution_type": record.get("evolution_type") or case.get("evolution_type"),
             "citation_subset": set(record.get("citations") or []) <= set(record.get("injected_memory_ids") or []),
             "text_leak": False,
             "retrieval_leak": bool(record.get("leaked")),
             "leaked": bool(record.get("leaked")),
             "query": record.get("query"),
+            "reference": record.get("reference") or case.get("reference"),
             "text": record.get("text"),
             "injected_memory_ids": record.get("injected_memory_ids") or [],
             "citations": record.get("citations") or [],
@@ -553,6 +590,11 @@ def build_report_from_artifacts(
             row[key] = value
         rows.append(row)
     metrics = aggregate_generation(rows)
+    extras = build_ragas_report_extras(rows, case_index=case_index, worst_n=worst_n)
+    store.write_jsonl(run_dir / "worst-cases.jsonl", extras["worst_cases"])
+    manifest_meta: dict[str, Any] = {}
+    if store.manifest_path.is_file():
+        manifest_meta = json.loads(store.manifest_path.read_text(encoding="utf-8"))
     manifest_path = ROOT / "eval" / "public" / "manifests" / "ragas-official.json"
     return {
         "suite_version": "ragas-official-v1",
@@ -567,6 +609,9 @@ def build_report_from_artifacts(
         "benchmark_id": "ragas-official",
         "n_cases": len(rows),
         "run_dir": str(run_dir),
+        "retrieval_preset": manifest_meta.get("retrieval_preset"),
+        "eval_generation_prompt": manifest_meta.get("eval_generation_prompt"),
+        **extras,
     }
 
 
@@ -585,6 +630,9 @@ def run_ragas_official_pipeline(
     resume: bool = True,
     use_disk: bool = True,
     gen_workers: int | None = None,
+    retrieval_preset: str = "tuned",
+    eval_generation_prompt: bool = True,
+    worst_n: int = 20,
 ) -> dict[str, Any]:
     if not use_disk:
         from arbor.adapters.inbound.eval_runner import run_ragas_official_generation
@@ -596,6 +644,8 @@ def run_ragas_official_pipeline(
             backend=backend,
             embed=embed,
             case_limit=case_limit,
+            retrieval_preset=retrieval_preset,
+            eval_generation_prompt=eval_generation_prompt,
         )
     resolved_run_dir = run_dir or default_run_dir(run_id)
     _embed_client, embed_label = resolve_embed(embed)
@@ -610,6 +660,8 @@ def run_ragas_official_pipeline(
             batch_size=batch_size,
             resume=resume,
             gen_workers=gen_workers,
+            retrieval_preset=retrieval_preset,
+            eval_generation_prompt=eval_generation_prompt,
         )
     if phase in {"all", "score"}:
         run_ragas_official_score(
@@ -623,4 +675,5 @@ def run_ragas_official_pipeline(
         strategy=strategy,
         backend=resolve_backend(backend),
         embed_label=embed_label,
+        worst_n=worst_n,
     )
