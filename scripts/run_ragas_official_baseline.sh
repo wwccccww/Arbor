@@ -7,6 +7,6 @@ python3 -m arbor.adapters.inbound.cli.eval_cli \
   --mode generation \
   --strategy layered_tree \
   --embed bge \
-  --ragas-retrieval-preset tuned \
+  --ragas-retrieval-preset default \
   --write-baseline \
   "$@"

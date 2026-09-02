@@ -404,7 +404,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--ragas-retrieval-preset",
-        default="tuned",
+        default="default",
         choices=["default", "tuned"],
         help="retrieval config preset for ragas-official generation",
     )

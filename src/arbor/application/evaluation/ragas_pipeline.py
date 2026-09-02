@@ -416,7 +416,7 @@ def run_ragas_official_generate(
     batch_size: int = DEFAULT_BATCH_SIZE,
     resume: bool = True,
     gen_workers: int | None = None,
-    retrieval_preset: str = "tuned",
+    retrieval_preset: str = "default",
     eval_generation_prompt: bool = True,
     worst_n: int = 20,
 ) -> Path:
@@ -630,7 +630,7 @@ def run_ragas_official_pipeline(
     resume: bool = True,
     use_disk: bool = True,
     gen_workers: int | None = None,
-    retrieval_preset: str = "tuned",
+    retrieval_preset: str = "default",
     eval_generation_prompt: bool = True,
     worst_n: int = 20,
 ) -> dict[str, Any]:

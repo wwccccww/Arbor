@@ -22,7 +22,7 @@
   "reference_metrics": [
     "answer_relevancy"
   ],
-  "retrieval_preset_default": "tuned",
+  "retrieval_preset_default": "default",
   "p0_metrics": [
     "citation_subset_rate",
     "n_leaking_cases",

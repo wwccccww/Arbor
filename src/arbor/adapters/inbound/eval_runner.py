@@ -411,7 +411,7 @@ def run_ragas_official_generation(
     resume: bool = True,
     use_disk: bool = False,
     gen_workers: int | None = None,
-    retrieval_preset: str = "tuned",
+    retrieval_preset: str = "default",
     eval_generation_prompt: bool = True,
     worst_n: int = 20,
 ) -> dict:
