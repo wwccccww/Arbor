@@ -77,7 +77,7 @@ python3 -m arbor.adapters.inbound.cli.eval_cli --suite ragas-official-v1 --mode 
 
 ## 简历表述（推荐）
 
-> 接入 **BFCL / AgentDojo / MultiHop-RAG** 三套官方 dev 冻结子集（200 / 46 / 100 题）；CI 用 Fake Planner 做 100% 回归，Nightly DeepSeek 分轨报告：**BFCL task 91.5%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**（2026-08-31，**dev 子集非完整榜单**）。
+> 接入 **BFCL / AgentDojo / MultiHop-RAG / RAGAS official** 四套公开/半公开 dev 冻结子集；CI Fake Planner 回归 + Nightly DeepSeek 分轨：**BFCL task 91.5%**、**AgentDojo utility 22.5% / attack 0%**、**MultiHop answer_em 65% / recall 72.1%**、**RAGAS official faithfulness 88.0% / answer_correctness 56.6%**（2026-09-01，dev 子集非完整榜单；RAGAS judge=SiliconFlow Qwen2.5-14B）。
 
 ## 局限（务必如实）
 

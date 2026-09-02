@@ -7,7 +7,7 @@
   "benchmark_id": "ragas-official",
   "strategy": "layered_tree",
   "generator": "deepseek-chat",
-  "judge": "configured",
+  "judge": "Qwen/Qwen2.5-14B-Instruct @ SiliconFlow",
   "embedding": "bge-m3",
   "backend": "memory",
   "metrics": {

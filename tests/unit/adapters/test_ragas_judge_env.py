@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-import os
-
 import pytest
 
-from arbor.env import judge_api_key, judge_base_url, judge_embedding_model, judge_model, judge_status
+from arbor.env import (
+    judge_api_key,
+    judge_base_url,
+    judge_embedding_model,
+    judge_model,
+    judge_status,
+)
 
 
 def test_judge_defaults_siliconflow_friendly():

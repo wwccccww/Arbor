@@ -288,7 +288,10 @@ def run_generation(
     case_limit: int | None = None,
 ) -> dict:
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
-    from arbor.adapters.outbound.ragas_scorer import RagasFaithfulnessScorer, RagasMetricsScorer, RagasSample
+    from arbor.adapters.outbound.ragas_scorer import (
+        RagasFaithfulnessScorer,
+        RagasSample,
+    )
 
     world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
     backend = resolve_backend(backend)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-
 from dataclasses import dataclass, field
 
 from arbor.env import judge_api_key, judge_base_url, judge_embedding_model, judge_model, load_dotenv
@@ -112,13 +111,15 @@ def _judge_run_config():
 
 
 def _metric_value(raw) -> float | None:
+    import math
+
     if raw is None:
         return None
     try:
         value = float(raw)
     except (TypeError, ValueError):
         return None
-    if value != value:  # NaN
+    if math.isnan(value):
         return None
     return value
 
