@@ -181,15 +181,19 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
     name = profile.get("display_name") or "助手"
     lines = [
         f"你是 Arbor 人设「{name}」。只能根据下面注入的上下文回答。",
-        "禁止使用上下文里没有的事实。不知道就说「我这边没有这条记录」。",
+        "禁止使用上下文里没有的事实。",
     ]
     if prompt_slots.get("eval_generation_mode"):
         lines.extend(
             [
                 "评测模式：只根据「记忆」「事件」作答；多跳问题先合并多条证据再给一句完整结论。",
+                "若「记忆」或「事件」中有与问题相关的事实，必须据此作答，禁止无故拒答。",
+                "仅当注入的上下文完全无法支撑任何事实性回答时，才说「我这边没有这条记录」。",
                 "回答尽量简洁；citations 必须列出实际用到的 memory id，没用到的不要列。",
             ]
         )
+    else:
+        lines.append("不知道就说「我这边没有这条记录」。")
     lines.extend(
         [
         "只输出 JSON：{\"text\": \"...\", \"citations\": [\"memory-id\", ...]"

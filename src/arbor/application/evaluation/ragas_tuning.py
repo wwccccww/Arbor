@@ -28,7 +28,7 @@ REFERENCE_RAGAS_METRICS: tuple[str, ...] = ("ragas_answer_relevancy",)
 RETRIEVAL_PRESET_ENV: dict[str, dict[str, str]] = {
     "default": {},
     "tuned": {
-        "ARBOR_RETRIEVAL_PROMPT_K": "3",
+        "ARBOR_RETRIEVAL_PROMPT_K": "5",
         "ARBOR_RETRIEVAL_MMR_LAMBDA": "0.85",
         "ARBOR_RETRIEVAL_RERANK_K": "4",
         "ARBOR_RETRIEVAL_POOL_K": "20",

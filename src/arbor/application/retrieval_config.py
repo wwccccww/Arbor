@@ -49,11 +49,11 @@ class RetrievalConfig:
 
     @classmethod
     def ragas_tuned(cls) -> RetrievalConfig:
-        """Tighter retrieval for RAGAS official: fewer prompt slots, higher MMR relevance."""
+        """RAGAS official preset: same prompt_k as default, tighter pool/rerank + higher MMR."""
         return cls(
             pool_k=20,
             rerank_k=4,
-            prompt_k=3,
+            prompt_k=5,
             event_seed_k=2,
             event_expand_depth=2,
             event_expand_max=8,
