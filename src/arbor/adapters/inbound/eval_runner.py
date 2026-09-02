@@ -407,7 +407,30 @@ def run_ragas_official_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    phase: str = "all",
+    run_dir: Path | None = None,
+    run_id: str | None = None,
+    batch_size: int = 10,
+    resume: bool = True,
+    use_disk: bool = False,
 ) -> dict:
+    from arbor.application.evaluation.ragas_pipeline import run_ragas_official_pipeline
+
+    if use_disk or run_dir is not None or run_id is not None:
+        return run_ragas_official_pipeline(
+            phase=phase,  # type: ignore[arg-type]
+            strategy=strategy,
+            llm=llm,
+            scorer=scorer,
+            backend=backend,
+            embed=embed,
+            case_limit=case_limit,
+            run_dir=run_dir,
+            run_id=run_id,
+            batch_size=batch_size,
+            resume=resume,
+            use_disk=True,
+        )
     from arbor.adapters.outbound.ragas_scorer import RagasMetricsScorer
 
     official_dir = ROOT / "eval" / "fixtures" / "suite-ragas-official"
