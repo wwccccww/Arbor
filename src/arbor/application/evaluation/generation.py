@@ -64,6 +64,7 @@ def trim_ragas_contexts(
     *,
     citations: list[str] | None = None,
     reference_contexts: list[str] | None = None,
+    answer: str | None = None,
     max_memories: int = 4,
     max_events: int = 1,
 ) -> list[str]:
@@ -72,6 +73,7 @@ def trim_ragas_contexts(
         return []
     cited = {str(value) for value in (citations or []) if value}
     ref_blob = " ".join(str(value) for value in (reference_contexts or []) if value)
+    answer_blob = str(answer or "")
 
     prefix_lines: list[str] = []
     event_lines: list[tuple[float, str]] = []
@@ -81,13 +83,25 @@ def trim_ragas_contexts(
         if context.startswith("记忆 "):
             memory_id = _memory_id_from_context(context) or ""
             priority = 3.0 if memory_id in cited else 0.0
-            priority = max(priority, _context_overlap_score(context, ref_blob) * 2.0)
+            priority = max(
+                priority,
+                _context_overlap_score(context, ref_blob) * 2.0,
+                _context_overlap_score(context, answer_blob) * 2.5,
+            )
             memory_lines.append((priority, context, memory_id))
         elif context.startswith("事件:"):
-            score = _context_overlap_score(context, ref_blob)
+            score = max(
+                _context_overlap_score(context, ref_blob),
+                _context_overlap_score(context, answer_blob),
+            )
             event_lines.append((score, context))
         elif context.startswith("档案:"):
-            if not ref_blob or _context_overlap_score(context, ref_blob) > 0 or not cited:
+            if (
+                not ref_blob
+                or _context_overlap_score(context, ref_blob) > 0
+                or _context_overlap_score(context, answer_blob) > 0
+                or not cited
+            ):
                 prefix_lines.append(context)
         elif context.startswith("摘要:") or context.startswith("近期对话"):
             continue

@@ -295,6 +295,7 @@ def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[st
         raw_contexts,
         citations=list(result.get("citations") or []),
         reference_contexts=reference_contexts,
+        answer=str(result.get("text") or ""),
         max_memories=5 if is_multi else 3,
         max_events=2 if is_multi else 1,
     )

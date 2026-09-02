@@ -32,3 +32,19 @@ def test_trim_ragas_contexts_falls_back_when_empty():
         max_memories=1,
     )
     assert len(trimmed) == 1
+
+
+def test_trim_ragas_contexts_keeps_answer_overlap():
+    raw = [
+        "记忆 mem-a: 林夏住在杭州西湖区。",
+        "记忆 mem-b: 无关内容。",
+    ]
+    trimmed = trim_ragas_contexts(
+        raw,
+        citations=[],
+        reference_contexts=[],
+        answer="林夏住在杭州西湖区。",
+        max_memories=1,
+    )
+    assert any("mem-a" in line for line in trimmed)
+    assert not any("mem-b" in line for line in trimmed)
