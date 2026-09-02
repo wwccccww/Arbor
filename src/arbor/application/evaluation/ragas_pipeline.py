@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -28,11 +30,11 @@ from arbor.application.conversation.send_message import SendMessage
 from arbor.application.evaluation.generation import aggregate_generation, score_generation_case
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
 from arbor.domain.shared.ids import PersonaId, TenantId, ThreadId, UserId
-from arbor.env import chat_model, judge_embedding_model, judge_model
+from arbor.env import chat_model, gen_max_workers, judge_embedding_model, judge_model
 from arbor.paths import repo_root
 
 DEFAULT_BATCH_SIZE = 10
-PIPELINE_VERSION = "v1"
+PIPELINE_VERSION = "v2"
 DEFAULT_RUNS_ROOT = repo_root() / "eval" / "runs" / "ragas-official"
 RAGAS_OFFICIAL_DIR = ROOT / "eval" / "fixtures" / "suite-ragas-official"
 Phase = Literal["all", "generate", "score"]
@@ -243,18 +245,19 @@ def _close_generation_session(session: _GenerationSession) -> None:
         session.session.close()
 
 
+def _eval_thread_id(case: dict[str, Any]) -> ThreadId:
+    return ThreadId(f"eval-{case['id']}")
+
+
+def _public_generation_record(record: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in record.items() if not key.startswith("_")}
+
+
 def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[str, Any]:
     actor = case["actor"]
     tenant_id = TenantId(actor["tenant_id"])
     persona_id = PersonaId(actor["persona_id"])
-    if session.stores is not None:
-        thread = next(
-            (item for item in session.stores.threads.values() if item.persona_id == persona_id),
-            None,
-        )
-    else:
-        thread = session.send.threads.get_by_persona(tenant_id, persona_id)
-    thread_id = thread.id if thread else ThreadId(f"eval-{persona_id.value}")
+    thread_id = _eval_thread_id(case)
     result = session.send(
         tenant_id=tenant_id,
         user_id=UserId(actor["user_id"]),
@@ -262,6 +265,7 @@ def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[st
         persona_id=persona_id,
         text=case["query"],
         capabilities=list(Capability),
+        persist=False,
     )
     leak_ids = [
         mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])
@@ -304,6 +308,79 @@ def _chunk_cases(cases: list[dict[str, Any]], batch_size: int) -> list[list[dict
     return [cases[i : i + batch_size] for i in range(0, len(cases), batch_size)]
 
 
+@dataclass(frozen=True)
+class _SessionFactoryArgs:
+    suite_dir: Path
+    strategy: str
+    llm: object | None
+    backend: str
+    embed: str
+
+
+_worker_local = threading.local()
+_worker_sessions: list[_GenerationSession] = []
+_worker_sessions_lock = threading.Lock()
+
+
+def _init_generation_worker(args: _SessionFactoryArgs) -> None:
+    session = _open_generation_session(
+        suite_dir=args.suite_dir,
+        strategy=args.strategy,
+        llm=args.llm,
+        backend=args.backend,
+        embed=args.embed,
+    )
+    _worker_local.session = session
+    with _worker_sessions_lock:
+        _worker_sessions.append(session)
+
+
+def _generate_case_worker(case: dict[str, Any]) -> dict[str, Any]:
+    session = _worker_local.session
+    return _public_generation_record(_generate_case(session, case))
+
+
+def _close_worker_sessions() -> None:
+    global _worker_sessions
+    with _worker_sessions_lock:
+        sessions = list(_worker_sessions)
+        _worker_sessions = []
+    for session in sessions:
+        _close_generation_session(session)
+
+
+def _generate_batch_cases(
+    batch_cases: list[dict[str, Any]],
+    *,
+    session_args: _SessionFactoryArgs,
+    gen_workers: int,
+) -> list[dict[str, Any]]:
+    workers = max(1, min(gen_workers, len(batch_cases)))
+    if workers == 1:
+        session = _open_generation_session(
+            suite_dir=session_args.suite_dir,
+            strategy=session_args.strategy,
+            llm=session_args.llm,
+            backend=session_args.backend,
+            embed=session_args.embed,
+        )
+        try:
+            return [_public_generation_record(_generate_case(session, case)) for case in batch_cases]
+        finally:
+            _close_generation_session(session)
+
+    _close_worker_sessions()
+    try:
+        with ThreadPoolExecutor(
+            max_workers=workers,
+            initializer=_init_generation_worker,
+            initargs=(session_args,),
+        ) as pool:
+            return list(pool.map(_generate_case_worker, batch_cases))
+    finally:
+        _close_worker_sessions()
+
+
 def run_ragas_official_generate(
     *,
     strategy: str = "layered_tree",
@@ -315,9 +392,11 @@ def run_ragas_official_generate(
     run_id: str | None = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     resume: bool = True,
+    gen_workers: int | None = None,
 ) -> Path:
     store = RagasRunStore(run_dir or default_run_dir(run_id), batch_size=batch_size)
     store.ensure_dirs()
+    workers = gen_max_workers() if gen_workers is None else max(1, min(gen_workers, 16))
     _world, cases_doc, _thresholds, _k, _world_path = load_suite_files(RAGAS_OFFICIAL_DIR)
     cases = list(cases_doc["cases"])
     if case_limit is not None:
@@ -332,29 +411,25 @@ def run_ragas_official_generate(
             "generator": chat_model(),
             "n_cases": len(cases),
             "batch_size": batch_size,
+            "gen_workers": workers,
+            "isolated_threads": True,
+            "persist": False,
         }
     )
-    session = _open_generation_session(
+    session_args = _SessionFactoryArgs(
         suite_dir=RAGAS_OFFICIAL_DIR,
         strategy=strategy,
         llm=llm,
         backend=backend,
         embed=embed,
     )
-    try:
-        for batch_idx, batch_cases in enumerate(_chunk_cases(cases, batch_size)):
-            case_ids = [case["id"] for case in batch_cases]
-            batch_path = store.batch_path("generations", batch_idx)
-            if resume and store.is_generation_batch_complete(batch_idx, case_ids):
-                continue
-            records: list[dict[str, Any]] = []
-            for case in batch_cases:
-                record = _generate_case(session, case)
-                public = {k: v for k, v in record.items() if not k.startswith("_")}
-                records.append(public)
-            store.write_jsonl(batch_path, records)
-    finally:
-        _close_generation_session(session)
+    for batch_idx, batch_cases in enumerate(_chunk_cases(cases, batch_size)):
+        case_ids = [case["id"] for case in batch_cases]
+        batch_path = store.batch_path("generations", batch_idx)
+        if resume and store.is_generation_batch_complete(batch_idx, case_ids):
+            continue
+        records = _generate_batch_cases(batch_cases, session_args=session_args, gen_workers=workers)
+        store.write_jsonl(batch_path, records)
     return store.run_dir
 
 
@@ -509,6 +584,7 @@ def run_ragas_official_pipeline(
     batch_size: int = DEFAULT_BATCH_SIZE,
     resume: bool = True,
     use_disk: bool = True,
+    gen_workers: int | None = None,
 ) -> dict[str, Any]:
     if not use_disk:
         from arbor.adapters.inbound.eval_runner import run_ragas_official_generation
@@ -533,6 +609,7 @@ def run_ragas_official_pipeline(
             run_dir=resolved_run_dir,
             batch_size=batch_size,
             resume=resume,
+            gen_workers=gen_workers,
         )
     if phase in {"all", "score"}:
         run_ragas_official_score(

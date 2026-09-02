@@ -105,6 +105,7 @@ class SendMessage:
         text: str,
         capabilities: list[Capability] | None = None,
         attachments: list | None = None,
+        persist: bool = True,
     ) -> dict:
         obs = self._obs()
         started = time.perf_counter()
@@ -125,6 +126,7 @@ class SendMessage:
                     text=text,
                     capabilities=capabilities,
                     attachments=attachments,
+                    persist=persist,
                 )
                 llm_started = time.perf_counter()
                 llm_out = self.llm.complete(
@@ -135,7 +137,7 @@ class SendMessage:
                 ctx.llm_duration_ms = round((time.perf_counter() - llm_started) * 1000, 2)
                 self._record_llm_chat_metrics(model=model, duration_ms=ctx.llm_duration_ms, stream="false")
                 llm_out = self._maybe_llm_tool_round(ctx, llm_out)
-                return self._finish(ctx, llm_out)
+                return self._finish(ctx, llm_out, persist=persist)
         except Exception:
             result_label = "error"
             obs.increment("arbor_llm_requests_total", operation="chat", model=model, result="error")
@@ -262,6 +264,7 @@ class SendMessage:
         text: str,
         capabilities: list[Capability] | None,
         attachments: list | None,
+        persist: bool = True,
     ) -> _Context:
         obs = self._obs()
         with obs.span("auth.authorize", persona_id=persona_id.value):
@@ -319,41 +322,42 @@ class SendMessage:
 
         reasoner_meta: dict = {"called": False}
         extracted = None
-        with obs.span("inbox.extract", thread_id=thread_id.value):
-            if self.reasoner:
-                reasoner_started = time.perf_counter()
-                with obs.span("llm.extract", thread_id=thread_id.value):
-                    extracted = self.reasoner.extract(text, active_memories=active)
-                reasoner_meta = {
-                    "called": True,
-                    "operation": "extract",
-                    "duration_ms": round((time.perf_counter() - reasoner_started) * 1000, 2),
-                    "result_kind": extracted.get("kind") if extracted else None,
-                    "conflicts_with": extracted.get("conflicts_with") if extracted else None,
-                }
-                obs.event(
-                    "llm.extract",
-                    result_kind=reasoner_meta.get("result_kind"),
-                    duration_ms=reasoner_meta.get("duration_ms"),
-                    result="parsed" if extracted else "skipped",
-                )
-            inbox_added = 0
-            if extracted and extracted.get("text"):
-                extracted = enrich_inbox_extract(extracted, active)
-                conflict_raw = extracted.get("conflicts_with")
-                conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
-                item = InboxItem(
-                    id=self.ids.new_id(),
-                    tenant_id=tenant_id,
-                    persona_id=persona_id,
-                    kind=extracted.get("kind", "fact"),
-                    payload={"text": extracted["text"]},
-                    conflicts_with=conflicts_with,
-                    created_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
-                )
-                self.inbox.add(item)
-                inbox_added = 1
-                obs.event("inbox.extract", result="created", kind=item.kind)
+        inbox_added = 0
+        if persist:
+            with obs.span("inbox.extract", thread_id=thread_id.value):
+                if self.reasoner:
+                    reasoner_started = time.perf_counter()
+                    with obs.span("llm.extract", thread_id=thread_id.value):
+                        extracted = self.reasoner.extract(text, active_memories=active)
+                    reasoner_meta = {
+                        "called": True,
+                        "operation": "extract",
+                        "duration_ms": round((time.perf_counter() - reasoner_started) * 1000, 2),
+                        "result_kind": extracted.get("kind") if extracted else None,
+                        "conflicts_with": extracted.get("conflicts_with") if extracted else None,
+                    }
+                    obs.event(
+                        "llm.extract",
+                        result_kind=reasoner_meta.get("result_kind"),
+                        duration_ms=reasoner_meta.get("duration_ms"),
+                        result="parsed" if extracted else "skipped",
+                    )
+                if extracted and extracted.get("text"):
+                    extracted = enrich_inbox_extract(extracted, active)
+                    conflict_raw = extracted.get("conflicts_with")
+                    conflicts_with = MemoryId(str(conflict_raw)) if conflict_raw else None
+                    item = InboxItem(
+                        id=self.ids.new_id(),
+                        tenant_id=tenant_id,
+                        persona_id=persona_id,
+                        kind=extracted.get("kind", "fact"),
+                        payload={"text": extracted["text"]},
+                        conflicts_with=conflicts_with,
+                        created_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                    )
+                    self.inbox.add(item)
+                    inbox_added = 1
+                    obs.event("inbox.extract", result="created", kind=item.kind)
         return _Context(
             tenant_id=tenant_id,
             user_id=user_id,
@@ -415,11 +419,34 @@ class SendMessage:
             return text
         return text
 
-    def _finish(self, ctx: _Context, llm_out: dict) -> dict:
+    def _finish(self, ctx: _Context, llm_out: dict, *, persist: bool = True) -> dict:
         allowed = set(ctx.slots.injected_memory_ids)
         citations = _filter_citations(llm_out.get("citations") or [], allowed, self.observability)
         by_id = {item.id.value: item for item in ctx.hits}
         citation_items = [_citation_item(cid, by_id.get(cid)) for cid in citations]
+        request_ctx = current_request_context()
+        request_id = request_ctx.request_id if request_ctx is not None else self.ids.new_id()
+        if not persist:
+            return {
+                "message_id": self.ids.new_id(),
+                "request_id": request_id,
+                "agent_run_id": None,
+                "text": llm_out.get("text", ""),
+                "citations": citations,
+                "citation_items": citation_items,
+                "injected_memory_ids": list(ctx.slots.injected_memory_ids),
+                "injected_contexts": list(ctx.injected_contexts),
+                "slot_order": ctx.slots.slot_order(),
+                "prompt_slots": ctx.prompt_slots,
+                "context_token_budget": ctx.compiled.token_budget,
+                "context_token_estimate": ctx.compiled.token_estimate,
+                "context_truncation_notes": list(ctx.compiled.truncation_notes),
+                "retrieval_meta": dict(ctx.compiled.retrieval_meta),
+                "decision_trace": {},
+                "tool_results": list(ctx.prompt_slots.get("tool_results") or []),
+                "inbox_added": 0,
+                "attachments": [{"filename": item["filename"]} for item in ctx.stored_attachments],
+            }
         user_message_id = self.ids.new_id()
         assistant_message_id = self.ids.new_id()
         now = datetime.now(UTC).isoformat()
@@ -448,8 +475,6 @@ class SendMessage:
             ctx.thread.summary = summary
         with self._obs().span("postgres.persist_message"):
             self.threads.save(ctx.thread)
-        request_ctx = current_request_context()
-        request_id = request_ctx.request_id if request_ctx is not None else self.ids.new_id()
         model = self._chat_model_label()
         generation_meta = {
             "model": model,

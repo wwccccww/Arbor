@@ -396,6 +396,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="recompute existing RAGAS pipeline batch files",
     )
+    parser.add_argument(
+        "--ragas-gen-workers",
+        type=int,
+        default=0,
+        help="parallel workers for RAGAS generation (0 = ARBOR_GEN_MAX_WORKERS, default 4)",
+    )
     args = parser.parse_args(argv)
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
@@ -547,6 +553,7 @@ def main(argv: list[str] | None = None) -> int:
                 batch_size=args.ragas_batch_size,
                 resume=not args.ragas_no_resume,
                 use_disk=args.ragas_pipeline or bool(args.ragas_run_dir),
+                gen_workers=args.ragas_gen_workers or None,
             )
         else:
             payload = run_generation(

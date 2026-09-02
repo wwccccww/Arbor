@@ -6,6 +6,7 @@ from arbor.adapters.outbound.inmemory import ScriptedLLM
 from arbor.adapters.outbound.ragas_scorer import RAGAS_METRIC_NAMES, FakeRagasMetricsScorer
 from arbor.application.evaluation.ragas_pipeline import (
     RagasRunStore,
+    _eval_thread_id,
     build_report_from_artifacts,
     default_run_dir,
     generation_fingerprint,
@@ -151,6 +152,28 @@ def test_run_ragas_official_pipeline_in_memory_fast_path():
     )
     assert report["n_cases"] == 2
     assert report["metrics"]["ragas_faithfulness"] == 1.0
+
+
+def test_eval_thread_id_is_per_case():
+    case = {"id": "ragas-llm-001"}
+    assert _eval_thread_id(case).value == "eval-ragas-llm-001"
+
+
+def test_parallel_generation_workers(tmp_path):
+    run_dir = tmp_path / "parallel"
+    run_ragas_official_generate(
+        strategy="layered_tree",
+        llm=ScriptedLLM(),
+        backend="memory",
+        embed="fixture",
+        case_limit=4,
+        run_dir=run_dir,
+        batch_size=2,
+        gen_workers=2,
+        resume=False,
+    )
+    rows = RagasRunStore(run_dir).load_all_generations()
+    assert len(rows) == 4
 
 
 def test_default_run_dir_uses_date():
