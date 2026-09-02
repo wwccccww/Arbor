@@ -114,6 +114,41 @@ def _stabilize_causal_hits(
     return merged[:cap]
 
 
+def _select_relevant_profile_hits(
+    query: str,
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    limit: int = 2,
+    config: RetrievalConfig | None = None,
+) -> list[MemoryItem]:
+    """Pick profile FACT memories most relevant to the query for prompt injection."""
+    if not profile_hits or limit <= 0:
+        return []
+    selected, _ = rerank_memories(query, profile_hits, embed, limit=limit, config=config)
+    if selected:
+        return selected
+    return _lexical_scan(profile_hits, query, limit)
+
+
+def _merge_injection_hits(
+    profile_hits: list[MemoryItem],
+    rag_hits: list[MemoryItem],
+    *,
+    limit: int,
+) -> list[MemoryItem]:
+    merged: list[MemoryItem] = []
+    seen: set[str] = set()
+    for item in profile_hits + rag_hits:
+        if item.id.value in seen:
+            continue
+        seen.add(item.id.value)
+        merged.append(item)
+        if len(merged) >= limit:
+            break
+    return merged
+
+
 def rerank_memories(
     query: str,
     candidates: list[MemoryItem],
@@ -290,7 +325,7 @@ def _retrieve_inner(
                     event_hits.append(memory)
                     seen_event_hit.add(memory.id.value)
 
-        if strategy in {"vector_only", "layered", "layered_tree"} and intent != "profile":
+        if strategy in {"vector_only", "layered", "layered_tree"}:
             sub_pool_k = max(10, pool_k // max(1, len(planned)))
             if intent == "causal":
                 sub_pool_k = max(sub_pool_k, pool_k)
@@ -390,6 +425,16 @@ def _retrieve_inner(
         rag_hits = []
         all_hit_scores = {}
 
+    profile_inject_k = min(2, final_k) if profile_hits else 0
+    relevant_profile = _select_relevant_profile_hits(
+        query,
+        profile_hits,
+        embed,
+        limit=profile_inject_k,
+        config=cfg,
+    )
+    hits = _merge_injection_hits(relevant_profile, rag_hits, limit=final_k)
+
     scored: list[MemoryItem] = []
     for item in list(profile_hits) + rag_hits:
         if item.id.value not in {existing.id.value for existing in scored}:
@@ -398,13 +443,15 @@ def _retrieve_inner(
     sources: dict[str, str] = {}
     for memory in profile_hits:
         sources[memory.id.value] = "profile"
+    for memory in relevant_profile:
+        sources[memory.id.value] = "profile"
     for memory in event_hits:
         sources.setdefault(memory.id.value, "event_tree")
     for memory in vector_hits:
         sources.setdefault(memory.id.value, "vector")
 
     trim_priority = sorted(
-        rag_hits,
+        hits,
         key=lambda memory: all_hit_scores.get(memory.id.value, 0.0),
     )
 
@@ -415,8 +462,9 @@ def _retrieve_inner(
         "event_hits": event_hits,
         "event_nodes": event_nodes,
         "vector_hits": vector_hits,
-        "hits": rag_hits,
+        "hits": hits,
         "hit_ids": [memory.id.value for memory in scored],
+        "injected_hit_ids": [memory.id.value for memory in hits],
         "hit_scores": all_hit_scores,
         "trim_priority": [memory.id.value for memory in trim_priority],
         "sources": sources,

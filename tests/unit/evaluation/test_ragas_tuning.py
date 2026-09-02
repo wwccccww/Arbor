@@ -135,7 +135,8 @@ def test_build_ragas_report_extras():
 def test_eval_generation_system_prompt():
     prompt = _system_prompt({"profile": {"display_name": "林夏"}, "eval_generation_mode": True}, [])
     assert "评测模式" in prompt
-    assert "禁止无故拒答" in prompt
+    assert "第三人称" in prompt
+    assert "taboos" in prompt
     assert "citations" in prompt
 
 

@@ -175,6 +175,7 @@ def run_ragas_retrieval_ablation(
             metrics = dict(report.get("metrics") or {})
             results[preset] = {
                 "recall_at_5": metrics.get("recall_at_5"),
+                "injected_recall_at_5": metrics.get("injected_recall_at_5"),
                 "mrr_at_5": metrics.get("mrr_at_5"),
                 "tenant_leak_count": metrics.get("tenant_leak_count"),
                 "n_cases": metrics.get("n_cases"),
