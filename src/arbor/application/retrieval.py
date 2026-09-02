@@ -125,10 +125,86 @@ def _select_relevant_profile_hits(
     """Pick profile FACT memories most relevant to the query for prompt injection."""
     if not profile_hits or limit <= 0:
         return []
-    selected, _ = rerank_memories(query, profile_hits, embed, limit=limit, config=config)
+    cfg = config or RetrievalConfig.from_env()
+    selected, scores = rerank_memories(query, profile_hits, embed, limit=limit, config=cfg)
     if selected:
-        return selected
+        return [
+            item
+            for item in selected
+            if scores.get(item.id.value, 0.0) >= cfg.memory_min_score
+        ]
     return _lexical_scan(profile_hits, query, limit)
+
+
+def _filter_scored_hits(
+    hits: list[MemoryItem],
+    scores: dict[str, float],
+    *,
+    min_score: float,
+    min_keep: int = 1,
+) -> list[MemoryItem]:
+    kept = [item for item in hits if scores.get(item.id.value, 0.0) >= min_score]
+    if len(kept) < min_keep and hits:
+        return hits[:min_keep]
+    return kept
+
+
+def _profile_inject_limit(
+    query: str,
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    final_k: int,
+    profile_query: bool,
+    config: RetrievalConfig,
+) -> int:
+    if not profile_hits or final_k <= 0 or not profile_query:
+        return 0
+    return min(2, final_k)
+
+
+def _rerank_planned_hits(
+    query: str,
+    planned: list[dict],
+    rag_pool: list[MemoryItem],
+    embed,
+    *,
+    limit: int,
+    config: RetrievalConfig,
+) -> tuple[list[MemoryItem], dict[str, float]]:
+    if len(planned) <= 1:
+        hits, scores = rerank_memories(query, rag_pool, embed, limit=limit, config=config)
+        return _filter_scored_hits(hits, scores, min_score=config.memory_min_score), scores
+
+    merged: list[MemoryItem] = []
+    all_scores: dict[str, float] = {}
+    seen: set[str] = set()
+
+    main_hits, main_scores = rerank_memories(query, rag_pool, embed, limit=limit, config=config)
+    for item in main_hits:
+        mid = item.id.value
+        all_scores[mid] = main_scores.get(mid, 0.0)
+        if mid not in seen:
+            merged.append(item)
+            seen.add(mid)
+
+    per_sub = max(2, limit // len(planned))
+    for plan in planned:
+        sub_hits, sub_scores = rerank_memories(
+            plan["query"],
+            rag_pool,
+            embed,
+            limit=per_sub,
+            config=config,
+        )
+        for item in sub_hits:
+            mid = item.id.value
+            all_scores[mid] = max(all_scores.get(mid, 0.0), sub_scores.get(mid, 0.0))
+            if mid not in seen:
+                merged.append(item)
+                seen.add(mid)
+    merged.sort(key=lambda item: all_scores.get(item.id.value, 0.0), reverse=True)
+    return merged[:limit], all_scores
 
 
 def _merge_injection_hits(
@@ -428,11 +504,18 @@ def _retrieve_inner(
             )
 
     if strategy != "summary_only":
+        profile_ids = {memory.id.value for memory in profile_hits}
+        rag_pool = [item for item in rag_pool if item.id.value not in profile_ids]
         rerank_started = time.perf_counter()
         input_count = len(rag_pool)
         with obs.span("rag.rerank", input_count=input_count):
-            rag_hits, all_hit_scores = rerank_memories(
-                query, rag_pool, embed, limit=final_k, config=cfg
+            rag_hits, all_hit_scores = _rerank_planned_hits(
+                query,
+                planned,
+                rag_pool,
+                embed,
+                limit=final_k,
+                config=cfg,
             )
         obs.event(
             "rag.rerank",
@@ -446,7 +529,14 @@ def _retrieve_inner(
         rag_hits = []
         all_hit_scores = {}
 
-    profile_inject_k = min(2, final_k) if profile_hits else 0
+    profile_inject_k = _profile_inject_limit(
+        query,
+        profile_hits,
+        embed,
+        final_k=final_k,
+        profile_query=profile_query,
+        config=cfg,
+    )
     relevant_profile = _select_relevant_profile_hits(
         query,
         profile_hits,
@@ -454,6 +544,11 @@ def _retrieve_inner(
         limit=profile_inject_k,
         config=cfg,
     )
+    if relevant_profile:
+        _, profile_scores = rerank_memories(
+            query, relevant_profile, embed, limit=len(relevant_profile), config=cfg
+        )
+        all_hit_scores.update(profile_scores)
     hits = _merge_injection_hits(relevant_profile, rag_hits, limit=final_k)
 
     scored: list[MemoryItem] = []

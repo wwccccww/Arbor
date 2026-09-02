@@ -9,6 +9,7 @@ from arbor.env import (
     retrieval_event_min_score,
     retrieval_event_seed_k,
     retrieval_hybrid_enabled,
+    retrieval_memory_min_score,
     retrieval_mmr_lambda,
     retrieval_pool_k,
     retrieval_prompt_k,
@@ -29,6 +30,7 @@ class RetrievalConfig:
     event_expand_max: int = 8
     event_inject_k: int = 2
     event_min_score: float = 0.08
+    memory_min_score: float = 0.14
     hybrid_enabled: bool = True
     query_plan: str = "rules"
     mmr_lambda: float = 0.7
@@ -46,6 +48,7 @@ class RetrievalConfig:
             event_expand_max=retrieval_event_expand_max(),
             event_inject_k=retrieval_event_inject_k(),
             event_min_score=retrieval_event_min_score(),
+            memory_min_score=retrieval_memory_min_score(),
             hybrid_enabled=retrieval_hybrid_enabled(),
             query_plan=retrieval_query_plan(),
             mmr_lambda=retrieval_mmr_lambda(),

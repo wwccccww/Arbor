@@ -39,6 +39,19 @@ def lexical_token_score(query: str, text: str) -> float:
     return overlap / len(q_tokens)
 
 
+_MEDIA_HINTS = ("photo", "照片", "图片", "picture", "image", "pic")
+
+
+def query_media_boost(query: str, text: str, memory_type: MemoryType) -> float:
+    lowered = (query or "").lower()
+    if not any(hint in lowered or hint in query for hint in _MEDIA_HINTS):
+        return 0.0
+    blob = text or ""
+    if "照片" in blob or memory_type is MemoryType.IMAGE_CAPTION:
+        return 0.35
+    return 0.0
+
+
 def memory_type_weight(item: MemoryItem, *, fact_weight: float, chunk_weight: float) -> float:
     if item.type is MemoryType.FACT:
         return fact_weight
@@ -60,7 +73,7 @@ def score_memory(
     item_vector: list[float] | None = None,
 ) -> float:
     blob = item.text or ""
-    lexical = lexical_token_score(query, blob)
+    lexical = lexical_token_score(query, blob) + query_media_boost(query, blob, item.type)
     if query_vector is not None and item_vector is not None:
         vec = cosine(query_vector, item_vector)
     else:

@@ -341,6 +341,16 @@ def retrieval_event_min_score() -> float:
     return max(0.0, min(value, 1.0))
 
 
+def retrieval_memory_min_score() -> float:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RETRIEVAL_MEMORY_MIN_SCORE") or "0.14").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.14
+    return max(0.0, min(value, 1.0))
+
+
 def retrieval_hybrid_enabled() -> bool:
     load_dotenv()
     raw = (os.environ.get("ARBOR_RETRIEVAL_HYBRID") or "on").strip().lower()

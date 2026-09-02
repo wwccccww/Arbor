@@ -12,6 +12,7 @@ from arbor.application.conversation.context_budget import (
 from arbor.application.conversation.context_injection import (
     detect_context_conflicts,
     memory_hit_payload,
+    select_profile_fields,
 )
 from arbor.application.evaluation.generation import injected_contexts
 from arbor.application.retrieval import retrieve
@@ -153,7 +154,11 @@ class ContextCompiler:
             ]
 
             prompt_slots = {
-                "profile": slots.profile,
+                "profile": (
+                    select_profile_fields(query, slots.profile)
+                    if self.eval_generation_mode
+                    else slots.profile
+                ),
                 "tool_policy": slots.tool_policy,
                 "tool_results": list(tool_results or []),
                 "thread_summary": slots.thread_summary,
