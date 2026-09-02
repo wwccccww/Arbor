@@ -364,6 +364,44 @@ def main(argv: list[str] | None = None) -> int:
         help="agent/public benchmark planner (llm needs DEEPSEEK_API_KEY)",
     )
     parser.add_argument("--runs", type=int, default=1, help="reserved for multi-run LLM aggregation")
+    parser.add_argument(
+        "--ragas-phase",
+        default="all",
+        choices=["all", "generate", "score"],
+        help="RAGAS official pipeline phase (requires --ragas-pipeline)",
+    )
+    parser.add_argument(
+        "--ragas-pipeline",
+        action="store_true",
+        help="use batched generations/scores on disk with resume for ragas-official-v1",
+    )
+    parser.add_argument(
+        "--ragas-run-dir",
+        default="",
+        help="artifact directory for RAGAS pipeline (default eval/runs/ragas-official/<date>)",
+    )
+    parser.add_argument(
+        "--ragas-run-id",
+        default="",
+        help="run id segment for default ragas artifact directory",
+    )
+    parser.add_argument(
+        "--ragas-batch-size",
+        type=int,
+        default=10,
+        help="cases per generations/scores batch file",
+    )
+    parser.add_argument(
+        "--ragas-no-resume",
+        action="store_true",
+        help="recompute existing RAGAS pipeline batch files",
+    )
+    parser.add_argument(
+        "--ragas-gen-workers",
+        type=int,
+        default=0,
+        help="parallel workers for RAGAS generation (0 = ARBOR_GEN_MAX_WORKERS, default 4)",
+    )
     args = parser.parse_args(argv)
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
@@ -504,10 +542,18 @@ def main(argv: list[str] | None = None) -> int:
             print("bge embed needs EMBEDDING_API_KEY in this process", file=sys.stderr)
             return 2
         if args.suite == RAGAS_OFFICIAL_SUITE:
+            run_dir = Path(args.ragas_run_dir) if args.ragas_run_dir else None
             payload = run_ragas_official_generation(
                 strategy=strategy,
                 backend=args.backend,
                 embed=args.embed,
+                phase=args.ragas_phase,
+                run_dir=run_dir,
+                run_id=args.ragas_run_id or None,
+                batch_size=args.ragas_batch_size,
+                resume=not args.ragas_no_resume,
+                use_disk=args.ragas_pipeline or bool(args.ragas_run_dir),
+                gen_workers=args.ragas_gen_workers or None,
             )
         else:
             payload = run_generation(
@@ -522,7 +568,7 @@ def main(argv: list[str] | None = None) -> int:
             metrics=dict(payload.get("metrics") or {}),
             p0_ok=bool((payload.get("metrics") or {}).get("generation_p0_pass")),
         )
-        print(json.dumps({"metrics": payload["metrics"], "protocol": payload.get("protocol")}, ensure_ascii=False, indent=2))
+        print(json.dumps({"metrics": payload["metrics"], "protocol": payload.get("protocol"), "run_dir": payload.get("run_dir")}, ensure_ascii=False, indent=2))
         if args.out:
             slim = {"metrics": payload["metrics"], "cases": payload["cases"], "protocol": payload.get("protocol")}
             Path(args.out).write_text(json.dumps(slim, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

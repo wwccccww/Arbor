@@ -25,7 +25,10 @@ class RagasSample:
     reference_contexts: list[str] = field(default_factory=list)
 
 
-def _load_ragas_metrics():
+_METRIC_BY_NAME: dict[str, object] | None = None
+
+
+def _load_ragas_metrics(metric_names: list[str] | None = None):
     from ragas.metrics import (
         answer_correctness,
         answer_relevancy,
@@ -34,13 +37,17 @@ def _load_ragas_metrics():
         faithfulness,
     )
 
-    return [
-        faithfulness,
-        context_recall,
-        context_precision,
-        answer_relevancy,
-        answer_correctness,
-    ]
+    global _METRIC_BY_NAME
+    if _METRIC_BY_NAME is None:
+        _METRIC_BY_NAME = {
+            "faithfulness": faithfulness,
+            "context_recall": context_recall,
+            "context_precision": context_precision,
+            "answer_relevancy": answer_relevancy,
+            "answer_correctness": answer_correctness,
+        }
+    names = metric_names or list(RAGAS_METRIC_NAMES)
+    return [_METRIC_BY_NAME[name] for name in names if name in _METRIC_BY_NAME]
 
 
 class RagasFaithfulnessScorer:
@@ -82,8 +89,8 @@ def _build_ragas_llm_and_embeddings():
         api_key=key,
         base_url=base,
         temperature=0,
-        max_retries=5,
-        timeout=300,
+        max_retries=3,
+        timeout=120,
         max_tokens=max_tokens,
     )
     llm = LangchainLLMWrapper(chat, is_finished_parser=_siliconflow_is_finished)
@@ -92,8 +99,8 @@ def _build_ragas_llm_and_embeddings():
             model=judge_embedding_model(),
             api_key=key,
             base_url=base,
-            max_retries=5,
-            timeout=120,
+            max_retries=3,
+            timeout=60,
         )
     )
     return llm, embeddings
@@ -105,9 +112,11 @@ def _judge_run_config():
     from ragas.run_config import RunConfig
 
     load_dotenv()
-    workers = int(os.environ.get("ARBOR_JUDGE_MAX_WORKERS", "2"))
-    timeout = int(os.environ.get("ARBOR_JUDGE_TIMEOUT", "300"))
-    return RunConfig(max_workers=workers, timeout=timeout, max_retries=10, max_wait=90)
+    workers = int(os.environ.get("ARBOR_JUDGE_MAX_WORKERS", "6"))
+    timeout = int(os.environ.get("ARBOR_JUDGE_TIMEOUT", "120"))
+    max_retries = int(os.environ.get("ARBOR_JUDGE_MAX_RETRIES", "5"))
+    max_wait = int(os.environ.get("ARBOR_JUDGE_MAX_WAIT", "30"))
+    return RunConfig(max_workers=workers, timeout=timeout, max_retries=max_retries, max_wait=max_wait)
 
 
 def _metric_value(raw) -> float | None:
@@ -127,7 +136,13 @@ def _metric_value(raw) -> float | None:
 class RagasMetricsScorer:
     """Batch RAGAS evaluate for Route A official generation suite."""
 
-    def score_batch(self, samples: list[RagasSample]) -> list[dict[str, float | None]]:
+    def score_batch(
+        self,
+        samples: list[RagasSample],
+        *,
+        metric_names: list[str] | None = None,
+    ) -> list[dict[str, float | None]]:
+        names = metric_names or list(RAGAS_METRIC_NAMES)
         empty = [{name: None for name in RAGAS_METRIC_NAMES} for _ in samples]
         if not judge_api_key() or not samples:
             return empty
@@ -144,8 +159,10 @@ class RagasMetricsScorer:
         except Exception:
             return empty
         try:
-            metrics = _load_ragas_metrics()
+            metrics = _load_ragas_metrics(names)
         except Exception:
+            return empty
+        if not metrics:
             return empty
         try:
             dataset = Dataset.from_dict(
@@ -183,10 +200,9 @@ class RagasMetricsScorer:
                 continue
             row = frame.iloc[usable_idx]
             usable_idx += 1
-            item: dict[str, float | None] = {}
-            for name in RAGAS_METRIC_NAMES:
-                value = row.get(name)
-                item[name] = _metric_value(value)
+            item: dict[str, float | None] = {name: None for name in RAGAS_METRIC_NAMES}
+            for name in names:
+                item[name] = _metric_value(row.get(name))
             scored.append(item)
         return scored
 
@@ -194,6 +210,21 @@ class RagasMetricsScorer:
 class FakeRagasMetricsScorer:
     """Test double returning perfect scores without ragas SDK."""
 
-    def score_batch(self, samples: list[RagasSample]) -> list[dict[str, float | None]]:
-        perfect = {name: 1.0 for name in RAGAS_METRIC_NAMES}
-        return [dict(perfect) if (s.answer or "").strip() and s.contexts else {n: None for n in RAGAS_METRIC_NAMES} for s in samples]
+    def score_batch(
+        self,
+        samples: list[RagasSample],
+        *,
+        metric_names: list[str] | None = None,
+    ) -> list[dict[str, float | None]]:
+        names = metric_names or list(RAGAS_METRIC_NAMES)
+        perfect = {name: 1.0 for name in names}
+        empty = {name: None for name in RAGAS_METRIC_NAMES}
+        out: list[dict[str, float | None]] = []
+        for sample in samples:
+            if (sample.answer or "").strip() and sample.contexts:
+                row = dict(empty)
+                row.update(perfect)
+                out.append(row)
+            else:
+                out.append(dict(empty))
+        return out

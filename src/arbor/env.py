@@ -86,6 +86,17 @@ def judge_status() -> str:
     return "configured"
 
 
+def gen_max_workers() -> int:
+    """Parallel workers for RAGAS / eval generation (retrieve + DeepSeek per case)."""
+    load_dotenv()
+    raw = os.environ.get("ARBOR_GEN_MAX_WORKERS", "4")
+    try:
+        value = int(raw)
+    except ValueError:
+        return 4
+    return max(1, min(value, 16))
+
+
 def database_url() -> str:
     load_dotenv()
     return os.environ.get("DATABASE_URL") or ""

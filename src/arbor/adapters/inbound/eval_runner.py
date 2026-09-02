@@ -336,11 +336,7 @@ def run_generation(
             actor = case["actor"]
             tenant_id = TenantId(actor["tenant_id"])
             persona_id = PersonaId(actor["persona_id"])
-            if stores is not None:
-                thread = next((item for item in stores.threads.values() if item.persona_id == persona_id), None)
-            else:
-                thread = threads.get_by_persona(tenant_id, persona_id)
-            thread_id = thread.id if thread else ThreadId(f"eval-{persona_id.value}")
+            thread_id = ThreadId(f"eval-{case['id']}")
             result = send(
                 tenant_id=tenant_id,
                 user_id=UserId(actor["user_id"]),
@@ -348,6 +344,7 @@ def run_generation(
                 persona_id=persona_id,
                 text=case["query"],
                 capabilities=list(Capability),
+                persist=False,
             )
             leak_ids = [mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])]
             result["leak_ids"] = leak_ids
@@ -407,7 +404,32 @@ def run_ragas_official_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    phase: str = "all",
+    run_dir: Path | None = None,
+    run_id: str | None = None,
+    batch_size: int = 10,
+    resume: bool = True,
+    use_disk: bool = False,
+    gen_workers: int | None = None,
 ) -> dict:
+    from arbor.application.evaluation.ragas_pipeline import run_ragas_official_pipeline
+
+    if use_disk or run_dir is not None or run_id is not None:
+        return run_ragas_official_pipeline(
+            phase=phase,  # type: ignore[arg-type]
+            strategy=strategy,
+            llm=llm,
+            scorer=scorer,
+            backend=backend,
+            embed=embed,
+            case_limit=case_limit,
+            run_dir=run_dir,
+            run_id=run_id,
+            batch_size=batch_size,
+            resume=resume,
+            use_disk=True,
+            gen_workers=gen_workers,
+        )
     from arbor.adapters.outbound.ragas_scorer import RagasMetricsScorer
 
     official_dir = ROOT / "eval" / "fixtures" / "suite-ragas-official"
