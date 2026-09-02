@@ -24,7 +24,9 @@ _SPLIT_MARKERS = (
 )
 
 _PROFILE_HINTS = ("住", "禁忌", "讨厌", "喜欢", "是谁", "叫什么", "哪里人", "职业")
+_PROFILE_HINTS_EN = ("reside", "live in", "where does", "where do", "address", "home", "district")
 _EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店")
+_EPISODE_HINTS_EN = ("weekend", "pet", "dormitory", "usually do")
 _CAUSAL_HINTS = (
     "为什么",
     "为何",
@@ -164,10 +166,15 @@ def _parse_llm_plan(content: str, fallback_query: str) -> list[dict] | None:
 
 
 def _intent_for(text: str) -> str:
+    lowered = text.lower()
     if any(hint in text for hint in _CAUSAL_HINTS):
         return "causal"
-    if any(hint in text for hint in _PROFILE_HINTS):
+    if any(hint in text for hint in _PROFILE_HINTS) or any(
+        hint in lowered for hint in _PROFILE_HINTS_EN
+    ):
         return "profile"
-    if any(hint in text for hint in _EPISODE_HINTS):
+    if any(hint in text for hint in _EPISODE_HINTS) or any(
+        hint in lowered for hint in _EPISODE_HINTS_EN
+    ):
         return "episode"
     return "general"

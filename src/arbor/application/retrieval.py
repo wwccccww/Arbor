@@ -9,6 +9,7 @@ from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.retrieval_lexical import (
     lexical_token_score,
+    memory_min_score_for_query,
     mmr_select,
     rrf_merge,
     score_memory,
@@ -126,12 +127,13 @@ def _select_relevant_profile_hits(
     if not profile_hits or limit <= 0:
         return []
     cfg = config or RetrievalConfig.from_env()
+    min_score = memory_min_score_for_query(query, cfg.memory_min_score)
     selected, scores = rerank_memories(query, profile_hits, embed, limit=limit, config=cfg)
     if selected:
         return [
             item
             for item in selected
-            if scores.get(item.id.value, 0.0) >= cfg.memory_min_score
+            if scores.get(item.id.value, 0.0) >= min_score
         ]
     return _lexical_scan(profile_hits, query, limit)
 
@@ -156,11 +158,49 @@ def _profile_inject_limit(
     *,
     final_k: int,
     profile_query: bool,
+    episode_query: bool,
+    planned: list[dict],
     config: RetrievalConfig,
 ) -> int:
-    if not profile_hits or final_k <= 0 or not profile_query:
+    if not profile_hits or final_k <= 0:
         return 0
-    return min(2, final_k)
+    if profile_query:
+        return min(2, final_k)
+    if episode_query:
+        return min(max(2, len(planned)), final_k)
+    return 0
+
+
+def _select_profile_hits_for_plans(
+    query: str,
+    planned: list[dict],
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    limit: int,
+    config: RetrievalConfig,
+    episode_query: bool,
+) -> list[MemoryItem]:
+    if not profile_hits or limit <= 0:
+        return []
+    if episode_query and len(planned) > 1:
+        merged: list[MemoryItem] = []
+        seen: set[str] = set()
+        for plan in planned:
+            for item in _select_relevant_profile_hits(
+                plan["query"],
+                profile_hits,
+                embed,
+                limit=1,
+                config=config,
+            ):
+                if item.id.value not in seen:
+                    merged.append(item)
+                    seen.add(item.id.value)
+                if len(merged) >= limit:
+                    return merged
+        return merged
+    return _select_relevant_profile_hits(query, profile_hits, embed, limit=limit, config=config)
 
 
 def _rerank_planned_hits(
@@ -174,7 +214,8 @@ def _rerank_planned_hits(
 ) -> tuple[list[MemoryItem], dict[str, float]]:
     if len(planned) <= 1:
         hits, scores = rerank_memories(query, rag_pool, embed, limit=limit, config=config)
-        return _filter_scored_hits(hits, scores, min_score=config.memory_min_score), scores
+        min_score = memory_min_score_for_query(query, config.memory_min_score)
+        return _filter_scored_hits(hits, scores, min_score=min_score), scores
 
     merged: list[MemoryItem] = []
     all_scores: dict[str, float] = {}
@@ -535,14 +576,18 @@ def _retrieve_inner(
         embed,
         final_k=final_k,
         profile_query=profile_query,
+        episode_query=episode_query,
+        planned=planned,
         config=cfg,
     )
-    relevant_profile = _select_relevant_profile_hits(
+    relevant_profile = _select_profile_hits_for_plans(
         query,
+        planned,
         profile_hits,
         embed,
         limit=profile_inject_k,
         config=cfg,
+        episode_query=episode_query,
     )
     if relevant_profile:
         _, profile_scores = rerank_memories(

@@ -28,6 +28,17 @@ def tokenize(text: str) -> set[str]:
     return tokens
 
 
+def query_has_cjk(text: str) -> bool:
+    return bool(_CJK.search(text or ""))
+
+
+def memory_min_score_for_query(query: str, default: float) -> float:
+    """Latin-only queries skip lexical floor (cross-lingual vector retrieval)."""
+    if not query_has_cjk(query):
+        return 0.0
+    return default
+
+
 def lexical_token_score(query: str, text: str) -> float:
     q_tokens = tokenize(query)
     if not q_tokens:
@@ -52,6 +63,32 @@ def query_media_boost(query: str, text: str, memory_type: MemoryType) -> float:
     return 0.0
 
 
+_RESIDENCE_HINTS = ("reside", "live", "where", "address", "district", "home", "住", "区")
+_WEEKEND_HINTS = ("weekend", "周末", "usually do", "平时", "通常")
+
+
+def query_lifestyle_boost(query: str, text: str) -> float:
+    lowered = (query or "").lower()
+    if not any(hint in lowered or hint in query for hint in _WEEKEND_HINTS):
+        return 0.0
+    blob = text or ""
+    if any(token in blob for token in ("周末", "打游戏", "打电话的约定")):
+        return 0.45
+    return 0.0
+
+
+def query_residence_boost(query: str, text: str) -> float:
+    lowered = (query or "").lower()
+    if not any(hint in lowered or hint in query for hint in _RESIDENCE_HINTS):
+        return 0.0
+    blob = text or ""
+    if "住在" in blob:
+        return 0.55
+    if any(token in blob for token in ("区", "西湖", "杭州", "杨浦", "district")):
+        return 0.2
+    return 0.0
+
+
 def memory_type_weight(item: MemoryItem, *, fact_weight: float, chunk_weight: float) -> float:
     if item.type is MemoryType.FACT:
         return fact_weight
@@ -73,7 +110,12 @@ def score_memory(
     item_vector: list[float] | None = None,
 ) -> float:
     blob = item.text or ""
-    lexical = lexical_token_score(query, blob) + query_media_boost(query, blob, item.type)
+    lexical = (
+        lexical_token_score(query, blob)
+        + query_media_boost(query, blob, item.type)
+        + query_residence_boost(query, blob)
+        + query_lifestyle_boost(query, blob)
+    )
     if query_vector is not None and item_vector is not None:
         vec = cosine(query_vector, item_vector)
     else:
