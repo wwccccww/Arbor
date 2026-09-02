@@ -67,6 +67,37 @@ def cases_by_id(cases: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return {str(case["id"]): case for case in cases}
 
 
+def is_single_hop_case(case: dict[str, Any]) -> bool:
+    evolution = str(case.get("evolution_type") or "")
+    return evolution == EVOLUTION_SINGLE or "single" in evolution.lower()
+
+
+def select_ragas_cases(
+    cases: list[dict[str, Any]],
+    *,
+    limit: int | None = None,
+    stratified: bool = False,
+) -> list[dict[str, Any]]:
+    """Subset frozen ragas-official cases for smoke runs."""
+    if limit is None:
+        return list(cases)
+    if limit <= 0:
+        return []
+    if limit >= len(cases):
+        return list(cases)
+    if not stratified:
+        return list(cases[:limit])
+    singles = [case for case in cases if is_single_hop_case(case)]
+    multis = [case for case in cases if not is_single_hop_case(case)]
+    n_single = min(limit // 2, len(singles))
+    n_multi = min(limit - n_single, len(multis))
+    n_single = min(n_single, limit - n_multi)
+    selected_ids = {case["id"] for case in singles[:n_single]} | {
+        case["id"] for case in multis[:n_multi]
+    }
+    return [case for case in cases if case["id"] in selected_ids]
+
+
 def enrich_rows_with_case_meta(rows: list[dict[str, Any]], case_index: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     enriched: list[dict[str, Any]] = []
     for row in rows:

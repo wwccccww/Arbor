@@ -33,6 +33,7 @@ from arbor.application.evaluation.ragas_tuning import (
     build_ragas_report_extras,
     cases_by_id,
     resolve_retrieval_config,
+    select_ragas_cases,
 )
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability
@@ -419,15 +420,18 @@ def run_ragas_official_generate(
     retrieval_preset: str = "default",
     eval_generation_prompt: bool = True,
     worst_n: int = 20,
+    case_stratified: bool = False,
 ) -> Path:
     store = RagasRunStore(run_dir or default_run_dir(run_id), batch_size=batch_size)
     store.ensure_dirs()
     workers = gen_max_workers() if gen_workers is None else max(1, min(gen_workers, 16))
     retrieval_config = resolve_retrieval_config(retrieval_preset)
     _world, cases_doc, _thresholds, _k, _world_path = load_suite_files(RAGAS_OFFICIAL_DIR)
-    cases = list(cases_doc["cases"])
-    if case_limit is not None:
-        cases = cases[:case_limit]
+    cases = select_ragas_cases(
+        list(cases_doc["cases"]),
+        limit=case_limit,
+        stratified=case_stratified,
+    )
     store.write_manifest(
         {
             "pipeline_version": PIPELINE_VERSION,
@@ -437,6 +441,8 @@ def run_ragas_official_generate(
             "backend": backend,
             "generator": chat_model(),
             "n_cases": len(cases),
+            "case_limit": case_limit,
+            "case_stratified": case_stratified,
             "batch_size": batch_size,
             "gen_workers": workers,
             "isolated_threads": True,
@@ -633,6 +639,7 @@ def run_ragas_official_pipeline(
     retrieval_preset: str = "default",
     eval_generation_prompt: bool = True,
     worst_n: int = 20,
+    case_stratified: bool = False,
 ) -> dict[str, Any]:
     if not use_disk:
         from arbor.adapters.inbound.eval_runner import run_ragas_official_generation
@@ -644,6 +651,7 @@ def run_ragas_official_pipeline(
             backend=backend,
             embed=embed,
             case_limit=case_limit,
+            case_stratified=case_stratified,
             retrieval_preset=retrieval_preset,
             eval_generation_prompt=eval_generation_prompt,
         )
@@ -656,6 +664,7 @@ def run_ragas_official_pipeline(
             backend=backend,
             embed=embed,
             case_limit=case_limit,
+            case_stratified=case_stratified,
             run_dir=resolved_run_dir,
             batch_size=batch_size,
             resume=resume,

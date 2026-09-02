@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from arbor.adapters.outbound.deepseek.chat import _system_prompt
 from arbor.application.evaluation.ragas_tuning import (
     EVOLUTION_SINGLE,
@@ -7,6 +10,7 @@ from arbor.application.evaluation.ragas_tuning import (
     build_ragas_report_extras,
     resolve_retrieval_config,
     run_ragas_retrieval_ablation,
+    select_ragas_cases,
     worst_ragas_cases,
 )
 from arbor.application.retrieval_config import RetrievalConfig
@@ -133,6 +137,25 @@ def test_eval_generation_system_prompt():
     assert "评测模式" in prompt
     assert "禁止无故拒答" in prompt
     assert "citations" in prompt
+
+
+def test_select_ragas_cases_stratified_balances_hops():
+    cases = json.loads(
+        (Path(__file__).resolve().parents[3] / "eval/fixtures/suite-ragas-official/cases.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    subset = select_ragas_cases(cases, limit=20, stratified=True)
+    assert len(subset) == 20
+    singles = sum(1 for case in subset if "single" in str(case.get("evolution_type", "")))
+    multis = len(subset) - singles
+    assert singles == 10
+    assert multis == 10
+
+
+def test_select_ragas_cases_head_limit():
+    cases = [{"id": f"c{i}", "evolution_type": EVOLUTION_SINGLE} for i in range(5)]
+    assert len(select_ragas_cases(cases, limit=3, stratified=False)) == 3
 
 
 def test_retrieval_ablation_runs_on_fixture():

@@ -286,12 +286,15 @@ def run_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    case_stratified: bool = False,
 ) -> dict:
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
     from arbor.adapters.outbound.ragas_scorer import (
         RagasFaithfulnessScorer,
         RagasSample,
     )
+
+    from arbor.application.evaluation.ragas_tuning import select_ragas_cases
 
     world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
     backend = resolve_backend(backend)
@@ -328,9 +331,11 @@ def run_generation(
     mem_index = {item["id"]: item for item in world["memories"]}
     rows: list[dict] = []
     pending: list[tuple[int, RagasSample | None]] = []
-    cases = list(cases_doc["cases"])
-    if case_limit is not None:
-        cases = cases[:case_limit]
+    cases = select_ragas_cases(
+        list(cases_doc["cases"]),
+        limit=case_limit,
+        stratified=case_stratified,
+    )
     try:
         for case in cases:
             actor = case["actor"]
@@ -404,6 +409,7 @@ def run_ragas_official_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    case_stratified: bool = False,
     phase: str = "all",
     run_dir: Path | None = None,
     run_id: str | None = None,
@@ -426,6 +432,7 @@ def run_ragas_official_generation(
             backend=backend,
             embed=embed,
             case_limit=case_limit,
+            case_stratified=case_stratified,
             run_dir=run_dir,
             run_id=run_id,
             batch_size=batch_size,
@@ -448,6 +455,7 @@ def run_ragas_official_generation(
         backend=backend,
         embed=embed,
         case_limit=case_limit,
+        case_stratified=case_stratified,
     )
     report["protocol"] = str(manifest_path.relative_to(ROOT)) if manifest_path.is_file() else None
     report["benchmark_id"] = "ragas-official"

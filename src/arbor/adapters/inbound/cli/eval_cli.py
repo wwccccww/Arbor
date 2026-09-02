@@ -424,6 +424,17 @@ def main(argv: list[str] | None = None) -> int:
         default=20,
         help="export bottom-N cases by primary RAGAS metrics to worst-cases.jsonl",
     )
+    parser.add_argument(
+        "--ragas-case-limit",
+        type=int,
+        default=0,
+        help="limit ragas-official to N cases for smoke runs (0 = all 100)",
+    )
+    parser.add_argument(
+        "--ragas-case-stratified",
+        action="store_true",
+        help="with --ragas-case-limit, balance single-hop and multi-hop cases",
+    )
     args = parser.parse_args(argv)
     if args.mode == "agent":
         # Frozen agent fixtures drive runs via plan_script; eval CLI is test-only.
@@ -576,6 +587,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps({"retrieval_ablation": table}, ensure_ascii=False, indent=2))
                 return 0
             run_dir = Path(args.ragas_run_dir) if args.ragas_run_dir else None
+            case_limit = args.ragas_case_limit if args.ragas_case_limit > 0 else None
             payload = run_ragas_official_generation(
                 strategy=strategy,
                 backend=args.backend,
@@ -589,6 +601,8 @@ def main(argv: list[str] | None = None) -> int:
                 gen_workers=args.ragas_gen_workers or None,
                 retrieval_preset=args.ragas_retrieval_preset,
                 worst_n=args.ragas_worst_n,
+                case_limit=case_limit,
+                case_stratified=args.ragas_case_stratified,
             )
         else:
             payload = run_generation(
@@ -612,6 +626,8 @@ def main(argv: list[str] | None = None) -> int:
                     "by_evolution": payload.get("by_evolution"),
                     "worst_cases": payload.get("worst_cases"),
                     "retrieval_preset": payload.get("retrieval_preset"),
+                    "case_limit": case_limit,
+                    "case_stratified": args.ragas_case_stratified if case_limit else None,
                 },
                 ensure_ascii=False,
                 indent=2,
