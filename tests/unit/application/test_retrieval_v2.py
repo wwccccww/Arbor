@@ -76,3 +76,13 @@ def test_filter_event_nodes_drops_irrelevant_events():
 def test_tokenize_cjk_pairs():
     tokens = tokenize("讨厌香菜")
     assert tokens
+
+
+def test_normalize_query_folds_alternating_case():
+    from arbor.application.retrieval_lexical import expand_retrieval_query, normalize_query
+
+    folded = normalize_query("hEy, cAn U tElL mE OvErTiMe WoRk OrDeRs AfTeR 9 Pm?")
+    assert "overtime" in folded
+    expanded = expand_retrieval_query("hEy, cAn U tElL mE wHaT hApPeNs To OvErTiMe WoRk OrDeRs AfTeR 9 Pm?")
+    assert "超时工单" in expanded
+    assert "21:00" in expanded

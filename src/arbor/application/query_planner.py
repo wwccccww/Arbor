@@ -6,6 +6,7 @@ import re
 import httpx
 
 from arbor.env import chat_api_key, chat_base_url, chat_model
+from arbor.application.retrieval_lexical import is_policy_query, needs_profile_facts, normalize_query
 
 _SPLIT_MARKERS = (
     "所以",
@@ -19,12 +20,25 @@ _SPLIT_MARKERS = (
     "同时",
     "以及",
     "还有",
+    "，那",
     " and ",
     " AND ",
 )
 
-_PROFILE_HINTS = ("住", "禁忌", "讨厌", "喜欢", "是谁", "叫什么", "哪里人", "职业")
-_PROFILE_HINTS_EN = ("reside", "live in", "where does", "where do", "address", "home", "district")
+_PROFILE_HINTS = ("住", "禁忌", "讨厌", "喜欢", "是谁", "叫什么", "哪里人", "职业", "过敏", "生日", "喝茶")
+_PROFILE_HINTS_EN = (
+    "reside",
+    "live in",
+    "where does",
+    "where do",
+    "address",
+    "home",
+    "district",
+    "allergy",
+    "allergic",
+    "birthday",
+    "durian",
+)
 _DIETARY_HINTS = (
     "dietary",
     "cilantro",
@@ -39,8 +53,8 @@ _DIETARY_HINTS = (
     "food preference",
     "微辣",
 )
-_EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店", "周末", "养宠物", "宠物", "通常做什么")
-_EPISODE_HINTS_EN = ("weekend", "pet", "dormitory", "usually do")
+_EPISODE_HINTS = ("上次", "那天", "什么时候", "哪次", "后来", "之前", "吵架", "面店", "面馆", "争吵", "周末", "养宠物", "宠物", "通常做什么")
+_EPISODE_HINTS_EN = ("weekend", "pet", "dormitory", "usually do", "angry", "argument")
 _CAUSAL_HINTS = (
     "为什么",
     "为何",
@@ -57,7 +71,7 @@ _CAUSAL_HINTS = (
 
 
 def plan_queries(query: str, mode: str) -> list[dict]:
-    stripped = (query or "").strip()
+    stripped = normalize_query(query)
     if not stripped or mode == "off":
         return [{"query": stripped, "intent": "general"}]
     if mode == "llm":
@@ -153,8 +167,9 @@ def _llm_plan_prompt() -> str:
     return (
         "你是 Arbor 检索 query 规划器。把用户问题拆成最多 3 个子 query，用于从人设记忆里检索。"
         "只输出 JSON 数组，不要其它文字。"
-        "元素格式：{\"query\": \"子问题\", \"intent\": \"profile|episode|general\"}。"
-        "profile：档案/喜好/禁忌；episode：具体事件/时间线；causal：因果/为何/关系；general：其它。"
+        "元素格式：{\"query\": \"子问题\", \"intent\": \"profile|episode|general|causal|policy\"}。"
+        "profile：档案/喜好/禁忌/过敏/生日/饮食；episode：具体事件/时间线；causal：因果/为何/关系；"
+        "policy：发票/运费/客服时间/退换政策；general：其它。"
         "若无需拆分，返回单元素数组。不要编造用户没问的内容。"
     )
 
@@ -182,7 +197,7 @@ def _parse_llm_plan(content: str, fallback_query: str) -> list[dict] | None:
             continue
         seen.add(piece)
         intent = str(item.get("intent") or "general").strip().lower()
-        if intent not in {"profile", "episode", "general", "causal"}:
+        if intent not in {"profile", "episode", "general", "causal", "policy"}:
             intent = _intent_for(piece)
         planned.append({"query": piece, "intent": intent})
     if not planned:
@@ -194,7 +209,9 @@ def _intent_for(text: str) -> str:
     lowered = text.lower()
     if any(hint in text for hint in _CAUSAL_HINTS):
         return "causal"
-    if any(hint in text for hint in _DIETARY_HINTS) or any(
+    if is_policy_query(text):
+        return "policy"
+    if needs_profile_facts(text) or any(hint in text for hint in _DIETARY_HINTS) or any(
         hint in lowered for hint in _DIETARY_HINTS
     ):
         return "profile"

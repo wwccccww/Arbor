@@ -23,3 +23,9 @@ def test_select_profile_fields_includes_one_liner_for_residence_query():
     profile = {"display_name": "林夏", "one_liner": "住在杭州", "taboos": ["香菜"]}
     selected = select_profile_fields("Where does Lin Xia reside?", profile)
     assert selected["one_liner"] == "住在杭州"
+
+
+def test_select_profile_fields_includes_taboos_for_durian_or_allergy():
+    profile = {"display_name": "林夏", "taboos": ["榴莲"]}
+    selected = select_profile_fields("What is his stance on durian?", profile)
+    assert selected["taboos"] == ["榴莲"]

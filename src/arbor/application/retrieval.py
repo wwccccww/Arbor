@@ -9,9 +9,13 @@ from arbor.application.memory.validity import is_memory_expired
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.retrieval_lexical import (
+    expand_retrieval_query,
+    is_policy_query,
     lexical_token_score,
     memory_min_score_for_query,
     mmr_select,
+    needs_profile_facts,
+    query_policy_boost,
     rrf_merge,
     score_memory,
 )
@@ -38,6 +42,43 @@ def _filter_ticket_policy_chunks(hits: list[MemoryItem]) -> list[MemoryItem]:
         or not (item.text or "").strip().startswith(("售后手册", "食品类", "质量问题退换", "在线客服"))
     ]
     return kept if kept else hits[:1]
+
+
+def _ensure_policy_chunks(
+    hits: list[MemoryItem],
+    memories: list[MemoryItem],
+    query: str,
+    *,
+    limit: int = 2,
+) -> list[MemoryItem]:
+    """Keep ticket facts and force in the best matching policy FILE_CHUNK."""
+    seen = {item.id.value for item in hits}
+    scored: list[tuple[MemoryItem, float]] = []
+    for item in memories:
+        if not item.is_searchable() or item.type is not MemoryType.FILE_CHUNK:
+            continue
+        score = lexical_token_score(query, item.text or "") + query_policy_boost(query, item.text or "")
+        if score <= 0:
+            continue
+        scored.append((item, score))
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    extra: list[MemoryItem] = []
+    for item, _ in scored:
+        if item.id.value in seen:
+            continue
+        extra.append(item)
+        seen.add(item.id.value)
+        if len(extra) >= limit:
+            break
+    if not extra:
+        return hits
+    ticketish = [
+        item
+        for item in hits
+        if item.type is not MemoryType.FILE_CHUNK
+    ]
+    others = [item for item in hits if item.type is MemoryType.FILE_CHUNK]
+    return ticketish + extra + others
 
 
 def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
@@ -145,6 +186,9 @@ def _select_relevant_profile_hits(
     if not profile_hits or limit <= 0:
         return []
     cfg = config or RetrievalConfig.from_env()
+    dietary = _dietary_profile_pair(query, profile_hits, limit)
+    if dietary:
+        return dietary
     min_score = memory_min_score_for_query(query, cfg.memory_min_score)
     selected, scores = rerank_memories(query, profile_hits, embed, limit=limit, config=cfg)
     if selected:
@@ -154,6 +198,38 @@ def _select_relevant_profile_hits(
             if scores.get(item.id.value, 0.0) >= min_score
         ]
     return _lexical_scan(profile_hits, query, limit)
+
+
+def _dietary_profile_pair(
+    query: str,
+    profile_hits: list[MemoryItem],
+    limit: int,
+) -> list[MemoryItem] | None:
+    lowered = (query or "").lower()
+    blob_query = query or ""
+    tokens: list[str] = []
+    if any(hint in lowered or hint in blob_query for hint in ("辣", "spice", "微辣", "辣度")):
+        tokens.append("微辣")
+    if any(hint in lowered or hint in blob_query for hint in ("香菜", "cilantro")):
+        tokens.append("香菜")
+    if not tokens:
+        if any(hint in lowered or hint in blob_query for hint in ("饮食", "dietary")):
+            tokens = ["微辣", "香菜"]
+        else:
+            return None
+    picked: list[MemoryItem] = []
+    seen: set[str] = set()
+    for token in tokens:
+        for item in profile_hits:
+            if item.id.value in seen:
+                continue
+            if token in (item.text or ""):
+                picked.append(item)
+                seen.add(item.id.value)
+                break
+        if len(picked) >= limit:
+            break
+    return picked[:limit] if picked else None
 
 
 def _filter_scored_hits(
@@ -182,7 +258,7 @@ def _profile_inject_limit(
 ) -> int:
     if not profile_hits or final_k <= 0:
         return 0
-    if profile_query:
+    if profile_query or needs_profile_facts(query):
         return min(2, final_k)
     if episode_query:
         return min(max(2, len(planned)), final_k)
@@ -201,7 +277,7 @@ def _select_profile_hits_for_plans(
 ) -> list[MemoryItem]:
     if not profile_hits or limit <= 0:
         return []
-    if episode_query and len(planned) > 1:
+    if (episode_query or any(plan.get("intent") == "profile" for plan in planned)) and len(planned) > 1:
         merged: list[MemoryItem] = []
         seen: set[str] = set()
         for plan in planned:
@@ -270,7 +346,7 @@ def _effective_prompt_k(planned: list[dict], base_k: int) -> int:
     if len(planned) > 1:
         return max(base_k, min(6, base_k + 1))
     intent = (planned[0].get("intent") or "general") if planned else "general"
-    if intent in {"profile", "episode", "causal"}:
+    if intent in {"profile", "episode", "causal", "policy"}:
         return base_k
     return min(base_k, 3)
 
@@ -407,6 +483,7 @@ def _retrieve_inner(
 ) -> dict:
     obs = observability or NoopObservability()
     cfg = config or RetrievalConfig.from_env()
+    query = expand_retrieval_query(query)
     final_k = k_rerank if k_rerank is not None else min(k, cfg.rerank_k)
     pool_k = k_pool if k_pool is not None else max(cfg.pool_k, k, final_k)
     edge_list = edges or []
@@ -435,6 +512,10 @@ def _retrieve_inner(
     if not planned:
         planned = [{"query": query, "intent": "general"}]
     final_k = _effective_prompt_k(planned, final_k)
+    if _is_ticket_query(query) and is_policy_query(query):
+        final_k = max(final_k, 5)
+    elif is_policy_query(query):
+        final_k = max(final_k, 4)
 
     for plan in planned:
         sub_query = plan["query"]
@@ -536,14 +617,15 @@ def _retrieve_inner(
                     rag_pool.append(item)
                     seen_pool.add(item.id.value)
 
-            if intent == "causal":
+            if intent in {"causal", "policy"} or is_policy_query(sub_query):
                 chunk_scored = [
-                    (memory, lexical_token_score(sub_query, memory.text or ""))
+                    (memory, lexical_token_score(sub_query, memory.text or "") + query_policy_boost(sub_query, memory.text or ""))
                     for memory in memories
                     if memory.is_searchable() and memory.type is MemoryType.FILE_CHUNK
                 ]
                 chunk_scored.sort(key=lambda pair: pair[1], reverse=True)
-                for memory, score in chunk_scored[:4]:
+                chunk_limit = 4 if intent == "causal" else 2
+                for memory, score in chunk_scored[:chunk_limit]:
                     if score <= 0 or memory.id.value in seen_pool:
                         continue
                     rag_pool.append(memory)
@@ -594,8 +676,12 @@ def _retrieve_inner(
         )
         if any(plan.get("intent") == "causal" for plan in planned) and strategy == "layered_tree":
             rag_hits = _stabilize_causal_hits(rag_hits, event_hits, rag_pool, final_k)
-        if _is_ticket_query(query):
+        if _is_ticket_query(query) and is_policy_query(query):
+            rag_hits = _ensure_policy_chunks(rag_hits, memories, query, limit=2)
+        elif _is_ticket_query(query):
             rag_hits = _filter_ticket_policy_chunks(rag_hits)
+        elif is_policy_query(query):
+            rag_hits = _ensure_policy_chunks(rag_hits, memories, query, limit=2)
     else:
         rag_hits = []
         all_hit_scores = {}

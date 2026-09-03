@@ -27,3 +27,27 @@ def test_dietary_query_maps_to_profile_intent():
         "rules",
     )
     assert any(item["intent"] == "profile" for item in planned)
+
+
+def test_allergy_birthday_tea_map_to_profile_intent():
+    assert plan_queries("林夏对什么过敏？", "rules")[0]["intent"] == "profile"
+    assert plan_queries("林夏的生日是哪一天？", "rules")[0]["intent"] == "profile"
+    assert plan_queries("林夏日常喝什么茶？", "rules")[0]["intent"] == "profile"
+
+
+def test_ticket_invoice_splits_and_marks_policy():
+    planned = plan_queries("工单 #8842 升级后，承诺三日内补发充电器，那发票怎么给？", "rules")
+    assert len(planned) >= 2
+    intents = {item["intent"] for item in planned}
+    assert "policy" in intents
+    assert any("发票" in item["query"] for item in planned)
+
+
+def test_garbled_english_normalizes_before_planning():
+    planned = plan_queries(
+        "hEy, cAn U tElL mE wHaT hApPeNs To OvErTiMe WoRk OrDeRs AfTeR 9 Pm?",
+        "rules",
+    )
+    joined = " ".join(item["query"] for item in planned)
+    assert "overtime" in joined
+    assert any(item["intent"] == "policy" for item in planned)
