@@ -26,7 +26,7 @@
     "ragas_context_precision": 0.4731,
     "ragas_context_precision_n": 100,
     "ragas_answer_relevancy": 0.4867,
-    "ragas_answer_relevancy_n": 99,
+    "ragas_answer_relevancy_n": 100,
     "ragas_answer_correctness": 0.8022,
     "ragas_answer_correctness_n": 100,
     "generation_p0_pass": true
