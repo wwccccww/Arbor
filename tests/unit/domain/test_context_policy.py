@@ -21,7 +21,7 @@ def test_context_policy():
         "memory_hits",
     ]
     assert slots.thread_summary == "摘要"
-def test_context_policy_keeps_up_to_eight_memories():
+def test_context_policy_caps_memories_at_five_after_policy_reorder():
     from arbor.domain.memory.memory import MemoryItem, MemoryType
     from arbor.domain.shared.ids import MemoryId, PersonaId, TenantId
 
@@ -44,5 +44,5 @@ def test_context_policy_keeps_up_to_eight_memories():
         event_hits=[],
         memory_hits=hits,
     )
-    assert len(slots.memory_hits) == 6
-    assert len(slots.injected_memory_ids) == 6
+    assert len(slots.memory_hits) == 5
+    assert len(slots.injected_memory_ids) == 5
