@@ -498,6 +498,16 @@ def _record_to_sample(record: dict[str, Any]) -> RagasSample | None:
     )
 
 
+def _scorable_sample_pairs(records: list[dict[str, Any]]) -> list[tuple[dict[str, Any], RagasSample]]:
+    pairs: list[tuple[dict[str, Any], RagasSample]] = []
+    for record in records:
+        sample = _record_to_sample(record)
+        if sample is None:
+            continue
+        pairs.append((record, sample))
+    return pairs
+
+
 def run_ragas_official_score(
     *,
     run_dir: Path,
@@ -535,21 +545,23 @@ def run_ragas_official_score(
                 else:
                     missing_metrics.append(metric)
             batch_scores[case_id] = metrics
-            if missing_metrics:
+            if missing_metrics and _record_to_sample(record) is not None:
                 pending_records.append(record)
                 pending_metrics.update(missing_metrics)
         if pending_records and pending_metrics:
-            samples = [_record_to_sample(record) for record in pending_records]
+            pairs = _scorable_sample_pairs(pending_records)
             metric_list = [metric for metric in RAGAS_METRIC_NAMES if metric in pending_metrics]
-            scored = scorer.score_batch(samples, metric_names=metric_list)
-            for record, metric_row in zip(pending_records, scored, strict=True):
-                case_id = str(record["case_id"])
-                fingerprint = str(record.get("fingerprint") or generation_fingerprint(record))
-                for metric in metric_list:
-                    value = metric_row.get(metric)
-                    if batch_scores[case_id].get(metric) is None:
-                        batch_scores[case_id][metric] = value
-                    store.save_metric_cache(case_id, metric, batch_scores[case_id].get(metric), fingerprint)
+            if pairs:
+                samples = [sample for _, sample in pairs]
+                scored = scorer.score_batch(samples, metric_names=metric_list)
+                for (record, _), metric_row in zip(pairs, scored, strict=True):
+                    case_id = str(record["case_id"])
+                    fingerprint = str(record.get("fingerprint") or generation_fingerprint(record))
+                    for metric in metric_list:
+                        value = metric_row.get(metric)
+                        if batch_scores[case_id].get(metric) is None:
+                            batch_scores[case_id][metric] = value
+                        store.save_metric_cache(case_id, metric, batch_scores[case_id].get(metric), fingerprint)
         score_rows = []
         for record in batch_records:
             case_id = str(record["case_id"])

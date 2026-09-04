@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 
 from arbor.adapters.outbound.inmemory import ScriptedLLM
-from arbor.adapters.outbound.ragas_scorer import RAGAS_METRIC_NAMES, FakeRagasMetricsScorer
+from arbor.adapters.outbound.ragas_scorer import RAGAS_METRIC_NAMES, FakeRagasMetricsScorer, RagasSample
 from arbor.application.evaluation.ragas_pipeline import (
     RagasRunStore,
     _eval_thread_id,
+    _record_to_sample,
     build_report_from_artifacts,
     default_run_dir,
     generation_fingerprint,
@@ -178,3 +179,77 @@ def test_parallel_generation_workers(tmp_path):
 
 def test_default_run_dir_uses_date():
     assert default_run_dir("custom-id").name == "custom-id"
+
+
+def _generation_record(**overrides):
+    record = {
+        "case_id": "ragas-llm-001",
+        "query": "q",
+        "reference": "r",
+        "reference_contexts": ["rc"],
+        "answer": "a",
+        "text": "a",
+        "contexts": ["c"],
+        "behavior": "answer",
+        "skill": "episode_detail",
+        "injected_memory_ids": [],
+        "citations": [],
+        "leaked": False,
+        "strategy": "layered_tree",
+        "embed": "fixture",
+        "generator": "deepseek-chat",
+    }
+    record.update(overrides)
+    record["fingerprint"] = generation_fingerprint(record)
+    return record
+
+
+def test_record_to_sample_skips_empty_answer():
+    assert _record_to_sample(_generation_record(answer="", text="")) is None
+    assert _record_to_sample(_generation_record(leaked=True)) is None
+    assert _record_to_sample(_generation_record(behavior="refuse")) is None
+    sample = _record_to_sample(_generation_record())
+    assert sample is not None
+    assert sample.answer == "a"
+
+
+def test_fake_scorer_skips_none_and_empty_samples():
+    scorer = FakeRagasMetricsScorer()
+    scored = scorer.score_batch(
+        [
+            None,
+            RagasSample(question="q", answer="", contexts=["c"]),
+            RagasSample(question="q", answer="a", contexts=["c"]),
+        ]
+    )
+    assert scored[0]["faithfulness"] is None
+    assert scored[1]["faithfulness"] is None
+    assert scored[2]["faithfulness"] == 1.0
+    assert len(scored) == 3
+
+
+def test_score_skips_unscorable_records_without_none_samples(tmp_path):
+    run_dir = tmp_path / "run-unscorable"
+    store = RagasRunStore(run_dir, batch_size=10)
+    store.ensure_dirs()
+    good = _generation_record(case_id="ragas-llm-001")
+    empty = _generation_record(case_id="ragas-llm-007", answer="", text="")
+    store.write_jsonl(store.batch_path("generations", 0), [good, empty])
+
+    class RecordingScorer:
+        def __init__(self):
+            self.seen: list = []
+
+        def score_batch(self, samples, *, metric_names=None):
+            self.seen.extend(samples)
+            assert all(sample is not None for sample in samples)
+            assert all((sample.answer or "").strip() for sample in samples)
+            return FakeRagasMetricsScorer().score_batch(samples, metric_names=metric_names)
+
+    scorer = RecordingScorer()
+    run_ragas_official_score(run_dir=run_dir, scorer=scorer, batch_size=10, resume=True)
+    assert len(scorer.seen) == 1
+    scores = store.read_jsonl(store.batch_path("scores", 0))
+    by_id = {row["case_id"]: row["metrics"] for row in scores}
+    assert by_id["ragas-llm-001"]["faithfulness"] == 1.0
+    assert by_id["ragas-llm-007"]["faithfulness"] is None
