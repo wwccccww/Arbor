@@ -195,6 +195,13 @@ class DeepSeekChatLLM:
             )
         yield StreamFinished(buffer)
 
+    def _capture_usage(self, body: dict, message: dict) -> None:
+        usage = body.get("usage") or {}
+        self.last_input_tokens = usage.get("prompt_tokens")
+        self.last_output_tokens = usage.get("completion_tokens")
+        reasoning = message.get("reasoning_content")
+        self.last_reasoning_content = str(reasoning) if reasoning else None
+
 
 def _latin_ratio(text: str) -> float:
     letters = sum(ch.isascii() and ch.isalpha() for ch in text)
@@ -211,13 +218,6 @@ def eval_generation_retry_hint(question: str, answer: str) -> str | None:
     if _latin_ratio(question) >= 0.55 and _latin_ratio(answer) < 0.4:
         return "用户问题是英文。text 必须用英文完整作答，不要用中文句子。"
     return None
-
-    def _capture_usage(self, body: dict, message: dict) -> None:
-        usage = body.get("usage") or {}
-        self.last_input_tokens = usage.get("prompt_tokens")
-        self.last_output_tokens = usage.get("completion_tokens")
-        reasoning = message.get("reasoning_content")
-        self.last_reasoning_content = str(reasoning) if reasoning else None
 
 
 def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:

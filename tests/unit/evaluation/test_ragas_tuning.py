@@ -140,6 +140,12 @@ def test_eval_generation_retry_hint():
     assert eval_generation_retry_hint("Where does Lin Xia reside?", "Lin Xia lives in Hangzhou.") is None
 
 
+def test_deepseek_chat_keeps_capture_usage():
+    from arbor.adapters.outbound.deepseek.chat import DeepSeekChatLLM
+
+    assert callable(DeepSeekChatLLM._capture_usage)
+
+
 def test_eval_generation_system_prompt():
     prompt = _system_prompt({"profile": {"display_name": "林夏"}, "eval_generation_mode": True}, [])
     assert "评测模式" in prompt
