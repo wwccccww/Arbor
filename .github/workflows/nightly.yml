@@ -159,5 +159,6 @@ jobs:
           pip install -r eval/requirements-eval.txt
           python3 -m pytest tests/eval/test_ragas_official_llm.py -q -m llm --tb=short
           python3 -m arbor.adapters.inbound.cli.eval_cli \
-            --suite ragas-official-v1 --mode generation --strategy layered_tree --embed bge --write-baseline --ragas-pipeline \
+            --suite ragas-official-v1 --mode generation --strategy layered_tree --embed bge \
+            --ragas-retrieval-preset default --write-baseline \
             | tee eval/public/runs/nightly-ragas-official-$(date -u +%Y%m%d).json

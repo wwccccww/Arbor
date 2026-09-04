@@ -133,24 +133,30 @@ def _metric_value(raw) -> float | None:
     return value
 
 
+def sample_is_scorable(sample: RagasSample | None) -> bool:
+    if sample is None:
+        return False
+    return bool((sample.answer or "").strip() and sample.contexts and (sample.question or "").strip())
+
+
+def _empty_metric_row() -> dict[str, float | None]:
+    return {name: None for name in RAGAS_METRIC_NAMES}
+
+
 class RagasMetricsScorer:
     """Batch RAGAS evaluate for Route A official generation suite."""
 
     def score_batch(
         self,
-        samples: list[RagasSample],
+        samples: list[RagasSample | None],
         *,
         metric_names: list[str] | None = None,
     ) -> list[dict[str, float | None]]:
         names = metric_names or list(RAGAS_METRIC_NAMES)
-        empty = [{name: None for name in RAGAS_METRIC_NAMES} for _ in samples]
+        empty = [_empty_metric_row() for _ in samples]
         if not judge_api_key() or not samples:
             return empty
-        usable = [
-            sample
-            for sample in samples
-            if (sample.answer or "").strip() and sample.contexts and (sample.question or "").strip()
-        ]
+        usable = [sample for sample in samples if sample_is_scorable(sample)]
         if not usable:
             return empty
         try:
@@ -191,16 +197,12 @@ class RagasMetricsScorer:
         scored: list[dict[str, float | None]] = []
         usable_idx = 0
         for sample in samples:
-            if not (
-                (sample.answer or "").strip()
-                and sample.contexts
-                and (sample.question or "").strip()
-            ):
-                scored.append({name: None for name in RAGAS_METRIC_NAMES})
+            if not sample_is_scorable(sample):
+                scored.append(_empty_metric_row())
                 continue
             row = frame.iloc[usable_idx]
             usable_idx += 1
-            item: dict[str, float | None] = {name: None for name in RAGAS_METRIC_NAMES}
+            item = _empty_metric_row()
             for name in names:
                 item[name] = _metric_value(row.get(name))
             scored.append(item)
@@ -212,19 +214,18 @@ class FakeRagasMetricsScorer:
 
     def score_batch(
         self,
-        samples: list[RagasSample],
+        samples: list[RagasSample | None],
         *,
         metric_names: list[str] | None = None,
     ) -> list[dict[str, float | None]]:
         names = metric_names or list(RAGAS_METRIC_NAMES)
         perfect = {name: 1.0 for name in names}
-        empty = {name: None for name in RAGAS_METRIC_NAMES}
         out: list[dict[str, float | None]] = []
         for sample in samples:
-            if (sample.answer or "").strip() and sample.contexts:
-                row = dict(empty)
+            if sample_is_scorable(sample):
+                row = _empty_metric_row()
                 row.update(perfect)
                 out.append(row)
             else:
-                out.append(dict(empty))
+                out.append(_empty_metric_row())
         return out

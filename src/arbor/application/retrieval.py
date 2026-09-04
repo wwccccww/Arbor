@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import re
 import time
 from collections import defaultdict
 
-from arbor.application.event_graph_router import expand_event_nodes, route_event_seeds
+from arbor.application.event_graph_router import expand_event_nodes, filter_event_nodes, route_event_seeds
 from arbor.application.memory.validity import is_memory_expired
 from arbor.application.query_planner import plan_queries
 from arbor.application.retrieval_config import RetrievalConfig
 from arbor.application.retrieval_lexical import (
+    expand_retrieval_query,
+    is_policy_query,
     lexical_token_score,
+    memory_min_score_for_query,
     mmr_select,
+    needs_profile_facts,
+    query_policy_boost,
     rrf_merge,
     score_memory,
 )
@@ -19,6 +25,66 @@ from arbor.domain.shared.ids import PersonaId, TenantId
 from arbor.observability.noop import NoopObservability
 
 STRATEGIES = ("summary_only", "vector_only", "layered", "layered_tree")
+
+_TICKET_QUERY_RE = re.compile(r"(?:工单|ticket|work\s*order)\s*#?\s*\d+|#\s*\d{4}", re.IGNORECASE)
+
+
+def _is_ticket_query(query: str) -> bool:
+    return bool(_TICKET_QUERY_RE.search(query or ""))
+
+
+def _filter_ticket_policy_chunks(hits: list[MemoryItem]) -> list[MemoryItem]:
+    """Drop generic售后政策 chunks when the query targets a specific ticket."""
+    kept = [
+        item
+        for item in hits
+        if item.type is not MemoryType.FILE_CHUNK
+        or not (item.text or "").strip().startswith(("售后手册", "食品类", "质量问题退换", "在线客服"))
+    ]
+    return kept if kept else hits[:1]
+
+
+def _ensure_policy_chunks(
+    hits: list[MemoryItem],
+    memories: list[MemoryItem],
+    query: str,
+    *,
+    limit: int = 2,
+) -> list[MemoryItem]:
+    """Keep ticket facts and force matching policy FILE_CHUNKs into the prompt window."""
+    scored: list[tuple[MemoryItem, float]] = []
+    for item in memories:
+        if not item.is_searchable() or item.type is not MemoryType.FILE_CHUNK:
+            continue
+        score = lexical_token_score(query, item.text or "") + query_policy_boost(query, item.text or "")
+        if score <= 0:
+            continue
+        scored.append((item, score))
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    extra: list[MemoryItem] = []
+    extra_ids: set[str] = set()
+    for item, _ in scored:
+        if item.id.value in extra_ids:
+            continue
+        extra.append(item)
+        extra_ids.add(item.id.value)
+        if len(extra) >= limit:
+            break
+    if not extra:
+        return hits
+    ticketish = [
+        item
+        for item in hits
+        if item.id.value not in extra_ids and item.type is not MemoryType.FILE_CHUNK
+    ]
+    leftover_chunks = [
+        item
+        for item in hits
+        if item.id.value not in extra_ids and item.type is MemoryType.FILE_CHUNK
+    ]
+    head = ticketish[:1]
+    rest = ticketish[1:]
+    return head + extra + rest + leftover_chunks
 
 
 def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:
@@ -112,6 +178,201 @@ def _stabilize_causal_hits(
 
     cap = max(limit, min(len(merged), limit + 4))
     return merged[:cap]
+
+
+def _select_relevant_profile_hits(
+    query: str,
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    limit: int = 2,
+    config: RetrievalConfig | None = None,
+) -> list[MemoryItem]:
+    """Pick profile FACT memories most relevant to the query for prompt injection."""
+    if not profile_hits or limit <= 0:
+        return []
+    cfg = config or RetrievalConfig.from_env()
+    dietary = _dietary_profile_pair(query, profile_hits, limit)
+    if dietary:
+        return dietary
+    min_score = memory_min_score_for_query(query, cfg.memory_min_score)
+    selected, scores = rerank_memories(query, profile_hits, embed, limit=limit, config=cfg)
+    if selected:
+        return [
+            item
+            for item in selected
+            if scores.get(item.id.value, 0.0) >= min_score
+        ]
+    return _lexical_scan(profile_hits, query, limit)
+
+
+def _dietary_profile_pair(
+    query: str,
+    profile_hits: list[MemoryItem],
+    limit: int,
+) -> list[MemoryItem] | None:
+    lowered = (query or "").lower()
+    blob_query = query or ""
+    tokens: list[str] = []
+    if any(hint in lowered or hint in blob_query for hint in ("辣", "spice", "微辣", "辣度")):
+        tokens.append("微辣")
+    if any(hint in lowered or hint in blob_query for hint in ("香菜", "cilantro")):
+        tokens.append("香菜")
+    if not tokens:
+        if any(hint in lowered or hint in blob_query for hint in ("饮食", "dietary")):
+            tokens = ["微辣", "香菜"]
+        else:
+            return None
+    picked: list[MemoryItem] = []
+    seen: set[str] = set()
+    for token in tokens:
+        for item in profile_hits:
+            if item.id.value in seen:
+                continue
+            if token in (item.text or ""):
+                picked.append(item)
+                seen.add(item.id.value)
+                break
+        if len(picked) >= limit:
+            break
+    return picked[:limit] if picked else None
+
+
+def _filter_scored_hits(
+    hits: list[MemoryItem],
+    scores: dict[str, float],
+    *,
+    min_score: float,
+    min_keep: int = 1,
+) -> list[MemoryItem]:
+    kept = [item for item in hits if scores.get(item.id.value, 0.0) >= min_score]
+    if len(kept) < min_keep and hits:
+        return hits[:min_keep]
+    return kept
+
+
+def _profile_inject_limit(
+    query: str,
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    final_k: int,
+    profile_query: bool,
+    episode_query: bool,
+    planned: list[dict],
+    config: RetrievalConfig,
+) -> int:
+    if not profile_hits or final_k <= 0:
+        return 0
+    if profile_query or needs_profile_facts(query):
+        return min(2, final_k)
+    if episode_query:
+        return min(max(2, len(planned)), final_k)
+    return 0
+
+
+def _select_profile_hits_for_plans(
+    query: str,
+    planned: list[dict],
+    profile_hits: list[MemoryItem],
+    embed,
+    *,
+    limit: int,
+    config: RetrievalConfig,
+    episode_query: bool,
+) -> list[MemoryItem]:
+    if not profile_hits or limit <= 0:
+        return []
+    if (episode_query or any(plan.get("intent") == "profile" for plan in planned)) and len(planned) > 1:
+        merged: list[MemoryItem] = []
+        seen: set[str] = set()
+        for plan in planned:
+            for item in _select_relevant_profile_hits(
+                plan["query"],
+                profile_hits,
+                embed,
+                limit=1,
+                config=config,
+            ):
+                if item.id.value not in seen:
+                    merged.append(item)
+                    seen.add(item.id.value)
+                if len(merged) >= limit:
+                    return merged
+        return merged
+    return _select_relevant_profile_hits(query, profile_hits, embed, limit=limit, config=config)
+
+
+def _rerank_planned_hits(
+    query: str,
+    planned: list[dict],
+    rag_pool: list[MemoryItem],
+    embed,
+    *,
+    limit: int,
+    config: RetrievalConfig,
+) -> tuple[list[MemoryItem], dict[str, float]]:
+    if len(planned) <= 1:
+        hits, scores = rerank_memories(query, rag_pool, embed, limit=limit, config=config)
+        min_score = memory_min_score_for_query(query, config.memory_min_score)
+        return _filter_scored_hits(hits, scores, min_score=min_score), scores
+
+    merged: list[MemoryItem] = []
+    all_scores: dict[str, float] = {}
+    seen: set[str] = set()
+
+    main_hits, main_scores = rerank_memories(query, rag_pool, embed, limit=limit, config=config)
+    for item in main_hits:
+        mid = item.id.value
+        all_scores[mid] = main_scores.get(mid, 0.0)
+        if mid not in seen:
+            merged.append(item)
+            seen.add(mid)
+
+    per_sub = max(2, limit // len(planned))
+    for plan in planned:
+        sub_hits, sub_scores = rerank_memories(
+            plan["query"],
+            rag_pool,
+            embed,
+            limit=per_sub,
+            config=config,
+        )
+        for item in sub_hits:
+            mid = item.id.value
+            all_scores[mid] = max(all_scores.get(mid, 0.0), sub_scores.get(mid, 0.0))
+            if mid not in seen:
+                merged.append(item)
+                seen.add(mid)
+    merged.sort(key=lambda item: all_scores.get(item.id.value, 0.0), reverse=True)
+    return merged[:limit], all_scores
+
+
+def _effective_prompt_k(planned: list[dict], base_k: int) -> int:
+    if len(planned) > 1:
+        return max(base_k, min(6, base_k + 1))
+    intent = (planned[0].get("intent") or "general") if planned else "general"
+    if intent in {"profile", "episode", "causal", "policy"}:
+        return base_k
+    return min(base_k, 3)
+
+
+def _merge_injection_hits(
+    profile_hits: list[MemoryItem],
+    rag_hits: list[MemoryItem],
+    *,
+    limit: int,
+) -> list[MemoryItem]:
+    merged: list[MemoryItem] = []
+    seen: set[str] = set()
+    for item in profile_hits + rag_hits:
+        if item.id.value in seen:
+            continue
+        seen.add(item.id.value)
+        merged.append(item)
+        if len(merged) >= limit:
+            break
+    return merged
 
 
 def rerank_memories(
@@ -228,6 +489,7 @@ def _retrieve_inner(
 ) -> dict:
     obs = observability or NoopObservability()
     cfg = config or RetrievalConfig.from_env()
+    query = expand_retrieval_query(query)
     final_k = k_rerank if k_rerank is not None else min(k, cfg.rerank_k)
     pool_k = k_pool if k_pool is not None else max(cfg.pool_k, k, final_k)
     edge_list = edges or []
@@ -255,6 +517,11 @@ def _retrieve_inner(
     planned = plan_queries(query, cfg.query_plan) if strategy != "summary_only" else []
     if not planned:
         planned = [{"query": query, "intent": "general"}]
+    final_k = _effective_prompt_k(planned, final_k)
+    if _is_ticket_query(query) and is_policy_query(query):
+        final_k = max(final_k, 5)
+    elif is_policy_query(query):
+        final_k = max(final_k, 4)
 
     for plan in planned:
         sub_query = plan["query"]
@@ -268,12 +535,13 @@ def _retrieve_inner(
             with obs.span("event_tree.route", intent=intent):
                 seeds = route_event_seeds(sub_query, events, embed, cfg.event_seed_k)
             expand_depth = cfg.event_expand_depth + (1 if intent == "causal" else 0)
+            expand_max = cfg.event_expand_max if intent == "causal" else min(cfg.event_expand_max, 4)
             sub_event_nodes, expanded_event_ids = expand_event_nodes(
                 seeds,
                 events,
                 edge_list,
                 depth=expand_depth,
-                max_events=cfg.event_expand_max,
+                max_events=expand_max,
             )
             for node in sub_event_nodes:
                 if node.id.value not in seen_event_node:
@@ -290,7 +558,7 @@ def _retrieve_inner(
                     event_hits.append(memory)
                     seen_event_hit.add(memory.id.value)
 
-        if strategy in {"vector_only", "layered", "layered_tree"} and intent != "profile":
+        if strategy in {"vector_only", "layered", "layered_tree"}:
             sub_pool_k = max(10, pool_k // max(1, len(planned)))
             if intent == "causal":
                 sub_pool_k = max(sub_pool_k, pool_k)
@@ -355,14 +623,15 @@ def _retrieve_inner(
                     rag_pool.append(item)
                     seen_pool.add(item.id.value)
 
-            if intent == "causal":
+            if intent in {"causal", "policy"} or is_policy_query(sub_query):
                 chunk_scored = [
-                    (memory, lexical_token_score(sub_query, memory.text or ""))
+                    (memory, lexical_token_score(sub_query, memory.text or "") + query_policy_boost(sub_query, memory.text or ""))
                     for memory in memories
                     if memory.is_searchable() and memory.type is MemoryType.FILE_CHUNK
                 ]
                 chunk_scored.sort(key=lambda pair: pair[1], reverse=True)
-                for memory, score in chunk_scored[:4]:
+                chunk_limit = 4 if intent == "causal" else 2
+                for memory, score in chunk_scored[:chunk_limit]:
                     if score <= 0 or memory.id.value in seen_pool:
                         continue
                     rag_pool.append(memory)
@@ -371,12 +640,39 @@ def _retrieve_inner(
     per_source_counts["event_tree"] = len(event_hits)
     per_source_counts["vector"] = len(vector_hits)
 
+    causal_query = any(plan.get("intent") == "causal" for plan in planned)
+    episode_query = any(plan.get("intent") == "episode" for plan in planned)
+    profile_query = any(plan.get("intent") == "profile" for plan in planned)
+    if strategy == "layered_tree" and event_nodes:
+        if profile_query:
+            event_nodes = []
+        else:
+            inject_k = cfg.event_inject_k + (1 if causal_query else 0)
+            min_score = cfg.event_min_score * (0.5 if causal_query else 1.0)
+            require_lexical = not (causal_query or episode_query)
+            event_nodes = filter_event_nodes(
+                query,
+                event_nodes,
+                embed,
+                limit=inject_k,
+                min_score=min_score,
+                require_lexical=require_lexical,
+                min_lexical=0.08,
+            )
+
     if strategy != "summary_only":
+        profile_ids = {memory.id.value for memory in profile_hits}
+        rag_pool = [item for item in rag_pool if item.id.value not in profile_ids]
         rerank_started = time.perf_counter()
         input_count = len(rag_pool)
         with obs.span("rag.rerank", input_count=input_count):
-            rag_hits, all_hit_scores = rerank_memories(
-                query, rag_pool, embed, limit=final_k, config=cfg
+            rag_hits, all_hit_scores = _rerank_planned_hits(
+                query,
+                planned,
+                rag_pool,
+                embed,
+                limit=final_k,
+                config=cfg,
             )
         obs.event(
             "rag.rerank",
@@ -386,9 +682,41 @@ def _retrieve_inner(
         )
         if any(plan.get("intent") == "causal" for plan in planned) and strategy == "layered_tree":
             rag_hits = _stabilize_causal_hits(rag_hits, event_hits, rag_pool, final_k)
+        if _is_ticket_query(query) and is_policy_query(query):
+            rag_hits = _ensure_policy_chunks(rag_hits, memories, query, limit=2)
+        elif _is_ticket_query(query):
+            rag_hits = _filter_ticket_policy_chunks(rag_hits)
+        elif is_policy_query(query):
+            rag_hits = _ensure_policy_chunks(rag_hits, memories, query, limit=2)
     else:
         rag_hits = []
         all_hit_scores = {}
+
+    profile_inject_k = _profile_inject_limit(
+        query,
+        profile_hits,
+        embed,
+        final_k=final_k,
+        profile_query=profile_query,
+        episode_query=episode_query,
+        planned=planned,
+        config=cfg,
+    )
+    relevant_profile = _select_profile_hits_for_plans(
+        query,
+        planned,
+        profile_hits,
+        embed,
+        limit=profile_inject_k,
+        config=cfg,
+        episode_query=episode_query,
+    )
+    if relevant_profile:
+        _, profile_scores = rerank_memories(
+            query, relevant_profile, embed, limit=len(relevant_profile), config=cfg
+        )
+        all_hit_scores.update(profile_scores)
+    hits = _merge_injection_hits(relevant_profile, rag_hits, limit=final_k)
 
     scored: list[MemoryItem] = []
     for item in list(profile_hits) + rag_hits:
@@ -398,13 +726,15 @@ def _retrieve_inner(
     sources: dict[str, str] = {}
     for memory in profile_hits:
         sources[memory.id.value] = "profile"
+    for memory in relevant_profile:
+        sources[memory.id.value] = "profile"
     for memory in event_hits:
         sources.setdefault(memory.id.value, "event_tree")
     for memory in vector_hits:
         sources.setdefault(memory.id.value, "vector")
 
     trim_priority = sorted(
-        rag_hits,
+        hits,
         key=lambda memory: all_hit_scores.get(memory.id.value, 0.0),
     )
 
@@ -415,8 +745,9 @@ def _retrieve_inner(
         "event_hits": event_hits,
         "event_nodes": event_nodes,
         "vector_hits": vector_hits,
-        "hits": rag_hits,
+        "hits": hits,
         "hit_ids": [memory.id.value for memory in scored],
+        "injected_hit_ids": [memory.id.value for memory in hits],
         "hit_scores": all_hit_scores,
         "trim_priority": [memory.id.value for memory in trim_priority],
         "sources": sources,
