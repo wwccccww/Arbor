@@ -76,6 +76,33 @@ class DeepSeekChatLLM:
                 input_tokens=self.last_input_tokens,
                 output_tokens=self.last_output_tokens,
             )
+            parsed = parse_model_out(content)
+            retry_hint = (
+                eval_generation_retry_hint(text, parsed.get("text") or "")
+                if prompt_slots.get("eval_generation_mode")
+                else None
+            )
+            if retry_hint:
+                retry_payload = dict(payload)
+                retry_payload["messages"] = [
+                    {
+                        "role": "system",
+                        "content": _system_prompt(prompt_slots, injected_memory_ids) + "\n" + retry_hint,
+                    },
+                    {"role": "user", "content": text},
+                ]
+                retry = httpx.post(
+                    f"{chat_base_url()}/chat/completions",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json=retry_payload,
+                    timeout=self.timeout,
+                )
+                if retry.status_code < 400:
+                    body = retry.json()
+                    message = body["choices"][0]["message"]
+                    content = message["content"]
+                    self._capture_usage(body, message)
+                    parsed = parse_model_out(content)
             if self.observability is not None:
                 from arbor.observability.helpers import obs_or_noop
 
@@ -85,7 +112,7 @@ class DeepSeekChatLLM:
                     model=model,
                     result="success",
                 )
-        return parse_model_out(content)
+        return parsed
 
     def complete_stream(self, *, prompt_slots: dict, text: str, injected_memory_ids: list[str]):
         """Stream the ``text`` portion of the model reply, token by token."""
@@ -168,6 +195,23 @@ class DeepSeekChatLLM:
             )
         yield StreamFinished(buffer)
 
+
+def _latin_ratio(text: str) -> float:
+    letters = sum(ch.isascii() and ch.isalpha() for ch in text)
+    cjk = sum(1 for ch in text if "\u4e00" <= ch <= "\u9fff")
+    total = letters + cjk
+    if total == 0:
+        return 0.0
+    return letters / total
+
+
+def eval_generation_retry_hint(question: str, answer: str) -> str | None:
+    if not (answer or "").strip():
+        return "上一轮 text 为空。必须根据记忆给出非空 JSON，text 至少一句话。"
+    if _latin_ratio(question) >= 0.55 and _latin_ratio(answer) < 0.4:
+        return "用户问题是英文。text 必须用英文完整作答，不要用中文句子。"
+    return None
+
     def _capture_usage(self, body: dict, message: dict) -> None:
         usage = body.get("usage") or {}
         self.last_input_tokens = usage.get("prompt_tokens")
@@ -191,8 +235,10 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
                 "饮食/辣度/香菜类问题：档案 taboos 与记忆中「微辣」「讨厌香菜」等表述均可作答，不得漏答辣度。",
                 "过敏/生日/喝茶/榴莲等人物属性：记忆中有对应事实就必须作答，禁止声称档案没有。",
                 "工单类多跳：工单事实与发票/运费/客服时间/退换政策可能来自不同记忆，须同时覆盖。",
+                "记忆 JSON 里已经出现的事实必须写入答案；禁止说「现有信息未提及」或「记录中未提及」。",
                 "用第三人称客观陈述事实（如「林夏…」/「Lin Xia…」），不要用第一人称自称。",
                 "回答语言必须与用户问题一致：问题以英文为主则用英文作答，以中文为主则用中文作答。",
+                "英文问题的 text 必须是英文句子，不要用中文作答。",
                 "只回答问题明确问到的内容，一两句说完；不要补充问题未问的工单细节、人物背景或事件。",
                 "能回答部分子问题时只陈述已知事实；不要追加「现有信息未提及」「无法确认」「未明确说明」等免责句。",
                 "仅当整题在档案和记忆中都找不到依据时，才简短说明没有记录。",

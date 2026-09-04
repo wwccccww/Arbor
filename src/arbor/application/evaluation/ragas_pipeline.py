@@ -28,7 +28,12 @@ from arbor.adapters.outbound.inmemory import (
 from arbor.adapters.outbound.ragas_scorer import RAGAS_METRIC_NAMES, RagasSample
 from arbor.application.conversation.context_compiler import ContextCompiler
 from arbor.application.conversation.send_message import SendMessage
-from arbor.application.evaluation.generation import aggregate_generation, score_generation_case, trim_ragas_contexts
+from arbor.application.evaluation.generation import (
+    aggregate_generation,
+    score_generation_case,
+    strip_eval_hedges,
+    trim_ragas_contexts,
+)
 from arbor.application.evaluation.ragas_tuning import (
     build_ragas_report_extras,
     cases_by_id,
@@ -288,6 +293,8 @@ def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[st
         mid for mid in result["injected_memory_ids"] if mid in (case.get("forbidden_memory_ids") or [])
     ]
     result["leak_ids"] = leak_ids
+    answer = strip_eval_hedges(str(result.get("text") or ""))
+    result["text"] = answer
     reference_contexts = [str(x) for x in case.get("reference_contexts") or []]
     raw_contexts = [ctx for ctx in result.get("injected_contexts") or [] if ctx]
     is_multi = "multi_hop" in str(case.get("evolution_type") or "")

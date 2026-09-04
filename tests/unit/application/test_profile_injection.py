@@ -125,6 +125,27 @@ def test_ticket_plus_invoice_keeps_policy_chunk():
     assert all(mid in injected for mid in case["expected_memory_ids"])
 
 
+def test_ticket_plus_invoice_policy_stays_in_prompt_window():
+    memories, events, _, index, embed, summary = _load_ragas_ports()
+    case = _case("ragas-llm-061")
+    actor = case["actor"]
+    retrieved = retrieve(
+        strategy="layered_tree",
+        query=case["query"],
+        tenant_id=TenantId(actor["tenant_id"]),
+        persona_id=PersonaId(actor["persona_id"]),
+        k=5,
+        memories=memories.list_active(TenantId(actor["tenant_id"]), PersonaId(actor["persona_id"])),
+        events=events.list_nodes(TenantId(actor["tenant_id"]), PersonaId(actor["persona_id"])),
+        edges=events.list_edges(TenantId(actor["tenant_id"]), PersonaId(actor["persona_id"])),
+        summary=summary(PersonaId(actor["persona_id"])),
+        vector_search=index.search,
+        embed=embed.embed,
+    )
+    window = list(retrieved["injected_hit_ids"])[:5]
+    assert all(mid in window for mid in case["expected_memory_ids"])
+
+
 def test_garbled_overtime_query_retrieves_service_hours():
     case, injected = _retrieve_case("ragas-llm-050")
     assert case["expected_memory_ids"][0] in injected
@@ -138,6 +159,29 @@ def test_typo_call_time_retrieves_phone_memory():
 def test_ticket_quality_shipping_keeps_policy_chunk():
     case, injected = _retrieve_case("ragas-llm-099")
     assert all(mid in injected for mid in case["expected_memory_ids"])
+
+
+def test_ticket_quality_shipping_policy_stays_in_prompt_window():
+    memories, events, _, index, embed, summary = _load_ragas_ports()
+    case = _case("ragas-llm-099")
+    actor = case["actor"]
+    tenant = TenantId(actor["tenant_id"])
+    persona = PersonaId(actor["persona_id"])
+    retrieved = retrieve(
+        strategy="layered_tree",
+        query=case["query"],
+        tenant_id=tenant,
+        persona_id=persona,
+        k=5,
+        memories=memories.list_active(tenant, persona),
+        events=events.list_nodes(tenant, persona),
+        edges=events.list_edges(tenant, persona),
+        summary=summary(persona),
+        vector_search=index.search,
+        embed=embed.embed,
+    )
+    window = list(retrieved["injected_hit_ids"])[:5]
+    assert all(mid in window for mid in case["expected_memory_ids"])
 
 
 def test_durian_and_weekend_multihop_retrieves_both():

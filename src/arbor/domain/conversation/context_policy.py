@@ -31,7 +31,7 @@ class ContextSlots:
 class ContextPolicy:
     """Define slot priority. Does not perform I/O."""
 
-    max_memories = 5
+    max_memories = 8
 
     def min_profile(self, profile: Profile) -> dict:
         data = {"display_name": profile.display_name, "one_liner": profile.one_liner}

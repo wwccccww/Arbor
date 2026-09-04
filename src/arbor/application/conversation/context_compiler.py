@@ -135,10 +135,6 @@ class ContextCompiler:
                     memory_hits=hits,
                     tool_policy=persona.tool_policy,
                 )
-                for item in hits:
-                    mid = item.id.value
-                    if mid not in slots.injected_memory_ids:
-                        slots.injected_memory_ids.append(mid)
                 conflict_notes = detect_context_conflicts(slots.profile, slots.memory_hits)
 
             recent_turns = self._recent_turns(thread)

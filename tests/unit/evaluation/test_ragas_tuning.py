@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from arbor.adapters.outbound.deepseek.chat import _system_prompt
+from arbor.adapters.outbound.deepseek.chat import _system_prompt, eval_generation_retry_hint
 from arbor.application.evaluation.ragas_tuning import (
     EVOLUTION_SINGLE,
     aggregate_generation_by_evolution,
@@ -132,6 +132,14 @@ def test_build_ragas_report_extras():
     assert extras["worst_cases"][0]["id"] == "c1"
 
 
+def test_eval_generation_retry_hint():
+    assert "为空" in (eval_generation_retry_hint("q", "") or "")
+    assert "英文" in (
+        eval_generation_retry_hint("Where does Lin Xia reside in Hangzhou?", "林夏住在杭州西湖区。") or ""
+    )
+    assert eval_generation_retry_hint("Where does Lin Xia reside?", "Lin Xia lives in Hangzhou.") is None
+
+
 def test_eval_generation_system_prompt():
     prompt = _system_prompt({"profile": {"display_name": "林夏"}, "eval_generation_mode": True}, [])
     assert "评测模式" in prompt
@@ -140,6 +148,8 @@ def test_eval_generation_system_prompt():
     assert "citations" in prompt
     assert "回答语言必须与用户问题一致" in prompt
     assert "免责句" in prompt
+    assert "记忆 JSON" in prompt
+    assert "英文问题的 text 必须是英文句子" in prompt
 
 
 def test_select_ragas_cases_stratified_balances_hops():

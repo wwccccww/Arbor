@@ -51,8 +51,7 @@ def _ensure_policy_chunks(
     *,
     limit: int = 2,
 ) -> list[MemoryItem]:
-    """Keep ticket facts and force in the best matching policy FILE_CHUNK."""
-    seen = {item.id.value for item in hits}
+    """Keep ticket facts and force matching policy FILE_CHUNKs into the prompt window."""
     scored: list[tuple[MemoryItem, float]] = []
     for item in memories:
         if not item.is_searchable() or item.type is not MemoryType.FILE_CHUNK:
@@ -63,11 +62,12 @@ def _ensure_policy_chunks(
         scored.append((item, score))
     scored.sort(key=lambda pair: pair[1], reverse=True)
     extra: list[MemoryItem] = []
+    extra_ids: set[str] = set()
     for item, _ in scored:
-        if item.id.value in seen:
+        if item.id.value in extra_ids:
             continue
         extra.append(item)
-        seen.add(item.id.value)
+        extra_ids.add(item.id.value)
         if len(extra) >= limit:
             break
     if not extra:
@@ -75,10 +75,16 @@ def _ensure_policy_chunks(
     ticketish = [
         item
         for item in hits
-        if item.type is not MemoryType.FILE_CHUNK
+        if item.id.value not in extra_ids and item.type is not MemoryType.FILE_CHUNK
     ]
-    others = [item for item in hits if item.type is MemoryType.FILE_CHUNK]
-    return ticketish + extra + others
+    leftover_chunks = [
+        item
+        for item in hits
+        if item.id.value not in extra_ids and item.type is MemoryType.FILE_CHUNK
+    ]
+    head = ticketish[:1]
+    rest = ticketish[1:]
+    return head + extra + rest + leftover_chunks
 
 
 def _apply_vector_filters(item: MemoryItem, filters: dict | None) -> bool:

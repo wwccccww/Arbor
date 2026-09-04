@@ -96,7 +96,8 @@ def trim_ragas_contexts(
             )
             event_lines.append((score, context))
         elif context.startswith("档案:"):
-            profile_lines.append(context)
+            if not _is_display_name_only_profile(context):
+                profile_lines.append(context)
         elif context.startswith("摘要:") or context.startswith("近期对话"):
             continue
         else:
@@ -139,6 +140,38 @@ def trim_ragas_contexts(
 
     # Relevant memories first so RAGAS context_precision is not capped by a leading profile line.
     return selected_memories + selected_events + other_prefix + profile_lines
+
+
+def _is_display_name_only_profile(context: str) -> bool:
+    if not context.startswith("档案:"):
+        return False
+    body = context.removeprefix("档案:").strip()
+    parts = [part.strip() for part in body.split() if part.strip()]
+    return bool(parts) and all(part.startswith("display_name=") for part in parts)
+
+
+_EVAL_HEDGE_RES = (
+    r"(?:但)?现有信息未提及[^。！？.!?]*[。！？.!]?",
+    r"(?:但)?现有记录未提及[^。！？.!?]*[。！？.!]?",
+    r"关于[^。]{0,24}(?:现有信息|现有记录)未提及[^。！？.!?]*[。！？.!]?",
+    r"记录中未提及[^。！？.!?]*[。！？.!]?",
+    r"(?:The \w+ )?is not mentioned in the records[^.]{0,80}\.?",
+    r"there is no information about[^.]{0,80}\.?",
+    r"so there is no information[^.]{0,80}\.?",
+)
+
+
+def strip_eval_hedges(answer: str) -> str:
+    """Drop trailing 'not mentioned' hedges that zero RAGAS answer_relevancy."""
+    import re
+
+    text = str(answer or "").strip()
+    if not text:
+        return text
+    for pattern in _EVAL_HEDGE_RES:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"[，,;；]\s*$", "", text).strip()
+    return text
 
 
 def _ngrams(text: str, size: int = 8) -> set[str]:
