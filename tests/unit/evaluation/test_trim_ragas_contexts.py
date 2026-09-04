@@ -22,7 +22,7 @@ def test_trim_ragas_contexts_keeps_cited_and_reference_overlap():
     assert any("mem-a" in line for line in trimmed)
     assert not any("mem-b" in line for line in trimmed)
     assert trimmed[0].startswith("记忆 mem-a")
-    assert not any(line.startswith("档案:") for line in trimmed)
+    assert trimmed[-1].startswith("档案:")
 
 
 def test_trim_ragas_contexts_falls_back_when_empty():
@@ -52,7 +52,7 @@ def test_trim_ragas_contexts_keeps_answer_overlap():
     assert not any("mem-b" in line for line in trimmed)
 
 
-def test_trim_ragas_contexts_drops_display_name_only_profile():
+def test_trim_ragas_contexts_keeps_profile_last():
     raw = [
         "档案: display_name=林夏",
         "记忆 mem-a: 和好后约定每周日晚上 21:00 打电话。",
@@ -66,8 +66,27 @@ def test_trim_ragas_contexts_drops_display_name_only_profile():
         max_memories=1,
     )
     assert trimmed[0].startswith("记忆 mem-a")
-    assert not any(line.startswith("档案:") for line in trimmed)
+    assert trimmed[-1].startswith("档案:")
     assert not any("mem-b" in line for line in trimmed)
+
+
+def test_trim_ragas_contexts_drops_zero_overlap_noise_when_hit_exists():
+    raw = [
+        "记忆 mem-hit: 面店争吵之后大约一周没有互相说话。",
+        "记忆 mem-noise: 林夏讨厌香菜，点餐不能放香菜。",
+        "记忆 mem-noise2: 后来发现林夏对猫毛过敏，不能养猫。",
+        "档案: display_name=林夏",
+    ]
+    trimmed = trim_ragas_contexts(
+        raw,
+        citations=[],
+        reference_contexts=["面店争吵之后大约一周没有互相说话。"],
+        answer="林夏在面店争吵之后，大约一周没有互相说话。",
+        max_memories=3,
+    )
+    assert any("mem-hit" in line for line in trimmed)
+    assert not any("mem-noise" in line for line in trimmed)
+    assert trimmed[-1].startswith("档案:")
 
 
 def test_trim_ragas_contexts_keeps_profile_with_taboos():
@@ -102,7 +121,8 @@ def test_trim_ragas_contexts_ranks_reference_memory_before_noise():
         max_events=1,
     )
     assert trimmed[0].startswith("记忆 mem-hit")
-    assert not any(line.startswith("档案:") for line in trimmed)
+    assert any(line.startswith("档案:") for line in trimmed)
+    assert trimmed.index(next(line for line in trimmed if line.startswith("档案:"))) > 0
 
 
 def test_strip_eval_hedges_drops_not_mentioned_clause():

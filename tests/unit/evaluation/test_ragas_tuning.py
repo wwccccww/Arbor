@@ -156,6 +156,7 @@ def test_eval_generation_system_prompt():
     assert "免责句" in prompt
     assert "记忆 JSON" in prompt
     assert "英文问题的 text 必须是英文句子" in prompt
+    assert "工单客户名" in prompt
 
 
 def test_select_ragas_cases_stratified_balances_hops():

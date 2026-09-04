@@ -96,8 +96,7 @@ def trim_ragas_contexts(
             )
             event_lines.append((score, context))
         elif context.startswith("档案:"):
-            if not _is_display_name_only_profile(context):
-                profile_lines.append(context)
+            profile_lines.append(context)
         elif context.startswith("摘要:") or context.startswith("近期对话"):
             continue
         else:
@@ -105,14 +104,11 @@ def trim_ragas_contexts(
 
     selected_memories: list[str] = []
     seen_memory: set[str] = set()
-    for _, line, memory_id in memory_lines:
-        if memory_id in cited and memory_id not in seen_memory:
-            selected_memories.append(line)
-            seen_memory.add(memory_id)
+    has_signal = any(priority > 0 for priority, _, _ in memory_lines)
     for priority, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True):
         if memory_id in seen_memory:
             continue
-        if priority <= 0 and cited:
+        if has_signal and priority <= 0:
             continue
         selected_memories.append(line)
         seen_memory.add(memory_id)
@@ -140,14 +136,6 @@ def trim_ragas_contexts(
 
     # Relevant memories first so RAGAS context_precision is not capped by a leading profile line.
     return selected_memories + selected_events + other_prefix + profile_lines
-
-
-def _is_display_name_only_profile(context: str) -> bool:
-    if not context.startswith("档案:"):
-        return False
-    body = context.removeprefix("档案:").strip()
-    parts = [part.strip() for part in body.split() if part.strip()]
-    return bool(parts) and all(part.startswith("display_name=") for part in parts)
 
 
 _EVAL_HEDGE_RES = (
