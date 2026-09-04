@@ -75,19 +75,19 @@ def trim_ragas_contexts(
     ref_blob = " ".join(str(value) for value in (reference_contexts or []) if value)
     answer_blob = str(answer or "")
 
-    prefix_lines: list[str] = []
+    profile_lines: list[str] = []
+    other_prefix: list[str] = []
     event_lines: list[tuple[float, str]] = []
     memory_lines: list[tuple[float, str, str]] = []
 
     for context in contexts:
         if context.startswith("记忆 "):
             memory_id = _memory_id_from_context(context) or ""
-            priority = 3.0 if memory_id in cited else 0.0
-            priority = max(
-                priority,
+            overlap = max(
                 _context_overlap_score(context, ref_blob) * 2.0,
                 _context_overlap_score(context, answer_blob) * 2.5,
             )
+            priority = overlap + (3.0 if memory_id in cited else 0.0)
             memory_lines.append((priority, context, memory_id))
         elif context.startswith("事件:"):
             score = max(
@@ -96,11 +96,11 @@ def trim_ragas_contexts(
             )
             event_lines.append((score, context))
         elif context.startswith("档案:"):
-            prefix_lines.append(context)
+            profile_lines.append(context)
         elif context.startswith("摘要:") or context.startswith("近期对话"):
             continue
         else:
-            prefix_lines.append(context)
+            other_prefix.append(context)
 
     selected_memories: list[str] = []
     seen_memory: set[str] = set()
@@ -124,6 +124,9 @@ def trim_ragas_contexts(
                 selected_memories.append(line)
                 seen_memory.add(memory_id)
 
+    priority_by_line = {line: priority for priority, line, _ in memory_lines}
+    selected_memories.sort(key=lambda line: priority_by_line.get(line, 0.0), reverse=True)
+
     memory_blob = " ".join(selected_memories)
     selected_events = []
     for score, line in sorted(event_lines, key=lambda item: item[0], reverse=True):
@@ -134,7 +137,8 @@ def trim_ragas_contexts(
         if len(selected_events) >= max_events:
             break
 
-    return prefix_lines + selected_events + selected_memories
+    # Relevant memories first so RAGAS context_precision is not capped by a leading profile line.
+    return selected_memories + selected_events + other_prefix + profile_lines
 
 
 def _ngrams(text: str, size: int = 8) -> set[str]:

@@ -21,6 +21,8 @@ def test_trim_ragas_contexts_keeps_cited_and_reference_overlap():
     )
     assert any("mem-a" in line for line in trimmed)
     assert not any("mem-b" in line for line in trimmed)
+    assert trimmed[0].startswith("记忆 mem-a")
+    assert trimmed[-1].startswith("档案:")
 
 
 def test_trim_ragas_contexts_falls_back_when_empty():
@@ -63,5 +65,26 @@ def test_trim_ragas_contexts_always_keeps_profile():
         answer="林夏和好后约定每周日晚上 21:00 打电话。",
         max_memories=1,
     )
+    assert trimmed[0].startswith("记忆 mem-a")
+    assert trimmed[-1].startswith("档案:")
+    assert not any("mem-b" in line for line in trimmed)
+
+
+def test_trim_ragas_contexts_ranks_reference_memory_before_noise():
+    raw = [
+        "档案: display_name=林夏",
+        "记忆 mem-noise: 林夏很喜欢猫。",
+        "记忆 mem-hit: 林夏住在杭州西湖区。",
+        "事件: 无关事件 其他事情。",
+    ]
+    trimmed = trim_ragas_contexts(
+        raw,
+        citations=["mem-hit"],
+        reference_contexts=["林夏住在杭州西湖区。"],
+        answer="林夏住在杭州西湖区。",
+        max_memories=2,
+        max_events=1,
+    )
+    assert trimmed[0].startswith("记忆 mem-hit")
     assert any(line.startswith("档案:") for line in trimmed)
-    assert any("mem-a" in line for line in trimmed)
+    assert trimmed.index(next(line for line in trimmed if line.startswith("档案:"))) > 0

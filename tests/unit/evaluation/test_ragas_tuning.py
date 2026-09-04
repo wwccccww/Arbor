@@ -138,6 +138,8 @@ def test_eval_generation_system_prompt():
     assert "第三人称" in prompt
     assert "taboos" in prompt
     assert "citations" in prompt
+    assert "回答语言必须与用户问题一致" in prompt
+    assert "免责句" in prompt
 
 
 def test_select_ragas_cases_stratified_balances_hops():
