@@ -482,6 +482,7 @@ def write_ragas_official_baseline(report: dict, dest: Path) -> None:
         "judge": judge_status(),
         "embedding": report.get("embeddings"),
         "backend": report.get("backend"),
+        "run_id": report.get("run_id"),
         "retrieval_preset": report.get("retrieval_preset"),
         "eval_generation_prompt": report.get("eval_generation_prompt"),
         "primary_metrics": report.get("primary_metrics"),
