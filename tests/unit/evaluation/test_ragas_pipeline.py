@@ -253,3 +253,27 @@ def test_score_skips_unscorable_records_without_none_samples(tmp_path):
     by_id = {row["case_id"]: row["metrics"] for row in scores}
     assert by_id["ragas-llm-001"]["faithfulness"] == 1.0
     assert by_id["ragas-llm-007"]["faithfulness"] is None
+
+
+def test_generate_case_worker_retries_unavailable(monkeypatch):
+    from arbor.adapters.outbound.embedding import EmbeddingUnavailable
+    from arbor.application.evaluation import ragas_pipeline as mod
+
+    class _Sess:
+        pass
+
+    calls = {"n": 0}
+
+    def fake_generate(_session, case):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise EmbeddingUnavailable("handshake")
+        return {"case_id": case["id"], "answer": "ok"}
+
+    mod._worker_local.session = _Sess()
+    monkeypatch.setattr(mod, "_generate_case", fake_generate)
+    monkeypatch.setattr(mod, "_public_generation_record", lambda rec: rec)
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+    out = mod._generate_case_worker({"id": "ragas-llm-001"})
+    assert out["answer"] == "ok"
+    assert calls["n"] == 2

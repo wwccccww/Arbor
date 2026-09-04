@@ -20,7 +20,7 @@ class DeepSeekUnavailable(RuntimeError):
 class DeepSeekChatLLM:
     """Chat completion adapter. Does not log the API key."""
 
-    def __init__(self, *, timeout: float = 60.0, observability: object | None = None) -> None:
+    def __init__(self, *, timeout: float = 90.0, observability: object | None = None) -> None:
         self.timeout = timeout
         self.observability = observability
         self.last_injected: list[str] = []

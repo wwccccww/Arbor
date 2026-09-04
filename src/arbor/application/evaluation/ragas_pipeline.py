@@ -378,7 +378,20 @@ def _init_generation_worker(args: _SessionFactoryArgs) -> None:
 
 def _generate_case_worker(case: dict[str, Any]) -> dict[str, Any]:
     session = _worker_local.session
-    return _public_generation_record(_generate_case(session, case))
+    last_error: Exception | None = None
+    for attempt in range(3):
+        try:
+            return _public_generation_record(_generate_case(session, case))
+        except Exception as exc:
+            last_error = exc
+            name = type(exc).__name__
+            if "Timeout" not in name and "Unavailable" not in name:
+                raise
+            import time
+
+            time.sleep(2**attempt)
+    assert last_error is not None
+    raise last_error
 
 
 def _close_worker_sessions() -> None:
