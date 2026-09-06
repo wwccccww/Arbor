@@ -32,6 +32,37 @@ def test_http_embedding_parses_openai_response(monkeypatch):
     assert client.embed("林夏讨厌香菜") == [0.1, 0.2, 0.3]
 
 
+def test_http_embedding_retries_connect_timeout(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.embedding_api_key", lambda: "sk-emb")
+    monkeypatch.setattr(
+        "arbor.adapters.outbound.embedding.embedding_base_url",
+        lambda: "https://api.siliconflow.cn/v1",
+    )
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.embedding_model", lambda: "BAAI/bge-m3")
+    monkeypatch.setattr("time.sleep", lambda _s: None)
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"embedding": [0.2]}]}
+
+    calls = {"n": 0}
+
+    def fake_post(url, **kwargs):
+        calls["n"] += 1
+        if calls["n"] < 2:
+            raise httpx.ConnectTimeout("handshake")
+        return FakeResponse()
+
+    monkeypatch.setattr("arbor.adapters.outbound.embedding.httpx.post", fake_post)
+    client = HttpEmbeddingClient()
+    assert client.embed("ok") == [0.2]
+    assert calls["n"] == 2
+
+
 def test_http_embedding_truncates_overlong_input(monkeypatch):
     monkeypatch.setattr("arbor.adapters.outbound.embedding.embedding_api_key", lambda: "sk-emb")
     monkeypatch.setattr(

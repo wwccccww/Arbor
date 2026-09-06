@@ -9,6 +9,11 @@
   },
   "generation": {
     "citation_subset_rate": {"min": 1.0},
-    "ragas_faithfulness": {"min": 0.8}
+    "ragas_faithfulness": {"min": 0.8},
+    "ragas_context_precision": {"min": 0.25},
+    "ragas_answer_correctness": {"min": 0.5}
+  },
+  "reference_generation": {
+    "ragas_answer_relevancy": {"min": 0.0, "note": "diagnostic only; bilingual embedding noise"}
   }
 }

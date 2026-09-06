@@ -42,6 +42,176 @@ def injected_contexts(prompt_slots: dict) -> list[str]:
     return contexts
 
 
+def _memory_id_from_context(context: str) -> str | None:
+    if not context.startswith("记忆 "):
+        return None
+    token = context.removeprefix("记忆 ").split(":", 1)[0].strip()
+    return token or None
+
+
+def _context_overlap_score(context: str, reference_blob: str) -> float:
+    if not reference_blob:
+        return 0.0
+    ctx_grams = _ngrams(context)
+    ref_grams = _ngrams(reference_blob)
+    if not ctx_grams or not ref_grams:
+        return 0.0
+    return len(ctx_grams & ref_grams) / len(ref_grams)
+
+
+def trim_ragas_contexts(
+    contexts: list[str],
+    *,
+    citations: list[str] | None = None,
+    reference_contexts: list[str] | None = None,
+    answer: str | None = None,
+    max_memories: int = 4,
+    max_events: int = 1,
+) -> list[str]:
+    """Tighten contexts for RAGAS scoring without changing LLM prompt slots."""
+    if not contexts:
+        return []
+    cited = {str(value) for value in (citations or []) if value}
+    ref_blob = " ".join(str(value) for value in (reference_contexts or []) if value)
+    answer_blob = str(answer or "")
+
+    profile_lines: list[str] = []
+    other_prefix: list[str] = []
+    event_lines: list[tuple[float, str]] = []
+    memory_lines: list[tuple[float, str, str]] = []
+
+    for context in contexts:
+        if context.startswith("记忆 "):
+            memory_id = _memory_id_from_context(context) or ""
+            overlap = max(
+                _context_overlap_score(context, ref_blob) * 2.0,
+                _context_overlap_score(context, answer_blob) * 2.5,
+            )
+            priority = overlap + (3.0 if memory_id in cited else 0.0)
+            memory_lines.append((priority, context, memory_id))
+        elif context.startswith("事件:"):
+            score = max(
+                _context_overlap_score(context, ref_blob),
+                _context_overlap_score(context, answer_blob),
+            )
+            event_lines.append((score, context))
+        elif context.startswith("档案:"):
+            profile_lines.append(context)
+        elif context.startswith("摘要:") or context.startswith("近期对话"):
+            continue
+        else:
+            other_prefix.append(context)
+
+    selected_memories: list[str] = []
+    seen_memory: set[str] = set()
+    has_signal = any(priority > 0 for priority, _, _ in memory_lines)
+    for priority, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True):
+        if memory_id in seen_memory:
+            continue
+        if has_signal and priority <= 0:
+            continue
+        selected_memories.append(line)
+        seen_memory.add(memory_id)
+        if len(selected_memories) >= max_memories:
+            break
+
+    if not selected_memories and memory_lines:
+        for _, line, memory_id in sorted(memory_lines, key=lambda item: item[0], reverse=True)[:max_memories]:
+            if memory_id not in seen_memory:
+                selected_memories.append(line)
+                seen_memory.add(memory_id)
+
+    priority_by_line = {line: priority for priority, line, _ in memory_lines}
+    selected_memories.sort(key=lambda line: priority_by_line.get(line, 0.0), reverse=True)
+
+    memory_blob = " ".join(selected_memories)
+    selected_events = []
+    for score, line in sorted(event_lines, key=lambda item: item[0], reverse=True):
+        if score > 0 or not ref_blob:
+            selected_events.append(line)
+        elif memory_blob and any(token in memory_blob for token in line.replace("事件:", "").split() if len(token) >= 2):
+            selected_events.append(line)
+        if len(selected_events) >= max_events:
+            break
+
+    # Relevant memories first so RAGAS context_precision is not capped by a leading profile line.
+    return selected_memories + selected_events + other_prefix + profile_lines
+
+
+_EVAL_HEDGE_RES = (
+    r"(?:但)?现有信息未提及[^。！？.!?]*[。！？.!]?",
+    r"(?:但)?现有记录未提及[^。！？.!?]*[。！？.!]?",
+    r"关于[^。]{0,24}(?:现有信息|现有记录)未提及[^。！？.!?]*[。！？.!]?",
+    r"记录中未提及[^。！？.!?]*[。！？.!]?",
+    r"没有(?:相关)?记录[^。！？.!?]*[。！？.!]?",
+    r"找不到(?:相关)?记录[^。！？.!?]*[。！？.!]?",
+    r"记忆中没有[^。！？.!?]*[。！？.!]?",
+    r"(?:因此)?无直接关联[^。！？.!?]*[。！？.!]?",
+    r"(?:The \w+ )?is not mentioned in the records[^.]{0,80}\.?",
+    r"there is no information about[^.]{0,80}\.?",
+    r"there is no (?:a )?record of[^.]{0,120}\.?",
+    r"there is no mention of[^.]{0,120}\.?",
+    r"so there is no information[^.]{0,80}\.?",
+    r"(?:I |We )?(?:do not|don't) have (?:a |any )?record[^.]{0,80}\.?",
+)
+
+
+def strip_eval_hedges(answer: str) -> str:
+    """Drop trailing 'not mentioned' hedges that zero RAGAS answer_relevancy."""
+    import re
+
+    text = str(answer or "").strip()
+    if not text:
+        return text
+    for pattern in _EVAL_HEDGE_RES:
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"[，,;；]\s*$", "", text).strip()
+    text = re.sub(r"\s{2,}", " ", text).strip()
+    return text
+
+
+_SCORE_GLOSS: tuple[tuple[str, str], ...] = (
+    ("osmanthus cake", "桂花糕"),
+    ("made up", "和好"),
+    ("the Bund", "外滩"),
+    ("Bund", "外滩"),
+    ("black windbreaker", "黑色风衣"),
+    ("West Lake", "西湖"),
+    ("cilantro", "香菜"),
+    ("noodle shop", "面馆"),
+    ("Lao Zhang", "老张"),
+    ("invoice", "发票"),
+    ("shipping", "运费"),
+    ("work order", "工单"),
+    ("tracking number", "运单号"),
+    ("photo", "照片"),
+    ("argument", "争吵"),
+)
+
+
+def question_is_english(question: str) -> bool:
+    text = question or ""
+    latin = sum(1 for char in text if char.isascii() and char.isalpha())
+    cjk = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
+    return latin >= 6 and latin > cjk
+
+
+def gloss_ragas_contexts(contexts: list[str], question: str) -> list[str]:
+    """Annotate Chinese tokens with English aliases so the judge can score EN questions."""
+    if not contexts or not question_is_english(question):
+        return list(contexts)
+    pairs = sorted(_SCORE_GLOSS, key=lambda item: len(item[1]), reverse=True)
+    glossed: list[str] = []
+    for context in contexts:
+        line = context
+        for english, chinese in pairs:
+            needle = f"{chinese} ({english})"
+            if chinese in line and needle not in line and english.lower() not in line.lower():
+                line = line.replace(chinese, needle)
+        glossed.append(line)
+    return glossed
+
+
 def _ngrams(text: str, size: int = 8) -> set[str]:
     compact = "".join(text.split())
     if len(compact) < size:

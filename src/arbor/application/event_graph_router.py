@@ -12,6 +12,42 @@ def _score_event(query: str, event: EventNode, embed) -> float:
     return lexical_token_score(query, blob) + cosine(embed(query), embed(blob))
 
 
+def rank_event_nodes(
+    query: str,
+    events: list[EventNode],
+    embed,
+) -> list[tuple[EventNode, float]]:
+    scored = [(event, _score_event(query, event, embed)) for event in events]
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return scored
+
+
+def filter_event_nodes(
+    query: str,
+    events: list[EventNode],
+    embed,
+    *,
+    limit: int,
+    min_score: float = 0.05,
+    require_lexical: bool = False,
+    min_lexical: float = 0.0,
+) -> list[EventNode]:
+    """Keep only query-relevant events for prompt injection."""
+    if not events or limit <= 0:
+        return []
+    ranked: list[tuple[EventNode, float]] = []
+    for event in events:
+        blob = f"{event.title} {event.summary}"
+        lexical = lexical_token_score(query, blob)
+        if require_lexical and lexical <= min_lexical:
+            continue
+        score = lexical + cosine(embed(query), embed(blob))
+        if score > min_score:
+            ranked.append((event, score))
+    ranked.sort(key=lambda pair: pair[1], reverse=True)
+    return [event for event, _ in ranked[:limit]]
+
+
 def route_event_seeds(
     query: str,
     events: list[EventNode],
@@ -19,9 +55,7 @@ def route_event_seeds(
     seed_k: int,
     min_score: float = 0.05,
 ) -> list[EventNode]:
-    scored = [(event, _score_event(query, event, embed)) for event in events]
-    scored.sort(key=lambda pair: pair[1], reverse=True)
-    return [event for event, score in scored if score > min_score][:seed_k]
+    return filter_event_nodes(query, events, embed, limit=seed_k, min_score=min_score)
 
 
 def expand_event_nodes(

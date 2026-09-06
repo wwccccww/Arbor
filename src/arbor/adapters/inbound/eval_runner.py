@@ -286,12 +286,15 @@ def run_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    case_stratified: bool = False,
 ) -> dict:
     from arbor.adapters.outbound.deepseek import DeepSeekChatLLM
     from arbor.adapters.outbound.ragas_scorer import (
         RagasFaithfulnessScorer,
         RagasSample,
     )
+
+    from arbor.application.evaluation.ragas_tuning import select_ragas_cases
 
     world, cases_doc, _thresholds, _k, world_path = load_suite_files(suite_dir)
     backend = resolve_backend(backend)
@@ -328,9 +331,11 @@ def run_generation(
     mem_index = {item["id"]: item for item in world["memories"]}
     rows: list[dict] = []
     pending: list[tuple[int, RagasSample | None]] = []
-    cases = list(cases_doc["cases"])
-    if case_limit is not None:
-        cases = cases[:case_limit]
+    cases = select_ragas_cases(
+        list(cases_doc["cases"]),
+        limit=case_limit,
+        stratified=case_stratified,
+    )
     try:
         for case in cases:
             actor = case["actor"]
@@ -404,6 +409,7 @@ def run_ragas_official_generation(
     backend: str = "auto",
     embed: str = "fixture",
     case_limit: int | None = None,
+    case_stratified: bool = False,
     phase: str = "all",
     run_dir: Path | None = None,
     run_id: str | None = None,
@@ -411,6 +417,9 @@ def run_ragas_official_generation(
     resume: bool = True,
     use_disk: bool = False,
     gen_workers: int | None = None,
+    retrieval_preset: str = "default",
+    eval_generation_prompt: bool = True,
+    worst_n: int = 20,
 ) -> dict:
     from arbor.application.evaluation.ragas_pipeline import run_ragas_official_pipeline
 
@@ -423,12 +432,16 @@ def run_ragas_official_generation(
             backend=backend,
             embed=embed,
             case_limit=case_limit,
+            case_stratified=case_stratified,
             run_dir=run_dir,
             run_id=run_id,
             batch_size=batch_size,
             resume=resume,
             use_disk=True,
             gen_workers=gen_workers,
+            retrieval_preset=retrieval_preset,
+            eval_generation_prompt=eval_generation_prompt,
+            worst_n=worst_n,
         )
     from arbor.adapters.outbound.ragas_scorer import RagasMetricsScorer
 
@@ -442,6 +455,7 @@ def run_ragas_official_generation(
         backend=backend,
         embed=embed,
         case_limit=case_limit,
+        case_stratified=case_stratified,
     )
     report["protocol"] = str(manifest_path.relative_to(ROOT)) if manifest_path.is_file() else None
     report["benchmark_id"] = "ragas-official"
@@ -468,6 +482,12 @@ def write_ragas_official_baseline(report: dict, dest: Path) -> None:
         "judge": judge_status(),
         "embedding": report.get("embeddings"),
         "backend": report.get("backend"),
+        "run_id": report.get("run_id"),
+        "retrieval_preset": report.get("retrieval_preset"),
+        "eval_generation_prompt": report.get("eval_generation_prompt"),
+        "primary_metrics": report.get("primary_metrics"),
+        "reference_metrics": report.get("reference_metrics"),
+        "by_evolution": report.get("by_evolution"),
         "metrics": metrics,
     }
     dest.parent.mkdir(parents=True, exist_ok=True)

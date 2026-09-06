@@ -34,3 +34,46 @@ def detect_context_conflicts(profile: dict, memory_hits: list[MemoryItem]) -> li
         if left_ids and right_ids:
             notes.append(f"polarity_pair:{left}:{right}")
     return notes
+
+
+_TABOO_HINTS = (
+    "香菜",
+    "点餐",
+    "吃",
+    "饮食",
+    "diet",
+    "food",
+    "cilantro",
+    "spice",
+    "辣",
+    "meal",
+    "order",
+    "restrict",
+    "dietary",
+    "restrictions",
+    "微辣",
+    "durian",
+    "榴莲",
+    "过敏",
+    "allergy",
+)
+_LOCATION_HINTS = ("住", "reside", "live", "区", "district", "address", "home", "where", " reside")
+
+
+def select_profile_fields(query: str, profile: dict) -> dict:
+    """Inject only profile fields plausibly relevant to the query (precision)."""
+    if not profile:
+        return {}
+    lowered = (query or "").lower()
+    selected: dict = {}
+    if profile.get("display_name"):
+        selected["display_name"] = profile["display_name"]
+    taboos = profile.get("taboos")
+    if taboos and any(hint in query or hint in lowered for hint in _TABOO_HINTS):
+        selected["taboos"] = list(taboos)
+    one_liner = profile.get("one_liner")
+    if one_liner and any(hint in query or hint in lowered for hint in _LOCATION_HINTS):
+        selected["one_liner"] = one_liner
+    if profile.get("avatar") and not selected.get("one_liner"):
+        selected["avatar"] = profile["avatar"]
+    return selected

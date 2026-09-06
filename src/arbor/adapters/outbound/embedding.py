@@ -15,7 +15,7 @@ class HttpEmbeddingClient:
     # bge-m3 allows 8192 tokens; keep a conservative char cap for mixed CJK/Latin.
     max_input_chars = 12_000
 
-    def __init__(self, *, timeout: float = 30.0) -> None:
+    def __init__(self, *, timeout: float = 60.0) -> None:
         self.timeout = timeout
         self.model = embedding_model()
         self.label = "bge-m3" if "bge" in self.model.lower() else self.model
@@ -37,12 +37,21 @@ class HttpEmbeddingClient:
         payload_text = self._prepare_text(text)
         last_error = "embedding request failed"
         for attempt in range(4):
-            response = httpx.post(
-                f"{embedding_base_url()}/embeddings",
-                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                json={"model": self.model, "input": payload_text, "encoding_format": "float"},
-                timeout=self.timeout,
-            )
+            try:
+                response = httpx.post(
+                    f"{embedding_base_url()}/embeddings",
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json={"model": self.model, "input": payload_text, "encoding_format": "float"},
+                    timeout=httpx.Timeout(self.timeout, connect=20.0),
+                )
+            except httpx.TimeoutException as exc:
+                last_error = str(exc)
+                if attempt >= 3:
+                    raise EmbeddingUnavailable(last_error) from exc
+                import time
+
+                time.sleep(2**attempt)
+                continue
             if response.status_code < 400:
                 break
             last_error = f"embedding HTTP {response.status_code}: {response.text[:200]}"

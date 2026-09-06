@@ -12,6 +12,7 @@ from arbor.application.conversation.context_budget import (
 from arbor.application.conversation.context_injection import (
     detect_context_conflicts,
     memory_hit_payload,
+    select_profile_fields,
 )
 from arbor.application.evaluation.generation import injected_contexts
 from arbor.application.retrieval import retrieve
@@ -29,7 +30,6 @@ from arbor.env import (
     context_recent_k,
     context_system_overhead_tokens,
     context_window_tokens,
-    retrieval_prompt_k,
     tool_mode,
 )
 from arbor.observability.noop import NoopObservability
@@ -61,6 +61,7 @@ class ContextCompiler:
         system_overhead: int | None = None,
         recent_k: int | None = None,
         retrieval_config: RetrievalConfig | None = None,
+        eval_generation_mode: bool = False,
     ) -> None:
         self.policy = policy or ContextPolicy()
         self.strategy = strategy
@@ -69,6 +70,7 @@ class ContextCompiler:
         self.system_overhead = system_overhead if system_overhead is not None else context_system_overhead_tokens()
         self.recent_k = recent_k if recent_k is not None else context_recent_k()
         self.retrieval_config = retrieval_config or RetrievalConfig.from_env()
+        self.eval_generation_mode = eval_generation_mode
 
     def compile(
         self,
@@ -92,7 +94,7 @@ class ContextCompiler:
         obs = observability or NoopObservability()
         compile_started = time.perf_counter()
         retrieval_strategy = self.strategy if Capability.READ_MEMORY in capabilities else "summary_only"
-        prompt_k = retrieval_prompt_k()
+        prompt_k = self.retrieval_config.prompt_k
         with obs.span("rag.compile_context"):
             retrieved = retrieve(
                 strategy=retrieval_strategy,
@@ -133,10 +135,6 @@ class ContextCompiler:
                     memory_hits=hits,
                     tool_policy=persona.tool_policy,
                 )
-                for item in hits:
-                    mid = item.id.value
-                    if mid not in slots.injected_memory_ids:
-                        slots.injected_memory_ids.append(mid)
                 conflict_notes = detect_context_conflicts(slots.profile, slots.memory_hits)
 
             recent_turns = self._recent_turns(thread)
@@ -152,7 +150,11 @@ class ContextCompiler:
             ]
 
             prompt_slots = {
-                "profile": slots.profile,
+                "profile": (
+                    select_profile_fields(query, slots.profile)
+                    if self.eval_generation_mode
+                    else slots.profile
+                ),
                 "tool_policy": slots.tool_policy,
                 "tool_results": list(tool_results or []),
                 "thread_summary": slots.thread_summary,
@@ -162,6 +164,8 @@ class ContextCompiler:
                 "llm_tool_calls_enabled": tool_mode() in {"llm", "both"},
                 "allowed_tool_names": sorted(allowed_tool_names(persona.tool_policy)),
             }
+            if self.eval_generation_mode:
+                prompt_slots["eval_generation_mode"] = True
 
             budget = self._slot_budget(user_text)
             notes: list[str] = []

@@ -327,6 +327,30 @@ def retrieval_event_expand_max() -> int:
     return _retrieval_int("ARBOR_RETRIEVAL_EVENT_EXPAND_MAX", 8, minimum=2, maximum=32)
 
 
+def retrieval_event_inject_k() -> int:
+    return _retrieval_int("ARBOR_RETRIEVAL_EVENT_INJECT_K", 2, minimum=0, maximum=6)
+
+
+def retrieval_event_min_score() -> float:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RETRIEVAL_EVENT_MIN_SCORE") or "0.08").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.08
+    return max(0.0, min(value, 1.0))
+
+
+def retrieval_memory_min_score() -> float:
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RETRIEVAL_MEMORY_MIN_SCORE") or "0.14").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        value = 0.14
+    return max(0.0, min(value, 1.0))
+
+
 def retrieval_hybrid_enabled() -> bool:
     load_dotenv()
     raw = (os.environ.get("ARBOR_RETRIEVAL_HYBRID") or "on").strip().lower()
