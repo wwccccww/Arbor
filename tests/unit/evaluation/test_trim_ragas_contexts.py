@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from arbor.application.evaluation.generation import injected_contexts, strip_eval_hedges, trim_ragas_contexts
+from arbor.application.evaluation.generation import (
+    gloss_ragas_contexts,
+    injected_contexts,
+    strip_eval_hedges,
+    trim_ragas_contexts,
+)
 
 
 def test_trim_ragas_contexts_keeps_cited_and_reference_overlap():
@@ -129,3 +134,26 @@ def test_strip_eval_hedges_drops_not_mentioned_clause():
     text = "工单 #8842 已升级，承诺三日内补发充电器，但现有信息未提及发票相关安排。"
     assert "未提及" not in strip_eval_hedges(text)
     assert "补发充电器" in strip_eval_hedges(text)
+
+
+def test_strip_eval_hedges_drops_english_no_record_clause():
+    text = (
+        "After making up, Lin Xia and her companion bought osmanthus cake together. "
+        "There is no record of a photo taken at the Bund at night or of Lin Xia holding any item."
+    )
+    stripped = strip_eval_hedges(text)
+    assert "osmanthus cake" in stripped
+    assert "no record" not in stripped.lower()
+
+
+def test_gloss_ragas_contexts_annotates_chinese_for_english_question():
+    contexts = ["记忆 mem-a: 照片：外滩夜景，林夏穿黑色风衣，手里没有桂花糕。"]
+    glossed = gloss_ragas_contexts(
+        contexts,
+        "Was Lin Xia holding the cake in the Bund photo?",
+    )
+    assert "外滩 (Bund)" in glossed[0] or "外滩 (the Bund)" in glossed[0]
+    assert "桂花糕 (osmanthus cake)" in glossed[0]
+    assert "照片 (photo)" in glossed[0]
+    chinese_only = gloss_ragas_contexts(contexts, "外滩夜景照片里林夏手里有桂花糕吗？")
+    assert chinese_only == contexts

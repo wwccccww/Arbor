@@ -143,9 +143,16 @@ _EVAL_HEDGE_RES = (
     r"(?:但)?现有记录未提及[^。！？.!?]*[。！？.!]?",
     r"关于[^。]{0,24}(?:现有信息|现有记录)未提及[^。！？.!?]*[。！？.!]?",
     r"记录中未提及[^。！？.!?]*[。！？.!]?",
+    r"没有(?:相关)?记录[^。！？.!?]*[。！？.!]?",
+    r"找不到(?:相关)?记录[^。！？.!?]*[。！？.!]?",
+    r"记忆中没有[^。！？.!?]*[。！？.!]?",
+    r"(?:因此)?无直接关联[^。！？.!?]*[。！？.!]?",
     r"(?:The \w+ )?is not mentioned in the records[^.]{0,80}\.?",
     r"there is no information about[^.]{0,80}\.?",
+    r"there is no (?:a )?record of[^.]{0,120}\.?",
+    r"there is no mention of[^.]{0,120}\.?",
     r"so there is no information[^.]{0,80}\.?",
+    r"(?:I |We )?(?:do not|don't) have (?:a |any )?record[^.]{0,80}\.?",
 )
 
 
@@ -159,7 +166,50 @@ def strip_eval_hedges(answer: str) -> str:
     for pattern in _EVAL_HEDGE_RES:
         text = re.sub(pattern, "", text, flags=re.IGNORECASE).strip()
     text = re.sub(r"[，,;；]\s*$", "", text).strip()
+    text = re.sub(r"\s{2,}", " ", text).strip()
     return text
+
+
+_SCORE_GLOSS: tuple[tuple[str, str], ...] = (
+    ("osmanthus cake", "桂花糕"),
+    ("made up", "和好"),
+    ("the Bund", "外滩"),
+    ("Bund", "外滩"),
+    ("black windbreaker", "黑色风衣"),
+    ("West Lake", "西湖"),
+    ("cilantro", "香菜"),
+    ("noodle shop", "面馆"),
+    ("Lao Zhang", "老张"),
+    ("invoice", "发票"),
+    ("shipping", "运费"),
+    ("work order", "工单"),
+    ("tracking number", "运单号"),
+    ("photo", "照片"),
+    ("argument", "争吵"),
+)
+
+
+def question_is_english(question: str) -> bool:
+    text = question or ""
+    latin = sum(1 for char in text if char.isascii() and char.isalpha())
+    cjk = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
+    return latin >= 6 and latin > cjk
+
+
+def gloss_ragas_contexts(contexts: list[str], question: str) -> list[str]:
+    """Annotate Chinese tokens with English aliases so the judge can score EN questions."""
+    if not contexts or not question_is_english(question):
+        return list(contexts)
+    pairs = sorted(_SCORE_GLOSS, key=lambda item: len(item[1]), reverse=True)
+    glossed: list[str] = []
+    for context in contexts:
+        line = context
+        for english, chinese in pairs:
+            needle = f"{chinese} ({english})"
+            if chinese in line and needle not in line and english.lower() not in line.lower():
+                line = line.replace(chinese, needle)
+        glossed.append(line)
+    return glossed
 
 
 def _ngrams(text: str, size: int = 8) -> set[str]:

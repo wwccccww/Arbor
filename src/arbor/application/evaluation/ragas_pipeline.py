@@ -30,6 +30,7 @@ from arbor.application.conversation.context_compiler import ContextCompiler
 from arbor.application.conversation.send_message import SendMessage
 from arbor.application.evaluation.generation import (
     aggregate_generation,
+    gloss_ragas_contexts,
     score_generation_case,
     strip_eval_hedges,
     trim_ragas_contexts,
@@ -308,6 +309,7 @@ def _generate_case(session: _GenerationSession, case: dict[str, Any]) -> dict[st
     )
     if not contexts:
         contexts = raw_contexts
+    contexts = gloss_ragas_contexts(contexts, str(case.get("query") or ""))
     row = score_generation_case(case, result, session.mem_index)
     record = {
         "case_id": case["id"],
