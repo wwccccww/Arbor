@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 
-from arbor.application.tools.run_tools import normalize_tool_name
+from arbor.application.tools.run_tools import aftersale_kind, extract_order_id, normalize_tool_name
 from arbor.domain.shared.ids import TenantId, UserId
 from arbor.observability.helpers import obs_or_noop
 
@@ -16,6 +16,7 @@ def execute_tool_calls(
     query_text: str,
     calendar_tool: object | None = None,
     ticket_tool: object | None = None,
+    mall_tool: object | None = None,
     observability: object | None = None,
 ) -> list[dict]:
     """Run tools requested by the LLM JSON envelope."""
@@ -49,6 +50,17 @@ def execute_tool_calls(
                         description=query_text,
                     )
                 )
+            elif name in {"order", "recommend", "aftersale"}:
+                results.append(
+                    _invoke_mall(
+                        name,
+                        call,
+                        query_text=query_text,
+                        tenant_id=tenant_id,
+                        user_id=user_id,
+                        mall_tool=mall_tool,
+                    )
+                )
         except Exception as exc:
             result_label = "error"
             obs.event(
@@ -67,3 +79,54 @@ def execute_tool_calls(
                 duration_ms=round((time.perf_counter() - started) * 1000, 2),
             )
     return results
+
+
+def _invoke_mall(
+    name: str,
+    call: dict,
+    *,
+    query_text: str,
+    tenant_id: TenantId,
+    user_id: UserId,
+    mall_tool: object | None,
+) -> dict:
+    from arbor.application.tools.yunhui_catalog import (
+        demo_create_aftersale,
+        demo_query_orders,
+        demo_recommend_products,
+    )
+
+    blob = " ".join(
+        str(call.get(key) or "")
+        for key in ("reason", "query", "order_id", "title")
+    )
+    blob = f"{blob} {query_text}".strip()
+    order_id = str(call.get("order_id") or "").strip() or extract_order_id(blob)
+    query = str(call.get("query") or call.get("reason") or query_text)
+    kind = str(call.get("kind") or "").strip() or aftersale_kind(blob)
+    if mall_tool is None:
+        if name == "order":
+            return demo_query_orders(query=query, order_id=order_id)
+        if name == "recommend":
+            return demo_recommend_products(query=query)
+        return demo_create_aftersale(order_id=order_id, reason=query[:200], kind=kind)
+    if name == "order":
+        return mall_tool.query_orders(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            query=query,
+            order_id=order_id,
+        )
+    if name == "recommend":
+        return mall_tool.recommend_products(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            query=query,
+        )
+    return mall_tool.create_aftersale(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        order_id=order_id,
+        reason=query[:200],
+        kind=kind,
+    )

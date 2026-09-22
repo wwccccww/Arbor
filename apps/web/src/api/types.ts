@@ -244,6 +244,15 @@ export type ToolResult = {
   note?: string
   summary?: string
   events?: { title?: string; start?: string; note?: string }[]
+  order_id?: string
+  orders?: Array<{
+    order_id?: string
+    status_label?: string
+    items?: Array<{ name?: string }>
+  }>
+  products?: Array<{ sku?: string; name?: string; price_cents?: number }>
+  aftersale_id?: string
+  kind?: string
 }
 
 export type ChatMessage = {

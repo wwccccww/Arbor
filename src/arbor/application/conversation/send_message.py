@@ -59,6 +59,7 @@ class SendMessage:
     vision_enrich: object | None = None
     calendar_tool: object | None = None
     ticket_tool: object | None = None
+    mall_tool: object | None = None
     context_compiler: ContextCompiler | None = None
     observability: object | None = None
     decision_traces: object | None = None
@@ -316,6 +317,7 @@ class SendMessage:
                 user_id=user_id,
                 calendar_tool=self.calendar_tool,
                 ticket_tool=self.ticket_tool,
+                mall_tool=self.mall_tool,
                 observability=self.observability,
             )
             compiled = self._compiler().apply_tool_results(compiled, tool_results)
@@ -393,6 +395,7 @@ class SendMessage:
             query_text=ctx.llm_text,
             calendar_tool=self.calendar_tool,
             ticket_tool=self.ticket_tool,
+            mall_tool=self.mall_tool,
             observability=self.observability,
         )
         if not extra:

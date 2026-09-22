@@ -31,6 +31,7 @@ class ToolExecutor:
         tool_executions,
         calendar_tool=None,
         ticket_tool=None,
+        mall_tool=None,
         mcp_transport=None,
         observability=None,
     ) -> None:
@@ -38,6 +39,7 @@ class ToolExecutor:
         self.tool_executions = tool_executions
         self.calendar_tool = calendar_tool
         self.ticket_tool = ticket_tool
+        self.mall_tool = mall_tool
         self.mcp_transport = mcp_transport
         self.observability = observability
 
@@ -207,6 +209,8 @@ class ToolExecutor:
                 title=str(args.get("title") or run.goal[:80]),
                 description=str(args.get("description") or run.goal),
             )
+        if canonical in {"yunhui.order.query", "yunhui.product.recommend", "yunhui.aftersale.create"}:
+            return self._invoke_mall(canonical, tenant_id, user_id, run, args)
         if self.mcp_transport is not None and canonical.startswith("demo."):
             mcp_key = canonical.replace(".", ":")
             payload = self.mcp_transport.call(
@@ -223,6 +227,47 @@ class ToolExecutor:
         if tool is None or tool.handler is None:
             raise DomainError("FORBIDDEN_TOOL", f"tool not wired: {canonical}")
         return tool.handler(**args)
+
+    def _invoke_mall(self, canonical: str, tenant_id: TenantId, user_id: UserId, run: AgentRun, args: dict) -> dict:
+        from arbor.application.tools.run_tools import aftersale_kind, extract_order_id
+        from arbor.application.tools.yunhui_catalog import (
+            demo_create_aftersale,
+            demo_query_orders,
+            demo_recommend_products,
+        )
+
+        query = str(args.get("query") or run.goal)
+        order_id = str(args.get("order_id") or "").strip() or extract_order_id(query)
+        kind = str(args.get("kind") or "").strip() or aftersale_kind(query)
+        reason = str(args.get("reason") or query)[:200]
+        mall = self.mall_tool
+        if canonical == "yunhui.order.query":
+            if mall is None:
+                return demo_query_orders(query=query, order_id=order_id)
+            return mall.query_orders(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                query=query,
+                order_id=order_id,
+            )
+        if canonical == "yunhui.product.recommend":
+            if mall is None:
+                return demo_recommend_products(query=query, limit=int(args.get("limit") or 3))
+            return mall.recommend_products(
+                tenant_id=tenant_id,
+                user_id=user_id,
+                query=query,
+                limit=int(args.get("limit") or 3),
+            )
+        if mall is None:
+            return demo_create_aftersale(order_id=order_id, reason=reason, kind=kind)
+        return mall.create_aftersale(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            order_id=order_id,
+            reason=reason,
+            kind=kind,
+        )
 
 
 def build_default_tool_registry() -> ToolRegistry:
@@ -258,6 +303,55 @@ def build_default_tool_registry() -> ToolRegistry:
                     "priority": {"type": "string", "default": "normal"},
                 },
                 "required": ["title"],
+            },
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="yunhui.order.query",
+            aliases=["order", "订单", "查单"],
+            description="Query 云汇智选 orders",
+            risk_level=ToolRiskLevel.READ,
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "default": ""},
+                    "order_id": {"type": "string", "default": ""},
+                },
+            },
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="yunhui.product.recommend",
+            aliases=["recommend", "推荐"],
+            description="Recommend 云汇智选 products",
+            risk_level=ToolRiskLevel.READ,
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "default": ""},
+                    "limit": {"type": "integer", "default": 3},
+                },
+            },
+        )
+    )
+    registry.register(
+        ToolDefinition(
+            name="yunhui.aftersale.create",
+            aliases=["aftersale", "售后"],
+            description="Register 云汇智选 after-sales",
+            risk_level=ToolRiskLevel.HIGH,
+            approval_required=True,
+            idempotency_policy=IdempotencyPolicy.REQUIRED,
+            retry_policy={"max_attempts": 2},
+            input_schema={
+                "type": "object",
+                "properties": {
+                    "order_id": {"type": "string", "default": ""},
+                    "reason": {"type": "string", "default": ""},
+                    "kind": {"type": "string", "default": "return"},
+                },
             },
         )
     )

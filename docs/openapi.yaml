@@ -1726,6 +1726,102 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
+  /personas/{persona_id}/tools/yunhui/orders:
+    post:
+      tags: [Personas]
+      summary: 查询云汇智选订单（需 tool_policy 允许 order）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                order_id:
+                  type: string
+      responses:
+        "200":
+          description: 订单查询结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tool:
+                    type: string
+                  status:
+                    type: string
+                  orders:
+                    type: array
+                    items:
+                      type: object
+                  note:
+                    type: string
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/tools/yunhui/recommend:
+    post:
+      tags: [Personas]
+      summary: 云汇智选货品推荐（需 tool_policy 允许 recommend）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                limit:
+                  type: integer
+      responses:
+        "200":
+          description: 推荐结果
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /personas/{persona_id}/tools/yunhui/aftersales:
+    post:
+      tags: [Personas]
+      summary: 登记云汇智选售后（需 tool_policy 允许 aftersale）
+      parameters:
+        - $ref: "#/components/parameters/TenantHeader"
+        - $ref: "#/components/parameters/PersonaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: string
+                reason:
+                  type: string
+                kind:
+                  type: string
+                  enum: [return, refund, exchange]
+      responses:
+        "200":
+          description: 售后登记结果
+        "403":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
   /personas/{persona_id}/eval/runs:
     post:
       tags: [Eval]

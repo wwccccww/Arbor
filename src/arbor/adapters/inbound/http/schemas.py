@@ -64,6 +64,22 @@ class CalendarToolIn(BaseModel):
     query_text: str = "近期日程"
 
 
+class YunhuiOrderIn(BaseModel):
+    query: str = ""
+    order_id: str = ""
+
+
+class YunhuiRecommendIn(BaseModel):
+    query: str = ""
+    limit: int = 3
+
+
+class YunhuiAftersaleIn(BaseModel):
+    order_id: str = ""
+    reason: str = ""
+    kind: str = "return"
+
+
 class MemberPatchIn(BaseModel):
     role: str
 

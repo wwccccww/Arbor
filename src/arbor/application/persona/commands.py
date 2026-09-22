@@ -56,6 +56,11 @@ class CreatePersona:
             ),
             grants=[Grant(user_id=user_id, capabilities=list(Capability))],
         )
+        raw_policy = merged.get("tool_policy") or {}
+        allowed = [str(item) for item in (raw_policy.get("allowed_tools") or []) if str(item).strip()]
+        notes = str(raw_policy.get("notes") or "")
+        if allowed or notes:
+            persona.tool_policy = ToolPolicy(allowed_tools=allowed, notes=notes)
         self.personas.save(persona)
         return persona
 

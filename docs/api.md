@@ -138,6 +138,26 @@ Agent / 数字员工专用错误码（HTTP 400/403/404/409）：
 
 聊天响应 `POST /v1/threads/{thread_id}/messages` 与消息列表在助手消息上可带 `tool_results`（与关键词/LLM 工具执行结果同形）。
 
+### 云汇智选（客服商城）
+
+客服模板默认允许 `order`、`recommend`、`aftersale`。配置 `ARBOR_YUNHUI_API_URL` 后走真实商城，否则返回演示订单。可选 `ARBOR_YUNHUI_API_KEY` 作为 Bearer。`ARBOR_YUNHUI_BACKEND=auto` 在有地址时使用 HTTP。
+
+Arbor 向商城根路径发送：
+
+| 工具 | 商城路径 | 请求体 |
+|------|----------|--------|
+| 订单查询 | `POST {root}/orders/query` | `tenant_id`、`user_id`、`query`、`order_id`、`source=arbor-chat` |
+| 货品推荐 | `POST {root}/products/recommend` | `tenant_id`、`user_id`、`query`、`limit`、`source=arbor-chat` |
+| 售后登记 | `POST {root}/aftersales` | `tenant_id`、`user_id`、`order_id`、`reason`、`kind`（`return` / `refund` / `exchange`）、`source=arbor-chat` |
+
+工作台接口（需对应工具在白名单内，且调用方有 `chat`）：
+
+- `POST /v1/personas/{persona_id}/tools/yunhui/orders`
+- `POST /v1/personas/{persona_id}/tools/yunhui/recommend`
+- `POST /v1/personas/{persona_id}/tools/yunhui/aftersales`
+
+对话里出现「订单 / 物流」「推荐 / 货品」「售后 / 退货」等说法时，关键词模式会调用对应工具。多步 Agent 里售后登记需要审批。
+
 ### 日历工具 API（工作台 UI）
 
 `POST /v1/personas/{persona_id}/tools/calendar`

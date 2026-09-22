@@ -231,6 +231,25 @@ def ticket_backend() -> str:
     return "auto"
 
 
+def yunhui_api_url() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_YUNHUI_API_URL") or "").strip()
+
+
+def yunhui_api_key() -> str:
+    load_dotenv()
+    return (os.environ.get("ARBOR_YUNHUI_API_KEY") or "").strip()
+
+
+def yunhui_backend() -> str:
+    """stub | http | auto — auto uses http when ARBOR_YUNHUI_API_URL is set."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_YUNHUI_BACKEND") or "auto").strip().lower()
+    if raw in {"stub", "http", "auto"}:
+        return raw
+    return "auto"
+
+
 def tool_mode() -> str:
     """keywords | llm | both — how persona tools are invoked."""
     load_dotenv()

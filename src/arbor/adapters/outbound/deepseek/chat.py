@@ -176,6 +176,12 @@ class DeepSeekChatLLM:
         self.last_reasoning_content = str(reasoning) if reasoning else None
 
 
+def _tool_calls_clause(prompt_slots: dict) -> str:
+    allowed = [str(name) for name in (prompt_slots.get("allowed_tool_names") or []) if str(name).strip()]
+    shown = "|".join(allowed) if allowed else "calendar|ticket|order|recommend|aftersale"
+    return f', "tool_calls": [{{"name": "{shown}", "reason": "..."}}]'
+
+
 def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
     profile = prompt_slots.get("profile") or {}
     name = profile.get("display_name") or "助手"
@@ -183,11 +189,7 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
         f"你是 Arbor 人设「{name}」。只能根据下面注入的上下文回答。",
         "禁止使用上下文里没有的事实。不知道就说「我这边没有这条记录」。",
         "只输出 JSON：{\"text\": \"...\", \"citations\": [\"memory-id\", ...]"
-        + (
-            ", \"tool_calls\": [{\"name\": \"calendar\"|\"ticket\", \"reason\": \"...\"}]"
-            if prompt_slots.get("llm_tool_calls_enabled")
-            else ""
-        )
+        + (_tool_calls_clause(prompt_slots) if prompt_slots.get("llm_tool_calls_enabled") else "")
         + "}",
         "citations 只能来自下列 memory id，没有就输出空数组。",
         f"可用 memory id: {injected_memory_ids}",
@@ -195,7 +197,9 @@ def _system_prompt(prompt_slots: dict, injected_memory_ids: list[str]) -> str:
     if prompt_slots.get("llm_tool_calls_enabled"):
         allowed = prompt_slots.get("allowed_tool_names") or []
         lines.append(
-            "若需查日程或登记工单且 tool_results 不足，在 tool_calls 中声明；否则 tool_calls 留空数组。"
+            "若 tool_results 不足且需要外部查询或登记，在 tool_calls 中声明；"
+            "name 必须来自可调工具。否则 tool_calls 留空数组。"
+            "order 查云汇智选订单，recommend 推荐货品，aftersale 登记售后。"
         )
         lines.append(f"可调工具: {json.dumps(allowed, ensure_ascii=False)}")
     lines.extend(

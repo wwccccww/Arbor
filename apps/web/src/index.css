@@ -1090,6 +1090,7 @@ td:first-child {
 
 .ticket-tool,
 .calendar-tool,
+.yunhui-tool,
 .tool-results {
   margin-top: 0.75rem;
   padding: 0.65rem 0.75rem;
@@ -1106,9 +1107,15 @@ td:first-child {
   margin: 0.35rem 0 0.75rem;
 }
 
-.ticket-tool__result {
+.ticket-tool__result,
+.yunhui-tool__result {
   margin: 0.5rem 0 0;
   font-size: 0.9rem;
+}
+
+.yunhui-tool__actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .inbox-conflict {

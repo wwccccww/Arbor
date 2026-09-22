@@ -15,12 +15,41 @@ _TOOL_ALIASES = {
     "ticket": "ticket",
     "工单": "ticket",
     "报修": "ticket",
+    "order": "order",
+    "订单": "order",
+    "查单": "order",
+    "yunhui.order.query": "order",
+    "recommend": "recommend",
+    "推荐": "recommend",
+    "yunhui.product.recommend": "recommend",
+    "aftersale": "aftersale",
+    "售后": "aftersale",
+    "yunhui.aftersale.create": "aftersale",
 }
 
 _TOOL_TRIGGERS: dict[str, re.Pattern[str]] = {
     "calendar": re.compile(r"日程|日历|会议|约会|几点|什么时候|安排", re.IGNORECASE),
     "ticket": re.compile(r"工单|报修|故障|维修|投诉|ticket", re.IGNORECASE),
+    "order": re.compile(r"订单|查单|物流|快递|单号|发货", re.IGNORECASE),
+    "recommend": re.compile(r"推荐|买什么|有什么货|货品|商品", re.IGNORECASE),
+    "aftersale": re.compile(r"售后|退货|退款|换货|退换", re.IGNORECASE),
 }
+
+_ORDER_ID = re.compile(r"\b([A-Za-z]{1,8}\d{6,})\b")
+
+
+def extract_order_id(text: str) -> str:
+    match = _ORDER_ID.search(text or "")
+    return match.group(1) if match else ""
+
+
+def aftersale_kind(text: str) -> str:
+    blob = text or ""
+    if "退款" in blob:
+        return "refund"
+    if "换货" in blob:
+        return "exchange"
+    return "return"
 
 
 def normalize_tool_name(raw: str) -> str | None:
@@ -82,6 +111,7 @@ def run_persona_tools(
     user_id: UserId | None = None,
     calendar_tool: object | None = None,
     ticket_tool: object | None = None,
+    mall_tool: object | None = None,
     observability: object | None = None,
 ) -> list[dict]:
     """Run allowed tools when user text matches keyword triggers."""
@@ -119,6 +149,14 @@ def run_persona_tools(
                     )
                 else:
                     result = _stub_ticket_result(haystack)
+            elif name in {"order", "recommend", "aftersale"}:
+                result = _run_mall_tool(
+                    name,
+                    haystack,
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    mall_tool=mall_tool,
+                )
             else:
                 continue
             obs.event(
@@ -138,3 +176,47 @@ def run_persona_tools(
             )
             raise
     return results
+
+
+def _run_mall_tool(
+    name: str,
+    text: str,
+    *,
+    tenant_id: TenantId | None,
+    user_id: UserId | None,
+    mall_tool: object | None,
+) -> dict:
+    from arbor.application.tools.yunhui_catalog import (
+        demo_create_aftersale,
+        demo_query_orders,
+        demo_recommend_products,
+    )
+
+    order_id = extract_order_id(text)
+    kind = aftersale_kind(text)
+    if mall_tool is None or tenant_id is None or user_id is None:
+        if name == "order":
+            return demo_query_orders(query=text, order_id=order_id)
+        if name == "recommend":
+            return demo_recommend_products(query=text)
+        return demo_create_aftersale(order_id=order_id, reason=text[:200], kind=kind)
+    if name == "order":
+        return mall_tool.query_orders(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            query=text,
+            order_id=order_id,
+        )
+    if name == "recommend":
+        return mall_tool.recommend_products(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            query=text,
+        )
+    return mall_tool.create_aftersale(
+        tenant_id=tenant_id,
+        user_id=user_id,
+        order_id=order_id,
+        reason=text[:200],
+        kind=kind,
+    )
