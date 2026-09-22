@@ -50,6 +50,7 @@ def build_agent_runtime(
     observability: object | None = None,
     calendar_tool=None,
     ticket_tool=None,
+    mall_tool=None,
 ) -> AgentRuntime:
     if embed is not None:
         resolved_embed = embed
@@ -103,6 +104,7 @@ def build_agent_runtime(
         tool_executions=tool_executions,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
+        mall_tool=mall_tool,
         observability=observability,
     )
     extract_memory = ExtractRunMemory(

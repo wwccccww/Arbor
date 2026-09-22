@@ -13,6 +13,7 @@ import { FeishuCalendarConnect } from '../components/FeishuCalendarConnect'
 import { ProfilePane } from '../components/ProfilePane'
 import { CalendarToolPane } from '../components/CalendarToolPane'
 import { TicketToolPane } from '../components/TicketToolPane'
+import { YunhuiToolPane } from '../components/YunhuiToolPane'
 import { WorkbenchLayout } from '../components/WorkbenchLayout'
 import { loadThreadSelection, saveThreadSelection } from '../threadSelection'
 import { useAsyncGuard } from '../useAsyncGuard'
@@ -618,6 +619,9 @@ export function Workbench({
   const calendarAllowed = (persona?.tool_policy?.allowed_tools ?? []).some(
     (tool) => tool === 'calendar' || tool === '日程' || tool === '日历',
   )
+  const yunhuiAllowed = (persona?.tool_policy?.allowed_tools ?? []).some((tool) =>
+    ['order', 'recommend', 'aftersale', '订单', '推荐', '售后', '查单'].includes(tool),
+  )
 
   return (
     <div>
@@ -719,6 +723,12 @@ export function Workbench({
                   busy={importing}
                   job={importJob}
                   onImport={(file, hint) => void importFile(file, hint)}
+                />
+                <YunhuiToolPane
+                  client={client}
+                  personaId={personaId}
+                  allowed={yunhuiAllowed}
+                  disabled={!canEditPersona && !yunhuiAllowed}
                 />
                 <TicketToolPane
                   client={client}

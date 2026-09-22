@@ -652,6 +652,36 @@ export function createClient(
       })) as ToolResult
     },
 
+    async queryYunhuiOrder(
+      personaId: string,
+      payload: { query?: string; order_id?: string },
+    ): Promise<ToolResult> {
+      return (await request(`/personas/${personaId}/tools/yunhui/orders`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as ToolResult
+    },
+
+    async recommendYunhuiProducts(
+      personaId: string,
+      payload: { query?: string; limit?: number },
+    ): Promise<ToolResult> {
+      return (await request(`/personas/${personaId}/tools/yunhui/recommend`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as ToolResult
+    },
+
+    async createYunhuiAftersale(
+      personaId: string,
+      payload: { order_id?: string; reason?: string; kind?: string },
+    ): Promise<ToolResult> {
+      return (await request(`/personas/${personaId}/tools/yunhui/aftersales`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })) as ToolResult
+    },
+
     async listEvalRuns(limit = 10): Promise<{
       items: Array<{
         id: string

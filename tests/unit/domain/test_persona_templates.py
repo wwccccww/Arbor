@@ -10,6 +10,7 @@ def test_apply_template_merges_defaults():
     assert merged["skin"] == "employee"
     assert merged["display_name"] == "客服小周"
     assert "手册" in merged["one_liner"]
+    assert merged["tool_policy"]["allowed_tools"] == ["order", "recommend", "aftersale"]
 
 
 def test_apply_template_rejects_unknown():

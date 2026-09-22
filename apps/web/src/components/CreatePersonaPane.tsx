@@ -10,7 +10,7 @@ const TEMPLATES: Array<{
   { id: '', label: '空白档案', skin: 'companion', one_liner: '' },
   { id: 'companion_partner', label: '伴侣', skin: 'companion', one_liner: '温柔陪伴，记得你的喜好与约定' },
   { id: 'companion_mentor', label: '导师', skin: 'companion', one_liner: '耐心引导，帮你拆解问题与复盘' },
-  { id: 'employee_support', label: '客服', skin: 'employee', one_liner: '按手册处理售后与退货' },
+  { id: 'employee_support', label: '客服', skin: 'employee', one_liner: '云汇智选客服，按手册查订单、荐货品、办售后' },
   { id: 'employee_interviewer', label: '面试官', skin: 'employee', one_liner: '结构化提问，追问细节与动机' },
 ]
 

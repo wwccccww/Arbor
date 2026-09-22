@@ -14,6 +14,7 @@ class PersonaTemplate:
     personality: dict | None
     taboos: list[str]
     relationships: list[dict]
+    tool_policy: dict | None = None
 
 
 PERSONA_TEMPLATES: dict[str, PersonaTemplate] = {
@@ -42,10 +43,14 @@ PERSONA_TEMPLATES: dict[str, PersonaTemplate] = {
         label="客服",
         skin="employee",
         display_name="",
-        one_liner="按手册处理售后与退货",
-        personality={"traits": ["简短", "按流程"]},
+        one_liner="云汇智选客服，按手册查订单、荐货品、办售后",
+        personality={"traits": ["简短", "按流程", "只依据商城记录回答"]},
         taboos=[],
         relationships=[{"name": "用户", "kind": "customer"}],
+        tool_policy={
+            "allowed_tools": ["order", "recommend", "aftersale"],
+            "notes": "云汇智选：订单查询、货品推荐、售后登记",
+        },
     ),
     "employee_interviewer": PersonaTemplate(
         id="employee_interviewer",
@@ -83,6 +88,7 @@ def apply_template(template_id: str | None, **overrides) -> dict:
             "personality": tpl.personality,
             "taboos": list(tpl.taboos),
             "relationships": list(tpl.relationships),
+            "tool_policy": dict(tpl.tool_policy) if tpl.tool_policy else None,
         }
         base.update(patch)
     for key, value in overrides.items():

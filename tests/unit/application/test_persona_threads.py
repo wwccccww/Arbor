@@ -54,6 +54,15 @@ def test_create_persona_requires_workspace_admin():
     )
     assert created.profile.display_name == "新林夏"
     assert created.profile.taboos == ["香菜"]
+    support = cmd(
+        tenant_id=TENANT,
+        user_id=USER,
+        workspace_admin=True,
+        skin="employee",
+        display_name="云汇客服",
+        template="employee_support",
+    )
+    assert support.tool_policy.allowed_tools == ["order", "recommend", "aftersale"]
 
 
 def test_create_thread_and_list():

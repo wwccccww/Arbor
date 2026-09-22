@@ -44,6 +44,41 @@ def is_repeated_action_loop(steps: list[dict], action: dict, *, window: int = 3)
     return all(action_signature(inp) == sig for inp in recent_inputs)
 
 
+def _mall_tool_action(goal: str, goal_lower: str, evidence_ids: list[str] | None) -> dict | None:
+    from arbor.application.tools.run_tools import aftersale_kind, extract_order_id
+
+    blob = goal or ""
+    if any(token in blob for token in ("售后", "退货", "退款", "换货", "aftersale", "after-sales")):
+        tool_name = "yunhui.aftersale.create"
+        arguments = {
+            "order_id": extract_order_id(blob),
+            "reason": blob[:200],
+            "kind": aftersale_kind(blob),
+        }
+        reason = "goal requires 云汇智选 after-sales"
+    elif any(token in blob for token in ("推荐", "货品", "商品")) or "recommend" in goal_lower:
+        tool_name = "yunhui.product.recommend"
+        arguments = {"query": blob, "limit": 3}
+        reason = "goal requires 云汇智选 recommendations"
+    elif any(token in blob for token in ("订单", "查单", "物流")):
+        tool_name = "yunhui.order.query"
+        arguments = {"query": blob, "order_id": extract_order_id(blob)}
+        reason = "goal requires 云汇智选 order lookup"
+    else:
+        return None
+    action = validate_planner_action(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "action": "tool",
+            "tool_name": tool_name,
+            "arguments": arguments,
+            "evidence_ids": list(evidence_ids or []),
+            "reason": reason,
+        }
+    )
+    return filter_evidence_ids(action, list(evidence_ids or []))
+
+
 class ScriptedPlanner:
     """Deterministic planner for tests and agent-smoke eval."""
 
@@ -105,6 +140,10 @@ class ScriptedPlanner:
             )
             return filter_evidence_ids(action, list(evidence_ids or []))
         goal_lower = (goal or "").lower()
+        if not any(s.get("kind") == "tool" for s in steps):
+            mall_action = _mall_tool_action(goal, goal_lower, evidence_ids)
+            if mall_action is not None:
+                return mall_action
         if "ticket" in goal_lower and not any(s.get("kind") == "tool" for s in steps):
             action = validate_planner_action(
                 {

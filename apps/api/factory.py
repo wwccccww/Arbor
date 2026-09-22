@@ -65,6 +65,7 @@ from arbor.adapters.outbound.tools.credential_store import FileFeishuCredentialS
 from arbor.adapters.outbound.tools.feishu_calendar import FeishuCalendarTool, StubCalendarTool
 from arbor.adapters.outbound.tools.feishu_client import FeishuClient
 from arbor.adapters.outbound.tools.http_ticket import HttpTicketTool
+from arbor.adapters.outbound.tools.http_yunhui import build_yunhui_mall
 from arbor.adapters.outbound.tools.stub_ticket import StubTicketTool
 from arbor.application.audit.commands import RecordAudit
 from arbor.application.audit.queries import ListAuditLogs
@@ -383,6 +384,7 @@ def create_app(
     )
     calendar_tool, feishu_client, feishu_credentials = _build_calendar_stack()
     ticket_tool = _build_ticket_tool()
+    mall_tool = build_yunhui_mall()
     vision_enrich = (
         (lambda text, attachments: _enrich_chat_with_vision(text, attachments, storage))
         if chat_api_key()
@@ -404,6 +406,7 @@ def create_app(
         vision_enrich=vision_enrich,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
+        mall_tool=mall_tool,
         observability=observability,
         decision_traces=decision_traces,
     )
@@ -681,6 +684,7 @@ def create_app(
         tool_executions=tool_executions,
         calendar_tool=calendar_tool,
         ticket_tool=ticket_tool,
+        mall_tool=mall_tool,
         mcp_transport=mcp_transport,
         observability=observability,
     )
@@ -1063,6 +1067,7 @@ def create_app(
             personas=personas,
             ticket_tool=ticket_tool,
             calendar_tool=calendar_tool,
+            mall_tool=mall_tool,
             auth=AuthorizationPolicy(),
             current_user=current_user,
             resolve_tenant=resolve_tenant,

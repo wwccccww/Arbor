@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from arbor.adapters.outbound.arq.agent_runtime import build_agent_runtime
+from arbor.adapters.outbound.tools.http_yunhui import build_yunhui_mall
 from arbor.adapters.outbound.tools.stub_ticket import StubTicketTool
 from arbor.domain.shared.ids import TenantId, UserId
 from arbor.env import database_url as env_database_url
@@ -39,6 +40,7 @@ def execute_agent_run(payload: dict) -> None:
             database_url=url,
             observability=observability,
             ticket_tool=StubTicketTool(),
+            mall_tool=build_yunhui_mall(),
         )
         guard = 0
         while guard < 16:
