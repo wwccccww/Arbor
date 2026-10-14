@@ -75,14 +75,58 @@ python3 -m arq arbor.adapters.outbound.arq.worker.WorkerSettings   # 终端 2
 # arbor_import_jobs_total、pending 任务、import.process duration
 ```
 
-## 7. 如何读结果
+## 7. 真 bge-m3 + DeepSeek（双 worker 冒烟）
+
+**用途**：验证嵌入/LLM 延迟、导入队列消化，**不是** 压出线上 QPS。
+
+前置：Postgres（含 pgvector）、Redis、`DEEPSEEK_API_KEY`、`EMBEDDING_API_KEY`（或 `SILICONFLOW_API_KEY`）。
+
+```bash
+export DATABASE_URL=postgresql://arbor:arbor@127.0.0.1:5432/arbor
+export REDIS_URL=redis://127.0.0.1:6379/0
+# export DEEPSEEK_API_KEY=...
+# export EMBEDDING_API_KEY=...
+
+chmod +x scripts/load/serve-for-load-real.sh scripts/load/run-arq-workers.sh
+./scripts/load/serve-for-load-real.sh          # 终端 1
+./scripts/load/run-arq-workers.sh                # 终端 2（默认 WORKERS=2）
+```
+
+聊天（**低 VU**，120s 超时）：
+
+```bash
+VUS=2 DURATION=20s k6 run scripts/load/k6-chat-real.js
+```
+
+导入积压（真嵌入会慢，可把 `IMPORT_COUNT` 调小；长跑可加大 poll 上限）：
+
+```bash
+IMPORT_COUNT=40 ./scripts/load/import-backlog-smoke.sh
+```
+
+`/v1/me` 应显示 `llm: deepseek`、`embed: bge-m3`（或你的 `EMBEDDING_MODEL`）、`store: postgres`、`job_queue: redis`。
+
+## 8. 如何读结果
 
 | 场景 | 主要看 | 典型瓶颈 |
 |------|--------|----------|
 | k6-me + Postgres | `http_req_duration` p95、0% 5xx | 连接池、RLS checkout |
 | k6-chat scripted | p95、失败率 | 检索 + 上下文编译（仍无真 LLM） |
-| 真 DeepSeek | 勿用 k6 高 VU | 供应商 RPM / 超时 |
+| k6-chat real | 失败率、~0.1 rps 量级 | DeepSeek + bge 串行/排队 |
+| 并行导入 + 2 worker | pending/running 快照、completed/s | 嵌入 + 写 PG，≈2× 单 worker 吞吐 |
+
+### 本机一次实测参考（Cloud Agent VM，仅供参考）
+
+| 栈 | 场景 | 吞吐 / 规模 | p95 / 备注 |
+|----|------|-------------|------------|
+| fixture + 内存 | k6-me 30 VU×30s | ~446 rps | ~50 ms，0% fail |
+| fixture + PG | k6-me 800 VU | ~450–550 rps 平台期 | ~2.3 s，0% fail |
+| fixture + PG | k6-chat 30–120 VU | ~3–15 rps | 3–35 s（排队） |
+| PG + 1 worker | 导入 250 串行 | worker 跟得上 | peak pending ≈0 |
+| PG + 2 worker | 导入 120 并行 burst | ~8 completed / 5s | 提交后 pending≈118、running≈2 |
+| 真 bge + DeepSeek + 2 worker | 单条聊天 | ~10.7 s/条 | — |
+| 真 bge + DeepSeek | k6-chat-real 2–10 VU×20s | ~0.12–0.14 rps | p95 ~20–44 s，17–29% 超时 fail |
 
 **不要** 把 k6 数字写成「线上 QPS」；结论模板：
 
-> Scripted 路径下 `/v1/me` p95 ≈ X ms（Y VU）；聊天 p95 ≈ Z ms；未测真 LLM 吞吐。
+> Scripted 路径下 `/v1/me` p95 ≈ X ms（Y VU）；聊天 p95 ≈ Z ms。真 LLM 路径仅验证延迟与队列，约 A s/条、并发 B VU 时失败率 C%。
