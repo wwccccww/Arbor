@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
+from arbor.adapters.outbound.embedding import embedding_client_from_env
+from arbor.adapters.outbound.inmemory import FixtureEmbeddingClient
 from arbor.adapters.outbound.inmemory import (
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
@@ -24,10 +25,10 @@ from arbor.application.memory.import_jobs import RunImportJob
 from arbor.application.memory.media_to_inbox import MediaToInbox
 from arbor.application.memory.process_import import ProcessImportJob
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import PersonaId, TenantId
+from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
 LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
-MEMBER_ID = "0a000000-0000-4000-a000-000000000003"
+MEMBER_ID = UserId("0a000000-0000-4000-a000-000000000003")
 
 
 @dataclass
@@ -62,9 +63,15 @@ def build_import_job_runtime(
         import_jobs = PgImportJobRepository(session.conn)
         storage = build_object_storage(session=session, stores=None)
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
-        if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
-            linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
-            personas.save(linxia)
+        if linxia is not None:
+            member_val = MEMBER_ID.value
+            has_member = any(
+                (g.user_id.value if hasattr(g.user_id, "value") else str(g.user_id)) == member_val
+                for g in linxia.grants
+            )
+            if not has_member:
+                linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
+                personas.save(linxia)
     else:
         stores = InMemoryStores()
         load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json", stores)

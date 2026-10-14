@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
+from arbor.adapters.outbound.embedding import embedding_client_from_env
+from arbor.adapters.outbound.inmemory import FixtureEmbeddingClient
 from arbor.adapters.outbound.inmemory import (
     InMemoryEventGraphRepository,
     InMemoryInboxRepository,
@@ -75,9 +76,15 @@ def build_agent_runtime(
         tool_executions = session.tool_executions
         embed_fn = session.embed.embed
         linxia = personas.get(TenantId("0a000000-0000-4000-a000-000000000001"), PersonaId(LINXIA_ID))
-        if linxia is not None and not any(g.user_id == MEMBER_ID for g in linxia.grants):
-            linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
-            personas.save(linxia)
+        if linxia is not None:
+            member_val = MEMBER_ID.value
+            has_member = any(
+                (g.user_id.value if hasattr(g.user_id, "value") else str(g.user_id)) == member_val
+                for g in linxia.grants
+            )
+            if not has_member:
+                linxia.grants.append(Grant(user_id=MEMBER_ID, capabilities=[Capability.CHAT]))
+                personas.save(linxia)
     else:
         stores = InMemoryStores()
         load_world(ROOT / "eval" / "fixtures" / "suite-v1" / "world.json", stores)

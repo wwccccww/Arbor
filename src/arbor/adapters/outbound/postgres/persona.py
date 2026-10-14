@@ -86,12 +86,13 @@ class PgPersonaRepository:
         )
         for grant in persona.grants:
             caps = [cap.value if isinstance(cap, Capability) else str(cap) for cap in grant.capabilities]
+            uid = grant.user_id.value if hasattr(grant.user_id, "value") else str(grant.user_id)
             self.conn.execute(
                 """
                 INSERT INTO persona_grants (persona_id, tenant_id, user_id, capabilities)
                 VALUES (%s::uuid, %s::uuid, %s::uuid, %s)
                 """,
-                (persona.id.value, persona.tenant_id.value, grant.user_id.value, caps),
+                (persona.id.value, persona.tenant_id.value, uid, caps),
             )
 
     def delete(self, tenant_id: TenantId, persona_id: PersonaId) -> bool:

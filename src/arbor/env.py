@@ -270,6 +270,17 @@ def context_recent_k() -> int:
     return max(0, min(value, 32))
 
 
+def rate_limit_per_window() -> int:
+    """Per-token HTTP limit for /v1 (see apps.api.rate_limit). Load tests may raise via env."""
+    load_dotenv()
+    raw = (os.environ.get("ARBOR_RATE_LIMIT_PER_WINDOW") or "120").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 120
+    return max(1, value)
+
+
 def context_system_overhead_tokens() -> int:
     load_dotenv()
     raw = (os.environ.get("ARBOR_CONTEXT_SYSTEM_OVERHEAD") or "600").strip()
