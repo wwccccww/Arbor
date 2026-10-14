@@ -6,7 +6,7 @@ from __future__ import annotations
 def main() -> None:
     from arq.cli import run_worker
 
-    run_worker(settings="arbor.adapters.outbound.arq.worker.WorkerSettings")
+    run_worker(settings_cls="arbor.adapters.outbound.arq.worker.WorkerSettings")
 
 
 if __name__ == "__main__":
