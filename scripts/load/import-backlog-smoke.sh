@@ -36,9 +36,6 @@ for i in $(seq 1 "$N"); do
   job_ids+=("$jid")
 done
 
-submit_done=$(date +%s)
-echo "All submitted in $((submit_done - started))s. First status snapshot:"
-
 count_status() {
   local st="$1"
   local n=0
@@ -51,6 +48,17 @@ count_status() {
   done
   echo "$n"
 }
+
+submit_done=$(date +%s)
+echo "All submitted in $((submit_done - started))s."
+max_pending=0
+for _ in 1 2 3 4 5; do
+  p=$(count_status pending)
+  max_pending=$((p > max_pending ? p : max_pending))
+  sleep 0.2
+done
+echo "Peak pending (sampled after submit): $max_pending"
+echo "First full status snapshot:"
 
 pending=$(count_status pending)
 running=$(count_status running)

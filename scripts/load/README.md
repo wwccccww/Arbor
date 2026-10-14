@@ -51,14 +51,31 @@ pytest tests/api/test_postgres_concurrent_mixed.py -v
 
 与 `test_postgres_app_concurrent_me_with_tenant_header` 互补：混合只读接口、更高并发。
 
-## 5. 导入队列积压（手工）
+## 5. 导入队列积压（ARQ + Postgres + worker）
+
+API 与 worker **必须共用 `DATABASE_URL`**（job 状态在 PG）；仅内存模式 worker 吃不到 API 写的 job。
+
+```bash
+docker compose -f infra/compose/postgres.yml up -d   # 或本地 Postgres
+docker compose -f infra/compose/redis.yml up -d
+export DATABASE_URL=postgresql://...
+export REDIS_URL=redis://127.0.0.1:6379/0
+
+./scripts/load/serve-for-load.sh          # 终端 1（需改为带 PG/Redis 的环境变量）
+python3 -m arq arbor.adapters.outbound.arq.worker.WorkerSettings   # 终端 2
+./scripts/load/import-backlog-smoke.sh    # 终端 3
+```
+
+环境变量：`IMPORT_COUNT`（默认 25）、`BASE_URL`、`PERSONA_ID`。
+
+## 6. 导入队列积压（手工观察 Grafana）
 
 ```bash
 # REDIS_URL + arbor-worker 启用后，连续上传 N 个小 PDF，看 Grafana：
 # arbor_import_jobs_total、pending 任务、import.process duration
 ```
 
-## 6. 如何读结果
+## 7. 如何读结果
 
 | 场景 | 主要看 | 典型瓶颈 |
 |------|--------|----------|
