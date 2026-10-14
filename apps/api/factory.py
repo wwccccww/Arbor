@@ -1186,4 +1186,5 @@ def create_app_from_env() -> FastAPI:
         reasoner=reasoner,
         embed=embedding_client_from_env(),
         redis_url=redis or None,
+        rate_limit_per_window=env.rate_limit_per_window(),
     )
