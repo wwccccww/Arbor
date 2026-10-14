@@ -5,6 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+export BASE_URL
 SCENARIO="${STRESS_SCENARIO:-me}"  # me | chat
 DURATION="${STRESS_DURATION:-20s}"
 MAX_VUS="${STRESS_MAX_VUS:-200}"

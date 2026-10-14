@@ -106,7 +106,31 @@ IMPORT_COUNT=40 ./scripts/load/import-backlog-smoke.sh
 
 `/v1/me` 应显示 `llm: deepseek`、`embed: bge-m3`（或你的 `EMBEDDING_MODEL`）、`store: postgres`、`job_queue: redis`。
 
-## 8. 如何读结果
+## 8. 系统极限（队列 + hybrid 检索）
+
+**Fixture 栈**（`serve-for-load.sh` + `DATABASE_URL` + `REDIS_URL` + N× worker），一键：
+
+```bash
+export DATABASE_URL=postgresql://arbor:arbor@127.0.0.1:5432/arbor
+export REDIS_URL=redis://127.0.0.1:6379/0
+chmod +x scripts/load/run-system-limits.sh scripts/load/import-throughput.sh
+START_STACK=1 WORKERS=2 LIMIT_PORT=8001 ./scripts/load/run-system-limits.sh
+```
+
+分项：
+
+| 脚本 | 测什么 |
+|------|--------|
+| `import-throughput.sh` | 并行入队 submit/s、pending/running 峰值、每窗口 **completed jobs/s** |
+| `bench-hybrid-retrieval-inproc.py` | Postgres 上并发 `retrieve(layered_tree)`（fixture 嵌入，无 HTTP/LLM） |
+| `bench-retrieval-http.py` | 并发 `POST .../messages`（检索+上下文+ScriptedLLM）递增至阈值 |
+| `stress-find-limit.sh` | k6 扫 `/v1/me` 与 scripted chat 的 VU 上限 |
+
+环境变量：`IMPORT_COUNT`、`IMPORT_PARALLEL`、`RETRIEVAL_MAX_WORKERS`、`RETRIEVAL_P95_LIMIT_MS`、`STRESS_MAX_VUS` 等。
+
+pytest：`tests/api/test_postgres_concurrent_retrieval_chat.py`（24×72 并发聊天，验无 500）。
+
+## 9. 如何读结果
 
 | 场景 | 主要看 | 典型瓶颈 |
 |------|--------|----------|
@@ -126,6 +150,19 @@ IMPORT_COUNT=40 ./scripts/load/import-backlog-smoke.sh
 | PG + 2 worker | 导入 120 并行 burst | ~8 completed / 5s | 提交后 pending≈118、running≈2 |
 | 真 bge + DeepSeek + 2 worker | 单条聊天 | ~10.7 s/条 | — |
 | 真 bge + DeepSeek | k6-chat-real 2–10 VU×20s | ~0.12–0.14 rps | p95 ~20–44 s，17–29% 超时 fail |
+
+### Fixture + PG + Redis 极限参考（`run-system-limits.sh` 一次跑通）
+
+| 子系统 | 指标 | 观察到的平台 / 拐点 |
+|--------|------|---------------------|
+| 导入队列 | 入队 | ~**100 submit/s**（100 任务、parallel=25） |
+| 导入队列 | 消化 | **~1.6 jobs/s** 稳态（2 worker、fixture 嵌入）；peak pending≈98、running≈2 |
+| hybrid 检索（进程内 `layered_tree`） | 吞吐 | **~190–226 retrieve/s**（8–24 并发连接）；p95 &lt; 125 ms |
+| hybrid 检索（进程内） | 拐点 | 40 并发 p95≈252 ms；48 并发出现连接池错误 |
+| hybrid 检索（HTTP 聊天） | 吞吐 | **~2.8–3.4 rps**；**20 并发**内 p95 &lt; 8 s |
+| hybrid 检索（HTTP） | 拐点 | 30 并发 p95≈9.8 s（超过默认 8 s SLO） |
+| API `/v1/me` | k6 | **~540 rps** @ 100 VU；150 VU 失败率飙升 |
+| API scripted 聊天 | k6 | **~3 rps** @ 10 VU；**30 VU** 内 p95 &lt; 15 s |
 
 **不要** 把 k6 数字写成「线上 QPS」；结论模板：
 
