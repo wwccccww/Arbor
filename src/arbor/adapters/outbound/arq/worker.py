@@ -9,8 +9,23 @@ from arbor.adapters.outbound.arq.runner import execute_import_job
 from arbor.env import redis_url
 
 
-async def process_import_job(_ctx, payload: dict) -> None:
-    execute_import_job(payload)
+def _is_final_attempt(ctx: object) -> bool:
+    """True when ARQ will not retry this job again.
+
+    Transient failures (a brief database outage while the runtime is assembled)
+    should still be retried, so the job is only recorded as failed on the last
+    attempt. Unknown context counts as final so a job can never stay pending.
+    """
+    if not isinstance(ctx, dict):
+        return True
+    try:
+        return int(ctx.get("job_try", 1)) >= int(ctx.get("max_tries", 1))
+    except (TypeError, ValueError):
+        return True
+
+
+async def process_import_job(ctx, payload: dict) -> None:
+    execute_import_job(payload, final_attempt=_is_final_attempt(ctx))
 
 
 async def process_agent_run(_ctx, payload: dict) -> None:
