@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
+from arbor.adapters.outbound.embedding import embedding_client_from_env
 from arbor.adapters.outbound.inmemory import (
+    FixtureEmbeddingClient,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
     InMemoryPersonaRepository,
