@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from arbor.adapters.inbound.eval_runner import ROOT, load_world
-from arbor.adapters.outbound.embedding import FixtureEmbeddingClient, embedding_client_from_env
+from arbor.adapters.outbound.embedding import embedding_client_from_env
 from arbor.adapters.outbound.inmemory import (
+    FixtureEmbeddingClient,
     InMemoryEventGraphRepository,
     InMemoryInboxRepository,
     InMemoryMemoryRepository,
@@ -28,10 +29,10 @@ from arbor.application.agent.extract_memory import ExtractRunMemory
 from arbor.application.agent.start_run import StartAgentRun
 from arbor.application.agent.tool_executor import ToolExecutor, build_default_tool_registry
 from arbor.domain.persona.authorization import AuthorizationPolicy, Capability, Grant
-from arbor.domain.shared.ids import PersonaId, TenantId
+from arbor.domain.shared.ids import PersonaId, TenantId, UserId
 
 LINXIA_ID = "0a000000-0000-4000-a000-000000000010"
-MEMBER_ID = "0a000000-0000-4000-a000-000000000003"
+MEMBER_ID = UserId("0a000000-0000-4000-a000-000000000003")
 
 
 @dataclass
