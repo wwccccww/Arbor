@@ -19,16 +19,19 @@ _TENANT_HEADERS = {
 @pytest.mark.skipif(not (database_url() or os.environ.get("DATABASE_URL")), reason="Postgres API needs DATABASE_URL")
 def test_postgres_app_concurrent_me_with_tenant_header():
     """RLS middleware must not corrupt pooled transactions under parallel requests."""
-    client = TestClient(
+    # The client must stay a context manager: outside one, Starlette's TestClient
+    # spins up a fresh event loop per request, and the app's asyncio.Lock cannot
+    # be shared across loops (release never wakes the other loop's waiter).
+    with TestClient(
         create_app(database_url=database_url() or os.environ["DATABASE_URL"]),
         raise_server_exceptions=False,
-    )
+    ) as client:
 
-    def hit() -> int:
-        return client.get("/v1/me", headers=_TENANT_HEADERS).status_code
+        def hit() -> int:
+            return client.get("/v1/me", headers=_TENANT_HEADERS).status_code
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        statuses = list(pool.map(lambda _: hit(), range(24)))
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            statuses = list(pool.map(lambda _: hit(), range(24)))
 
     assert statuses.count(500) == 0
     assert all(code == 200 for code in statuses)
