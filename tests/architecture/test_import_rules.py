@@ -15,6 +15,9 @@ FORBIDDEN_DOMAIN = ("arbor.adapters", "arbor.application", "fastapi", "sqlalchem
 # Eval composition roots wire adapters + application (same role as eval_cli).
 _APPLICATION_ADAPTER_IMPORT_ALLOWLIST = (
     ROOT / "application" / "evaluation" / "public_benchmarks",
+    # ragas_pipeline wires the inbound runner, Postgres ports and outbound
+    # scorers to build official RAGAS runs, so it is a composition root too.
+    ROOT / "application" / "evaluation" / "ragas_pipeline.py",
 )
 
 
